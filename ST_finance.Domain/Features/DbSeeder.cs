@@ -363,6 +363,36 @@ namespace ST_finance.Domain.Features
                 }
             );
 
+            // Seed 30 days of historical daily quota logs (past 30 days, ending yesterday)
+            var quotaLogs = new List<TblDailyQuotaLog>();
+            for (int d = -30; d < 0; d++)
+            {
+                var logDate = now.AddDays(d);
+                var targetQuota = 600m + (decimal)rnd.Next(-100, 100);
+
+                var dateStart = DateTime.SpecifyKind(logDate.Date, DateTimeKind.Utc);
+                var dateEnd = dateStart.AddDays(1);
+                var actualSpent = transactions
+                    .Where(t => t.TransactionType == "Expense" && t.Date >= dateStart && t.Date < dateEnd)
+                    .Sum(t => t.Amount);
+
+                if (actualSpent == 0)
+                {
+                    actualSpent = rnd.Next(100, 450);
+                }
+
+                quotaLogs.Add(new TblDailyQuotaLog
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Date = DateOnly.FromDateTime(logDate),
+                    TargetQuota = Math.Round(targetQuota, 2),
+                    ActualSpent = actualSpent,
+                    CreatedAt = logDate
+                });
+            }
+            context.TblDailyQuotaLogs.AddRange(quotaLogs);
+
             await context.SaveChangesAsync();
         }
 
@@ -573,6 +603,36 @@ namespace ST_finance.Domain.Features
 
             context.TblTransactions.AddRange(transactions);
             context.TblSavingsContributions.AddRange(contributions);
+
+            // Seed 30 days of historical daily quota logs (past 30 days, ending yesterday)
+            var quotaLogs = new List<TblDailyQuotaLog>();
+            for (int d = -30; d < 0; d++)
+            {
+                var logDate = now.AddDays(d);
+                var targetQuota = 400m + (decimal)rnd.Next(-80, 80);
+
+                var dateStart = DateTime.SpecifyKind(logDate.Date, DateTimeKind.Utc);
+                var dateEnd = dateStart.AddDays(1);
+                var actualSpent = transactions
+                    .Where(t => t.TransactionType == "Expense" && t.Date >= dateStart && t.Date < dateEnd)
+                    .Sum(t => t.Amount);
+
+                if (actualSpent == 0)
+                {
+                    actualSpent = rnd.Next(80, 350);
+                }
+
+                quotaLogs.Add(new TblDailyQuotaLog
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Date = DateOnly.FromDateTime(logDate),
+                    TargetQuota = Math.Round(targetQuota, 2),
+                    ActualSpent = actualSpent,
+                    CreatedAt = logDate
+                });
+            }
+            context.TblDailyQuotaLogs.AddRange(quotaLogs);
 
             await context.SaveChangesAsync();
         }
