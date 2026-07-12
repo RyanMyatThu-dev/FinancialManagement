@@ -66,9 +66,12 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
       throw new Error(res.data.error?.message || "Failed to create category");
     },
     onSuccess: (newCat) => {
-      qc.invalidateQueries({ queryKey: ["categories"] });
+      // Synchronously inject the new category into the cache so the useEffect
+      // sees it immediately and doesn't reset the selection
+      qc.setQueryData<Category[]>(["categories"], (old) => [...(old || []), newCat]);
       setCategoryId(newCat.id);
       setNewCategoryName("");
+      setNewCategoryIcon("Wallet");
       setShowAddCategory(false);
       setCategoryError(null);
     },
@@ -135,20 +138,16 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
     }
   }, [accounts, accountId]);
 
-  // Set default category when categories load (filtered by type)
+  // Set default category when transaction type changes
   useEffect(() => {
     const filteredCats = categories.filter((c) => c.type === transactionType);
-    const currentIsStillValid = filteredCats.some((c) => c.id === categoryId);
-    if (currentIsStillValid) {
-      return;
-    }
-
     if (filteredCats.length > 0) {
       setCategoryId(filteredCats[0].id);
     } else {
       setCategoryId("");
     }
-  }, [categories, transactionType, categoryId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactionType]);
 
   const mutation = useMutation({
     mutationFn: async (body: any) => {
