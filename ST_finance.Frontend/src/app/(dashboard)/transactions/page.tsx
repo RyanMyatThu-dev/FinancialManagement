@@ -356,7 +356,7 @@ export default function TransactionsPage() {
       {/* Table */}
       <div className="ds-card overflow-hidden">
         {/* Table Header */}
-        <div className="grid grid-cols-[1fr_auto_auto] sm:grid-cols-[1fr_auto_auto_auto] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
+        <div className="grid grid-cols-[1fr_80px_110px] sm:grid-cols-[1fr_120px_80px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
           <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
             Description
           </span>
@@ -390,7 +390,7 @@ export default function TransactionsPage() {
         {transactions.map((tx, idx) => (
           <div
             key={tx.id ?? `tx-${idx}`}
-            className={`ds-table-row grid grid-cols-[1fr_auto_auto] sm:grid-cols-[1fr_auto_auto_auto] px-5 py-3.5 items-center ${
+            className={`ds-table-row grid grid-cols-[1fr_80px_110px] sm:grid-cols-[1fr_120px_80px_130px] px-5 py-3.5 items-center ${
               idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
             }`}
           >
