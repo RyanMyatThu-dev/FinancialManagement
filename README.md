@@ -1,4 +1,4 @@
-# Chula Scholarship Financial Manager & Budget Tracker
+# Financial Manager & Budget Tracker
 
 A tailored, premium financial management, data visualizer, and budget tracker application designed specifically for scholarship students at Chulalongkorn University. 
 
@@ -8,12 +8,12 @@ This app is optimized to manage a monthly stipend of **16,000 Baht**, with stude
 
 ## 🚀 Key Features
 
-*   **16,000 Baht Stipend Tracker**: Countdown to the next disbursement day (the 25th of the month).
+*   **Monthly Allowance**: Countdown to the next disbursement day (the 25th of the month).
 *   **Fixed Deductions Baseline**: Subtracts fixed costs (like dorm rent and utility bills) immediately to isolate your actual disposable budget.
 *   **Dynamic Rolling Daily Limit**: Automatically recalculates how much you can spend today. If you overspend, tomorrow's limit shrinks; if you save, tomorrow's limit grows.
-*   **Chula Canteen Meal Index**: Translates monetary amounts into canteen meals (50 THB each) so you always know your budget in food terms.
+*   **Canteen Meal Index**: Translates monetary amounts into canteen meals (50 THB each) so you always know your budget in food terms.
 *   **Multi-Account Ledger**: Track SCB Bank, TrueMoney E-wallet, Rabbit Card transit card, and Cash balances with seamless transfer logs.
-*   **Advanced Tagging**: Add tags like `#chula-canteen`, `#commute`, and `#exam-prep` for custom reports.
+*   **Advanced Tagging**: Add tags like `#canteen`, `#commute`, and `#exam-prep` for custom reports.
 *   **Virtual Savings Goals**: Earmark savings for textbooks, study gear (like an iPad), or emergency reserves.
 
 ---
