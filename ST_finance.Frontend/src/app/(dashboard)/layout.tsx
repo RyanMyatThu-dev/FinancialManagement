@@ -20,6 +20,8 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  FolderOpen,
+  Tag,
 } from "lucide-react";
 import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
 
@@ -83,6 +85,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Transactions",       href: "/transactions", icon: FileText        },
     { name: "Recurring",          href: "/recurring",    icon: Clock           },
     { name: "Savings Goals",      href: "/savings",      icon: Target          },
+    { name: "Categories",         href: "/categories",   icon: FolderOpen      },
+    { name: "Tags",               href: "/tags",         icon: Tag             },
     { name: "Profile",            href: "/profile",      icon: UserIcon        },
   ];
 
