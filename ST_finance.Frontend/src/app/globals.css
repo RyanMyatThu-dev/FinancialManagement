@@ -1,0 +1,346 @@
+@import "tailwindcss";
+
+/* ========================================================
+   ST-Finance Design System — design.md Aligned
+   Dark-mode first, neon volt green accent, rounded cards
+   ======================================================== */
+
+/* ---- Light Mode (Minimal Fallback) ---- */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 10px;
+  /* Extended tokens */
+  --chula-pink: 340 82% 52%;
+  --safe-to-spend: 180 100% 50%;
+  --warning: 45 93% 47%;
+}
+
+/* ---- Dark Mode — Core System ---- */
+.dark {
+  /* Core Base */
+  --background: 240 10% 2%;          /* Pitch-black canvas */
+  --foreground: 0 0% 98%;            /* High-contrast off-white */
+
+  /* Surface Containers */
+  --card: 240 10% 4%;                /* Very deep charcoal */
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 4%;
+  --popover-foreground: 0 0% 98%;
+
+  /* Primary — Electric Neon Volt Green */
+  --primary: 142 86% 55%;
+  --primary-foreground: 240 10% 2%;
+
+  /* Secondary Elements */
+  --secondary: 240 5% 15%;
+  --secondary-foreground: 0 0% 98%;
+
+  /* Muted */
+  --muted: 240 5% 45%;
+  --muted-foreground: 240 5% 65%;
+
+  /* Accent */
+  --accent: 240 5% 15%;
+  --accent-foreground: 0 0% 98%;
+
+  /* Semantic — Neon Red for expenses */
+  --destructive: 0 100% 60%;
+  --destructive-foreground: 0 0% 98%;
+
+  /* Structural */
+  --border: 240 6% 12%;
+  --input: 240 6% 12%;
+  --ring: 142 86% 55%;               /* Neon green focus ring */
+
+  /* Extended */
+  --chula-pink: 340 82% 52%;
+  --safe-to-spend: 180 100% 50%;
+  --warning: 45 93% 47%;
+}
+
+/* ---- Base Resets ---- */
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* ---- Card / Widget ---- */
+.ds-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  color: hsl(var(--card-foreground));
+}
+
+.ds-card-interactive:hover {
+  border-color: hsl(var(--primary) / 0.4);
+  box-shadow: 0 0 15px hsl(var(--primary) / 0.06);
+}
+
+/* ---- Inputs ---- */
+.ds-input {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--input));
+  color: hsl(var(--foreground));
+  border-radius: calc(var(--radius) - 2px);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.ds-input::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.ds-input:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 1px hsl(var(--ring) / 0.5);
+}
+
+.ds-input-error {
+  border-color: hsl(var(--destructive));
+}
+
+.ds-input-error:focus {
+  box-shadow: 0 0 0 1px hsl(var(--destructive) / 0.5);
+}
+
+/* ---- Buttons ---- */
+.ds-btn-primary {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: 1px solid hsl(var(--primary));
+  border-radius: calc(var(--radius) - 2px);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  transition: background-color 0.15s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.ds-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 12px hsl(var(--primary) / 0.35);
+}
+
+.ds-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ds-btn-outline {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.ds-btn-outline:hover:not(:disabled) {
+  background-color: hsl(var(--secondary));
+  border-color: hsl(var(--primary));
+}
+
+.ds-btn-icon {
+  background-color: hsl(var(--secondary) / 0.5);
+  border: 1px solid hsl(var(--border));
+  border-radius: 9999px;
+  padding: 0.5rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-btn-icon:hover {
+  border-color: hsl(var(--primary) / 0.6);
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.2);
+}
+
+/* ---- Data Tables ---- */
+.ds-table-row {
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.ds-table-row:hover {
+  background-color: hsl(var(--accent) / 0.4);
+}
+
+.ds-table-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: hsl(var(--primary));
+  transform: scaleY(0);
+  transition: transform 0.15s ease;
+}
+
+.ds-table-row:hover::before {
+  transform: scaleY(1);
+}
+
+/* ---- Navigation Pills ---- */
+.ds-nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: calc(var(--radius) - 2px);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.ds-nav-pill:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+
+.ds-nav-pill-active {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--primary));
+  font-weight: 600;
+  border-left: 2px solid hsl(var(--primary));
+}
+
+/* ---- Timeframe Pill Segment ---- */
+.ds-segment-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.ds-segment-pill:hover {
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--foreground));
+}
+
+.ds-segment-pill-active {
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+/* ---- Badge/Tag ---- */
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+.ds-badge-success {
+  background-color: hsl(var(--primary) / 0.1);
+  border-color: hsl(var(--primary) / 0.3);
+  color: hsl(var(--primary));
+}
+
+.ds-badge-danger {
+  background-color: hsl(var(--destructive) / 0.1);
+  border-color: hsl(var(--destructive) / 0.3);
+  color: hsl(var(--destructive));
+}
+
+.ds-badge-warning {
+  background-color: hsl(var(--warning) / 0.1);
+  border-color: hsl(var(--warning) / 0.3);
+  color: hsl(var(--warning));
+}
+
+.ds-badge-pink {
+  background-color: hsl(var(--chula-pink) / 0.1);
+  border-color: hsl(var(--chula-pink) / 0.3);
+  color: hsl(var(--chula-pink));
+}
+
+/* ---- Alert / Warning Panels ---- */
+.ds-alert-warning {
+  border: 1px solid hsl(var(--warning) / 0.25);
+  background-color: hsl(var(--warning) / 0.05);
+  color: hsl(var(--warning));
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.ds-alert-error {
+  border: 1px solid hsl(var(--destructive) / 0.3);
+  background-color: hsl(var(--destructive) / 0.05);
+  color: hsl(var(--destructive));
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.ds-alert-success {
+  border: 1px solid hsl(var(--primary) / 0.3);
+  background-color: hsl(var(--primary) / 0.06);
+  color: hsl(var(--primary));
+  border-radius: calc(var(--radius) - 2px);
+}
+
+/* ---- Scrollbar ---- */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ---- Neon Glow Keyframe ---- */
+@keyframes neon-pulse {
+  0%, 100% { box-shadow: 0 0 6px hsl(var(--primary) / 0.25); }
+  50%       { box-shadow: 0 0 18px hsl(var(--primary) / 0.5); }
+}
+
+.neon-pulse {
+  animation: neon-pulse 2.5s ease-in-out infinite;
+}
+
+/* ---- Loading Spinner ---- */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Gradient Text ---- */
+.text-gradient-volt {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--safe-to-spend)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
