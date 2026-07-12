@@ -94,15 +94,20 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
     }
   }, [accounts, accountId]);
 
-  // Set default category on type change
+  // Set default category on type change or when categories load
   useEffect(() => {
     const filteredCats = categories.filter((c) => c.type === transactionType);
+    const currentIsStillValid = filteredCats.some((c) => c.id === categoryId);
+    if (currentIsStillValid) {
+      return;
+    }
+
     if (filteredCats.length > 0) {
       setCategoryId(filteredCats[0].id);
     } else {
       setCategoryId("");
     }
-  }, [categories, transactionType]);
+  }, [categories, transactionType, categoryId]);
 
   const mutation = useMutation({
     mutationFn: async (body: any) => {
