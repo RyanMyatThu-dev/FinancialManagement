@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
@@ -147,7 +148,7 @@ export default function DashboardHome() {
       {/* ── KPI Stat Cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Balance */}
-        <div className="ds-card ds-card-interactive p-5">
+        <Link href="/accounts" className="ds-card ds-card-interactive p-5 block">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
               Net Balance
@@ -157,10 +158,10 @@ export default function DashboardHome() {
             </div>
           </div>
           <CurrencyDisplay amount={summary?.totalBalance ?? 0} currency={currency} size="md" />
-        </div>
+        </Link>
 
         {/* Earmarked Savings */}
-        <div className="ds-card ds-card-interactive p-5">
+        <Link href="/savings" className="ds-card ds-card-interactive p-5 block">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
               Earmarked Savings
@@ -170,10 +171,10 @@ export default function DashboardHome() {
             </div>
           </div>
           <CurrencyDisplay amount={summary?.totalSavings ?? 0} currency={currency} size="md" />
-        </div>
+        </Link>
 
         {/* Monthly Inflow */}
-        <div className="ds-card ds-card-interactive p-5">
+        <Link href="/transactions" className="ds-card ds-card-interactive p-5 block">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
               Monthly Inflow
@@ -188,10 +189,10 @@ export default function DashboardHome() {
             size="md"
             positiveColor
           />
-        </div>
+        </Link>
 
         {/* Monthly Outflow */}
-        <div className="ds-card ds-card-interactive p-5">
+        <Link href="/transactions" className="ds-card ds-card-interactive p-5 block">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
               Monthly Outflow
@@ -206,7 +207,7 @@ export default function DashboardHome() {
             size="md"
             negativeColor
           />
-        </div>
+        </Link>
       </div>
 
       {/* ── Primary KPI: Quota + Warnings ────────────────────────────── */}
