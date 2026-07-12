@@ -223,14 +223,39 @@ export default function DashboardHome() {
         <div className="lg:col-span-2 ds-card p-6 flex flex-col gap-6">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest">
-                Daily Spending Allowance (Quota)
-              </p>
-              <CurrencyDisplay
-                amount={summary?.quota ?? 0}
-                currency={currency}
-                size="lg"
-              />
+              {summary && summary.spentToday > summary.quota ? (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-[9px] font-bold text-[hsl(var(--destructive))] uppercase tracking-widest">
+                      Exceeded By
+                    </p>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))] border border-[hsl(var(--destructive)/0.25)]">
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      Over Budget
+                    </span>
+                  </div>
+                  <CurrencyDisplay
+                    amount={summary.spentToday - summary.quota}
+                    currency={currency}
+                    size="lg"
+                    negativeColor
+                  />
+                  <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono mt-1">
+                    Quota was ฿{summary.quota.toFixed(2)} — spent ฿{summary.spentToday.toFixed(2)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest">
+                    Daily Spending Allowance (Quota)
+                  </p>
+                  <CurrencyDisplay
+                    amount={summary?.quota ?? 0}
+                    currency={currency}
+                    size="lg"
+                  />
+                </>
+              )}
             </div>
             {/* Canteen Index */}
             <div className="ds-card p-3.5 text-center">
@@ -247,7 +272,7 @@ export default function DashboardHome() {
           {/* Progress Widget */}
           <TechProgress
             value={quotaUsedPercent}
-            label="Today's Spending vs. Quota"
+            label={summary && summary.spentToday > (summary.quota || 0) ? "⚠ Spending Exceeded Quota" : "Today's Spending vs. Quota"}
             minVal="฿0"
             maxVal={`฿${summary?.quota?.toFixed(0) ?? "—"}`}
             color={quotaUsedPercent > 80 ? "destructive" : quotaUsedPercent > 60 ? "warning" : "primary"}
