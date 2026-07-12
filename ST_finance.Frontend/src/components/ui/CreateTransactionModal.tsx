@@ -41,6 +41,62 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
   const [isRecurring,     setIsRecurring]     = useState(false);
   const [error,           setError]           = useState<string | null>(null);
 
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryColor, setNewCategoryColor] = useState("#10B981");
+  const [newCategoryIcon, setNewCategoryIcon] = useState("Wallet");
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+
+  const [showAddTag, setShowAddTag] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState("#6B7280");
+  const [tagError, setTagError] = useState<string | null>(null);
+
+  // Category and Tag Mutations
+  const createCategoryMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.post("/api/transactions/categories", {
+        name: newCategoryName,
+        type: transactionType,
+        icon: newCategoryIcon,
+        color: newCategoryColor,
+      });
+      if (res.data.isSuccess && res.data.value) return res.data.value;
+      throw new Error(res.data.error?.message || "Failed to create category");
+    },
+    onSuccess: (newCat) => {
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      setCategoryId(newCat.id);
+      setNewCategoryName("");
+      setShowAddCategory(false);
+      setCategoryError(null);
+    },
+    onError: (err: any) => {
+      setCategoryError(err.message || "Failed to create category");
+    }
+  });
+
+  const createTagMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.post("/api/transactions/tags", {
+        name: newTagName,
+        color: newTagColor,
+      });
+      if (res.data.isSuccess && res.data.value) return res.data.value;
+      throw new Error(res.data.error?.message || "Failed to create tag");
+    },
+    onSuccess: (newTag) => {
+      qc.invalidateQueries({ queryKey: ["tags"] });
+      setSelectedTagIds((prev) => [...prev, newTag.id]);
+      setNewTagName("");
+      setShowAddTag(false);
+      setTagError(null);
+    },
+    onError: (err: any) => {
+      setTagError(err.message || "Failed to create tag");
+    }
+  });
+
   // 1. Fetch Accounts
   const { data: accountsData } = useQuery<{ items: Account[] }>({
     queryKey: ["accounts-all"],
@@ -253,24 +309,90 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
             ) : (
               /* Category (Expense/Income only) */
               <div>
-                <label htmlFor="tx-category" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                  Category
-                </label>
-                <select
-                  id="tx-category"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="ds-input w-full px-3 py-2.5 text-sm"
-                >
-                  <option value="">None / Uncategorized</option>
-                  {categories
-                    .filter((c) => c.type === transactionType)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="tx-category" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest font-mono">
+                    Category
+                  </label>
+                  {!showAddCategory && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCategory(true)}
+                      className="text-[10px] text-[hsl(var(--primary))] font-bold hover:underline font-mono"
+                    >
+                      + NEW
+                    </button>
+                  )}
+                </div>
+
+                {showAddCategory ? (
+                  <div className="space-y-2 p-3 bg-[hsl(var(--secondary))] border border-[hsl(var(--border))] rounded-lg">
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Category Name"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        className="ds-input w-full px-2 py-1 text-xs"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1 flex gap-2 items-center">
+                        <span className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono">Color:</span>
+                        <input
+                          type="color"
+                          value={newCategoryColor}
+                          onChange={(e) => setNewCategoryColor(e.target.value)}
+                          className="h-6 w-6 rounded border border-[hsl(var(--border))] bg-transparent cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newCategoryName.trim()) return;
+                            createCategoryMutation.mutate();
+                          }}
+                          disabled={createCategoryMutation.isPending}
+                          className="px-2 py-1 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] text-[10px] font-bold rounded"
+                        >
+                          {createCategoryMutation.isPending ? "..." : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddCategory(false);
+                            setCategoryError(null);
+                          }}
+                          className="px-2 py-1 bg-transparent text-[hsl(var(--muted-foreground))] text-[10px] font-bold rounded"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                    {categoryError && (
+                      <p className="text-[10px] text-[hsl(var(--destructive))] font-mono">
+                        {categoryError}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <select
+                    id="tx-category"
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    className="ds-input w-full px-3 py-2.5 text-sm"
+                  >
+                    <option value="">None / Uncategorized</option>
+                    {categories
+                      .filter((c) => c.type === transactionType)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
               </div>
             )}
           </div>
@@ -308,11 +430,77 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
           </div>
 
           {/* Tags Selection */}
-          {tags.length > 0 && (
-            <div>
-              <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest font-mono">
                 Tags
               </label>
+              {!showAddTag && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddTag(true)}
+                  className="text-[10px] text-[hsl(var(--primary))] font-bold hover:underline font-mono"
+                >
+                  + NEW
+                </button>
+              )}
+            </div>
+
+            {showAddTag ? (
+              <div className="space-y-2 p-3 bg-[hsl(var(--secondary))] border border-[hsl(var(--border))] rounded-lg mb-3">
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Tag Name"
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    className="ds-input w-full px-2 py-1 text-xs"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-2 items-center">
+                  <div className="flex-1 flex gap-2 items-center">
+                    <span className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono">Color:</span>
+                    <input
+                      type="color"
+                      value={newTagColor}
+                      onChange={(e) => setNewTagColor(e.target.value)}
+                      className="h-6 w-6 rounded border border-[hsl(var(--border))] bg-transparent cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newTagName.trim()) return;
+                        createTagMutation.mutate();
+                      }}
+                      disabled={createTagMutation.isPending}
+                      className="px-2 py-1 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] text-[10px] font-bold rounded"
+                    >
+                      {createTagMutation.isPending ? "..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddTag(false);
+                        setTagError(null);
+                      }}
+                      className="px-2 py-1 bg-transparent text-[hsl(var(--muted-foreground))] text-[10px] font-bold rounded"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+                {tagError && (
+                  <p className="text-[10px] text-[hsl(var(--destructive))] font-mono">
+                    {tagError}
+                  </p>
+                )}
+              </div>
+            ) : null}
+
+            {tags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {tags.map((tag) => {
                   const selected = selectedTagIds.includes(tag.id);
@@ -328,13 +516,17 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
                       }`}
                     >
                       <Tag className="h-3 w-3 shrink-0" />
-                      {tag.name}
+                      <span>{tag.name}</span>
                     </button>
                   );
                 })}
               </div>
-            </div>
-          )}
+            ) : !showAddTag ? (
+              <p className="text-[11px] text-[hsl(var(--muted-foreground))] font-mono">
+                No tags created yet. Click + NEW to add one.
+              </p>
+            ) : null}
+          </div>
 
           {/* Is Recurring Checkbox */}
           <div className="flex items-center gap-2.5 py-1.5">

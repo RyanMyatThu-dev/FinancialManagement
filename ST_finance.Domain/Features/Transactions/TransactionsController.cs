@@ -88,11 +88,39 @@ namespace ST_finance.Domain.Features.Transactions
             return HandleResult(result);
         }
 
+        [HttpPost("categories")]
+        public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure<CategoryResponse>(CustomErrors.Validation.InvalidInput(errors)));
+            }
+
+            var userId = GetUserId();
+            var result = await _transactionService.CreateCategoryAsync(userId, request);
+            return HandleResult(result);
+        }
+
         [HttpGet("tags")]
         public async Task<IActionResult> GetTags()
         {
             var userId = GetUserId();
             var result = await _transactionService.GetTagsAsync(userId);
+            return HandleResult(result);
+        }
+
+        [HttpPost("tags")]
+        public async Task<IActionResult> CreateTag([FromBody] CreateTagRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure<TagResponse>(CustomErrors.Validation.InvalidInput(errors)));
+            }
+
+            var userId = GetUserId();
+            var result = await _transactionService.CreateTagAsync(userId, request);
             return HandleResult(result);
         }
 

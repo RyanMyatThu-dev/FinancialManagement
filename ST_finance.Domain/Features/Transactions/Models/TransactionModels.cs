@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace ST_finance.Domain.Features.Transactions.Models
 {
@@ -44,5 +45,17 @@ namespace ST_finance.Domain.Features.Transactions.Models
         Guid Id,
         string Name,
         string? Color
+    );
+
+    public record CreateCategoryRequest(
+        [Required][MaxLength(100)] string Name,
+        [Required][MaxLength(10)] string Type,
+        [Required][MaxLength(50)] string Icon,
+        [Required][MaxLength(7)] string Color
+    );
+
+    public record CreateTagRequest(
+        [Required][MaxLength(50)] string Name,
+        [Required][MaxLength(7)] string Color
     );
 }

@@ -24,5 +24,7 @@ namespace ST_finance.Domain.Features.Transactions
         Task<Result> DeleteTransactionAsync(Guid userId, Guid transactionId);
         Task<Result<IEnumerable<CategoryResponse>>> GetCategoriesAsync(Guid userId);
         Task<Result<IEnumerable<TagResponse>>> GetTagsAsync(Guid userId);
+        Task<Result<CategoryResponse>> CreateCategoryAsync(Guid userId, CreateCategoryRequest request);
+        Task<Result<TagResponse>> CreateTagAsync(Guid userId, CreateTagRequest request);
     }
 }

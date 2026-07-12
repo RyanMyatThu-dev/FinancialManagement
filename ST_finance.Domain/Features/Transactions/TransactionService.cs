@@ -407,5 +407,70 @@ namespace ST_finance.Domain.Features.Transactions
                 TagNames = transaction.Tags.Select(t => t.Name).ToList()
             };
         }
+
+        public async Task<Result<CategoryResponse>> CreateCategoryAsync(Guid userId, CreateCategoryRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure<CategoryResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            var nameLower = request.Name.Trim().ToLower();
+            var exists = await _context.TblCategories
+                .AnyAsync(c => c.UserId == userId && c.Name.ToLower() == nameLower && !c.DeleteFlag);
+
+            if (exists)
+            {
+                return Result.Failure<CategoryResponse>(CustomErrors.Validation.InvalidInput("Category with this name already exists."));
+            }
+
+            var category = new TblCategory
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Name = request.Name.Trim(),
+                Type = request.Type,
+                Icon = request.Icon,
+                Color = request.Color,
+                IsDefault = false,
+                DeleteFlag = false
+            };
+
+            _context.TblCategories.Add(category);
+            await _context.SaveChangesAsync();
+
+            return Result.Success(new CategoryResponse(category.Id, category.Name, category.Type, category.Icon, category.Color));
+        }
+
+        public async Task<Result<TagResponse>> CreateTagAsync(Guid userId, CreateTagRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure<TagResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            var nameLower = request.Name.Trim().ToLower();
+            var exists = await _context.TblTags
+                .AnyAsync(t => t.UserId == userId && t.Name.ToLower() == nameLower && !t.DeleteFlag);
+
+            if (exists)
+            {
+                return Result.Failure<TagResponse>(CustomErrors.Validation.InvalidInput("Tag with this name already exists."));
+            }
+
+            var tag = new TblTag
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Name = request.Name.Trim(),
+                Color = request.Color,
+                DeleteFlag = false
+            };
+
+            _context.TblTags.Add(tag);
+            await _context.SaveChangesAsync();
+
+            return Result.Success(new TagResponse(tag.Id, tag.Name, tag.Color));
+        }
     }
 }
