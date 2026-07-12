@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Accounts.Models;
+using ST_finance.Shared;
 using ST_finance.Shared.Enums;
 
 namespace ST_finance.Domain.Features.Accounts
@@ -18,28 +19,55 @@ namespace ST_finance.Domain.Features.Accounts
             _context = context;
         }
 
-        public async Task<IEnumerable<AccountResponse>> GetAccountsAsync(Guid userId)
+        public async Task<Result<PagedResponse<AccountResponse>>> GetAccountsAsync(Guid userId, int pageNumber, int pageSize)
         {
-            var accounts = await _context.TblAccounts
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize  < 1) pageSize  = 20;
+            if (pageSize  > 100) pageSize = 100;
+
+            var query = _context.TblAccounts
                 .Where(a => a.UserId == userId)
-                .OrderBy(a => a.Name)
+                .OrderBy(a => a.Name);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return accounts.Select(MapToResponse);
+            var responses = items.Select(MapToResponse).ToList();
+            return Result.Success(PagedResponse<AccountResponse>.Create(responses, totalCount, pageNumber, pageSize));
         }
 
-        public async Task<AccountResponse> CreateAccountAsync(Guid userId, CreateAccountRequest request)
+        public async Task<Result<AccountResponse>> CreateAccountAsync(Guid userId, CreateAccountRequest request)
         {
-            
+            // 1. Service-level input validations
+            if (request == null)
+            {
+                return Result.Failure<AccountResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return Result.Failure<AccountResponse>(CustomErrors.Validation.InvalidInput("Account name is required."));
+            }
+
+            if (request.AccountType == AccountType.None)
+            {
+                return Result.Failure<AccountResponse>(CustomErrors.Validation.InvalidInput("Account type must be Bank, EWallet, TransitCard, or Cash."));
+            }
+
+            // 2. Validate unique account name per user
             var nameExists = await _context.TblAccounts
                 .AnyAsync(a => a.UserId == userId && a.Name.ToLower() == request.Name.ToLower());
             
             if (nameExists)
             {
-                throw new ArgumentException($"An account with the name '{request.Name}' already exists.");
+                return Result.Failure<AccountResponse>(CustomErrors.Account.DuplicateName);
             }
 
-        
+            // 3. Create the account
             var account = new TblAccount
             {
                 Id = Guid.NewGuid(),
@@ -49,26 +77,32 @@ namespace ST_finance.Domain.Features.Accounts
                 Balance = request.Balance,
                 Color = string.IsNullOrEmpty(request.Color) ? "#4F46E5" : request.Color,
                 Icon = string.IsNullOrEmpty(request.Icon) ? "Wallet" : request.Icon,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                DeleteFlag = false
             };
 
             _context.TblAccounts.Add(account);
             await _context.SaveChangesAsync();
 
-            return MapToResponse(account);
+            return Result.Success(MapToResponse(account));
         }
 
-        public async Task<AccountResponse> UpdateAccountAsync(Guid userId, Guid accountId, UpdateAccountRequest request)
+        public async Task<Result<AccountResponse>> UpdateAccountAsync(Guid userId, Guid accountId, UpdateAccountRequest request)
         {
+            if (request == null)
+            {
+                return Result.Failure<AccountResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
             var account = await _context.TblAccounts
                 .FirstOrDefaultAsync(a => a.Id == accountId && a.UserId == userId);
 
             if (account == null)
             {
-                throw new KeyNotFoundException("Account not found.");
+                return Result.Failure<AccountResponse>(CustomErrors.Account.NotFound);
             }
 
-            
+            // 1. Name unique constraint check (if name is being modified)
             if (!string.IsNullOrEmpty(request.Name) && !account.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase))
             {
                 var nameExists = await _context.TblAccounts
@@ -76,12 +110,12 @@ namespace ST_finance.Domain.Features.Accounts
 
                 if (nameExists)
                 {
-                    throw new ArgumentException($"An account with the name '{request.Name}' already exists.");
+                    return Result.Failure<AccountResponse>(CustomErrors.Account.DuplicateName);
                 }
                 account.Name = request.Name;
             }
 
-            
+            // 2. Map optional updates
             if (!string.IsNullOrEmpty(request.Color))
             {
                 account.Color = request.Color;
@@ -99,10 +133,10 @@ namespace ST_finance.Domain.Features.Accounts
 
             await _context.SaveChangesAsync();
 
-            return MapToResponse(account);
+            return Result.Success(MapToResponse(account));
         }
 
-        public async Task DeleteAccountAsync(Guid userId, Guid accountId, bool force)
+        public async Task<Result> DeleteAccountAsync(Guid userId, Guid accountId, bool force)
         {
             var account = await _context.TblAccounts
                 .Include(a => a.TblTransactionAccounts)
@@ -111,7 +145,7 @@ namespace ST_finance.Domain.Features.Accounts
 
             if (account == null)
             {
-                throw new KeyNotFoundException("Account not found.");
+                return Result.Failure(CustomErrors.Account.NotFound);
             }
 
             var hasTransactions = account.TblTransactionAccounts.Any() || account.TblTransactionTargetAccounts.Any();
@@ -120,7 +154,7 @@ namespace ST_finance.Domain.Features.Accounts
             {
                 if (!force)
                 {
-                    throw new InvalidOperationException("This account is linked to transaction history and cannot be deleted. Use force delete to remove the account along with its transactions.");
+                    return Result.Failure(CustomErrors.Account.HasTransactions);
                 }
 
                 // Tweak properties to soft-delete the account and its transaction histories
@@ -141,6 +175,48 @@ namespace ST_finance.Domain.Features.Accounts
                 account.DeleteFlag = true;
                 await _context.SaveChangesAsync();
             }
+
+            return Result.Success();
+        }
+
+        public async Task<Result> CreditAccountAsync(Guid userId, Guid accountId, decimal amount)
+        {
+            if (amount < 0)
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("Amount must be non-negative."));
+            }
+
+            var account = await _context.TblAccounts
+                .FirstOrDefaultAsync(a => a.Id == accountId && a.UserId == userId);
+
+            if (account == null)
+            {
+                return Result.Failure(CustomErrors.Account.NotFound);
+            }
+
+            account.Balance = (account.Balance ?? 0m) + amount;
+            await _context.SaveChangesAsync();
+            return Result.Success();
+        }
+
+        public async Task<Result> DebitAccountAsync(Guid userId, Guid accountId, decimal amount)
+        {
+            if (amount < 0)
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("Amount must be non-negative."));
+            }
+
+            var account = await _context.TblAccounts
+                .FirstOrDefaultAsync(a => a.Id == accountId && a.UserId == userId);
+
+            if (account == null)
+            {
+                return Result.Failure(CustomErrors.Account.NotFound);
+            }
+
+            account.Balance = (account.Balance ?? 0m) - amount;
+            await _context.SaveChangesAsync();
+            return Result.Success();
         }
 
         private static AccountResponse MapToResponse(TblAccount account)

@@ -1,17 +1,17 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ST_finance.Domain.Features.Accounts.Models;
+using ST_finance.Shared;
 
 namespace ST_finance.Domain.Features.Accounts
 {
-    [ApiController]
-    [Route("api/[controller]")]
     [Authorize]
-    public class AccountsController : ControllerBase
+    [Route("api/[controller]")]
+    public class AccountsController : ApiControllerBase
     {
         private readonly IAccountService _accountService;
 
@@ -21,83 +21,55 @@ namespace ST_finance.Domain.Features.Accounts
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAccounts()
+        public async Task<IActionResult> GetAccounts(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize   = 20)
         {
-            try
-            {
-                var userId = GetUserId();
-                var accounts = await _accountService.GetAccountsAsync(userId);
-                return Ok(accounts);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving accounts.", details = ex.Message });
-            }
+            var userId = GetUserId();
+            var result = await _accountService.GetAccountsAsync(userId, pageNumber, pageSize);
+            return HandleResult(result);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest request)
         {
-            try
+            // Controller-level Model validation
+            if (!ModelState.IsValid)
             {
-                var userId = GetUserId();
-                var account = await _accountService.CreateAccountAsync(userId, request);
-                return CreatedAtAction(nameof(GetAccounts), new { id = account.Id }, account);
+                var errors = string.Join("; ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure<AccountResponse>(CustomErrors.Validation.InvalidInput(errors)));
             }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while creating the account.", details = ex.Message });
-            }
+
+            var userId = GetUserId();
+            var result = await _accountService.CreateAccountAsync(userId, request);
+            return HandleResult(result);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAccount(Guid id, [FromBody] UpdateAccountRequest request)
         {
-            try
+            // Controller-level Model validation
+            if (!ModelState.IsValid)
             {
-                var userId = GetUserId();
-                var account = await _accountService.UpdateAccountAsync(userId, id, request);
-                return Ok(account);
+                var errors = string.Join("; ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure<AccountResponse>(CustomErrors.Validation.InvalidInput(errors)));
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while updating the account.", details = ex.Message });
-            }
+
+            var userId = GetUserId();
+            var result = await _accountService.UpdateAccountAsync(userId, id, request);
+            return HandleResult(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAccount(Guid id, [FromQuery] bool force = false)
         {
-            try
-            {
-                var userId = GetUserId();
-                await _accountService.DeleteAccountAsync(userId, id, force);
-                return Ok(new { message = "Account deleted successfully." });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while deleting the account.", details = ex.Message });
-            }
+            var userId = GetUserId();
+            var result = await _accountService.DeleteAccountAsync(userId, id, force);
+            return HandleResult(result);
         }
 
         private Guid GetUserId()

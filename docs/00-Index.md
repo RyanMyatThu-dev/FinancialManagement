@@ -26,5 +26,8 @@ Welcome to the documentation vault for the Student Financial Management and Budg
 5. **[[Backend-Tasks]]**
    - Feature-by-feature task breakdown for backend API development.
 
+6. **[[design|Design System]]**
+   - CSS variables, typography stacks, component guidelines, and spacing rules for the frontend.
+
 ---
 *Created: July 2026 for Chulalongkorn University Scholarship Financial Tracker Project.*

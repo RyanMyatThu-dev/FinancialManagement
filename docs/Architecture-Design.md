@@ -28,28 +28,51 @@ graph TD
 ```
 
 ### 1. API (`ST_finance.Api`)
-*   **Role**: The entry point of the application. Handles HTTP requests, controllers, routing, middleware (CORS, JWT auth, global errors), Swagger documentation, and composition of dependency injection.
+*   **Role**: The hosting bootstrap and startup project. Sets up HTTP middleware pipelines (CORS, JWT auth, Swagger UI, Global Error handlers), manages dependency injection graph composition, and hosts the API entry point.
 *   **Dependencies**: References `ST_finance.Domain`.
-*   **Key Contents**:
-    *   Controllers: `AuthController`, `AccountController`, `ExpenseController`, `DashboardController`.
-    *   Auth pipeline and JWT authentication setup.
+*   **Note**: No controllers are registered directly in the API layer. They are discovered dynamically from the Domain project assembly via application parts.
 
 ### 2. Domain (`ST_finance.Domain`)
-*   **Role**: Contains the business logic, services, rules, and validators. It directly communicates with the database layer to execute queries and manage operations.
-*   **Dependencies**: References `ST_finance.Database`.
+*   **Role**: Contains the business logic services, validators, and all REST Controllers. It directly communicates with the Database layer to query/persist entities.
+*   **Dependencies**: References `ST_finance.Database` and `ST_finance.Shared`.
 *   **Key Contents**:
-    *   Business services: `QuotaCalculator`, `AllowanceManager`, `GoalService`.
-    *   Business validation rules.
-    *   MediatR requests/handlers (CQRS flow if used, or standard services).
+    *   API Controllers: Inherit from `ApiControllerBase` and live in their respective feature folders (e.g. `ST_finance.Domain/Features/Accounts/AccountsController.cs`).
+    *   Business services: `AuthService`, `AccountService`, `TransactionService`.
+    *   Business validation models.
 
 ### 3. Database (`ST_finance.Database`)
-*   **Role**: Manages data persistence, mapping, tables, and database migrations.
-*   **Dependencies**: References nothing.
+*   **Role**: Manages data persistence, mapping, entities, database contexts, and migration schemas.
+*   **Dependencies**: References `ST_finance.Shared` (for enums).
 *   **Key Contents**:
-    *   Entity Framework Core database context (`ApplicationDbContext`).
-    *   Database entities mapped to `Tbl_` tables: `Tbl_User`, `Tbl_UserProfile`, `Tbl_Account`, `Tbl_Category`, `Tbl_Tag`, `Tbl_Transaction`, `Tbl_RecurringSchedule`, `Tbl_CategoryBudget`, `Tbl_DailyQuotaLog`, `Tbl_SavingsGoal`, `Tbl_SavingsContribution`.
-    *   EF Core migrations.
-    *   Global Exception Handler middleware.
+    *   EF Core context: `AppDbContext` configuring Identity databases and global query filters.
+    *   PostgreSQL entities mapped to `Tbl_` prefixed tables.
+
+---
+
+## 🎨 Core Architectural Decisions
+
+### 1. Result Pattern Response Wrapping
+Every API action returns a wrapped response body in the `Result` or `Result<TValue>` pattern. All business validations return `Result.Failure(...)` instead of throwing exceptions. The JSON structure returned to the client is always uniform:
+```json
+{
+  "isSuccess": true,
+  "isFailure": false,
+  "error": { "code": "", "message": "" },
+  "value": { ... }
+}
+```
+
+### 2. Dual-Layer Validation Check
+*   **Controller Layer**: Validates request parameter formats using `ModelState.IsValid` and returns `Result.Failure<T>` directly.
+*   **Service Layer**: Validates business logic rules (uniqueness, status constraints) and bubbles up typed `Result.Failure` records.
+
+### 3. System-Wide Soft Deletes
+*   All user tables include a `delete_flag` column (type `BOOLEAN NOT NULL DEFAULT FALSE`).
+*   Entities are marked as `DeleteFlag = true` instead of calling hard deletes.
+*   `AppDbContext` registers EF Core **Global Query Filters** for all models to automatically exclude soft-deleted records from standard database LINQ lookups.
+
+### 4. Strongly Typed Enum Mappings
+*   Enum structures (like `AccountType`) are defined in C# and mapped in EF Core using `.HasConversion<string>()` to persist as text/varchar values in PostgreSQL, satisfying database-level `CHECK` constraints while retaining type-safety in C#.
 
 ---
 

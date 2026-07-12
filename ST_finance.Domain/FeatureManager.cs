@@ -5,6 +5,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Authentication;
+using ST_finance.Domain.Features.Transactions;
+using ST_finance.Domain.Features.RecurringSchedules;
+using ST_finance.Domain.Features.Accounts;
 
 namespace ST_finance.Domain;
 
@@ -16,7 +19,6 @@ public static class FeatureManager
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 
-        // Add ASP.NET Core Identity Core configuration linked to PostgreSQL context
         builder.Services.AddIdentityCore<TblUser>(options =>
         {
             options.Password.RequireDigit = true;
@@ -31,6 +33,13 @@ public static class FeatureManager
 
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<ITokenService, TokenService>();
-        builder.Services.AddScoped<ST_finance.Domain.Features.Accounts.IAccountService, ST_finance.Domain.Features.Accounts.AccountService>();
+        builder.Services.AddScoped<IAccountService, AccountService>();
+        builder.Services.AddScoped<ITransactionService, TransactionService>();
+        builder.Services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
+        builder.Services.AddScoped<RecurringJobService>();
+        builder.Services.AddScoped<ST_finance.Domain.Features.SavingsGoals.ISavingsGoalService, ST_finance.Domain.Features.SavingsGoals.SavingsGoalService>();
+        builder.Services.AddScoped<ST_finance.Domain.Features.Dashboard.IDashboardService, ST_finance.Domain.Features.Dashboard.DashboardService>();
+        builder.Services.AddScoped<ST_finance.Domain.Features.Dashboard.QuotaLoggingJob>();
+        builder.Services.AddScoped<ST_finance.Domain.Features.Budgets.IBudgetService, ST_finance.Domain.Features.Budgets.BudgetService>();
     }
 }

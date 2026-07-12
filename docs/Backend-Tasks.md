@@ -36,16 +36,16 @@ Tracks physical and digital wallets (Banks, E-Wallets, BTS Rabbit Cards, Cash).
 ## 📝 Feature 3: Transaction Ledger & Tagging Engine
 Logs income, expense, and internal transfers while dynamically adjusting account balances.
 
-- [ ] **3.1 Balance Synchronization Logic**
+- [x] **3.1 Balance Synchronization Logic**
   - When creating a transaction:
     - **Income**: Add to source `AccountId`.
     - **Expense**: Deduct from source `AccountId`.
     - **Transfer**: Deduct from source `AccountId` and add to destination `TargetAccountId`.
   - When updating/deleting: Roll back the previous balance offset before applying new changes.
-- [ ] **3.2 Tagging engine**
+- [x] **3.2 Tagging engine**
   - Manage tags in `Tbl_Tag`.
   - Implement composite mapping inside `Tbl_TransactionTag` when transactions are saved.
-- [ ] **3.3 API Endpoints**
+- [x] **3.3 API Endpoints**
   - `GET /api/transactions`: Search, paginate, and filter transactions (by date range, account, type, tags e.g., `#chula-canteen`).
   - `POST /api/transactions`: Log a transaction.
   - `PUT /api/transactions/{id}`: Edit transaction details.
@@ -53,52 +53,53 @@ Logs income, expense, and internal transfers while dynamically adjusting account
 
 ---
 
-## 📅 Feature 4: Automated Recurring Scheduler
+## 📅 Feature 4: Automated Recurring Scheduler (Completed using Hangfire)
 Runs background worker checks to execute recurring stipends/allowances, rent, and subscriptions automatically.
 
-- [ ] **4.1 Hosted Background Worker**
-  - Implement a .NET background worker class (`IHostedService` / `BackgroundService`).
-  - Configure the service to trigger every 24 hours.
-- [ ] **4.2 Transaction Generation Logic**
+- [x] **4.1 Hosted Background Worker (Hangfire)**
+  - Configured Hangfire with PostgreSQL storage engine.
+  - Setup recurring job execution scheduled hourly.
+- [x] **4.2 Transaction Generation Logic**
   - Find all rows in `Tbl_RecurringSchedule` where `NextOccurrenceDate <= CurrentTime`.
-  - Create standard transactions (`Tbl_Transaction`) and adjust account balances.
+  - Create standard transactions via `ITransactionService` and adjust account balances atomically.
   - Advance `NextOccurrenceDate` depending on interval frequency (Daily, Weekly, Monthly, Yearly).
-- [ ] **4.3 API Endpoints**
+- [x] **4.3 API Endpoints**
   - `GET /api/recurring`: List recurring schedules.
-  - `POST /api/recurring`: Create a schedule (e.g., "Monthly Allowance Payout on the 25th", "BTS pass subscription").
+  - `POST /api/recurring`: Create a schedule.
   - `DELETE /api/recurring/{id}`: Cancel recurring schedule.
 
 ---
 
-## 🎯 Feature 5: Savings Goals & Earmark Ledger
+## 🎯 Feature 5: Savings Goals & Earmark Ledger (Completed)
 Tracks virtual savings goals by locking away portions of cash balances from safe-to-spend limits.
 
-- [ ] **5.1 Virtual Allocation Calculator**
+- [x] **5.1 Virtual Allocation Calculator**
   - Implement logic to sum all savings contributions for a given goal.
-  - Validate that users do not contribute more money than they actually have available.
-- [ ] **5.2 Goal Completion Triggers**
+  - Validate that users do not contribute more money than they actually have available in disposable balances.
+- [x] **5.2 Goal Completion Triggers**
   - Automatically flag `is_completed = TRUE` when total contributions equal or exceed `target_amount`.
-- [ ] **5.3 API Endpoints**
+- [x] **5.3 API Endpoints**
   - `GET /api/savings-goals`: List goals, target amount, target date, and accumulated progress.
-  - `POST /api/savings-goals`: Add goal (e.g., "M4 iPad Pro").
+  - `POST /api/savings-goals`: Add goal.
   - `POST /api/savings-goals/{id}/contribute`: Earmark funds (`+Amount` or `-Amount` for withdrawal).
   - `GET /api/savings-goals/{id}/contributions`: List contribution ledger history.
 
 ---
 
-## 📊 Feature 6: Dashboard Statistics & Budget Quotas
+## 📊 Feature 6: Dashboard Statistics & Budget Quotas (Completed)
 Calculates dynamic quotas, Chula canteen indices, and categorizes monthly budgets.
 
-- [ ] **6.1 Safe-to-Spend Quota Engine**
+- [x] **6.1 Safe-to-Spend Quota Engine**
   - Implement algorithm to compute rolling daily quota:
     $$\text{Quota} = \frac{\text{Total Balances} - \text{Remaining Fixed Bills} - \text{Remaining Goal Needs}}{\text{Days Remaining until 25th}}$$
   - Compute the Chula Canteen Meal Index:
     $$\text{Canteen Index} = \text{floor}\left(\frac{\text{Quota} - \text{Spent Today}}{50}\right)$$
-- [ ] **6.2 Quota Logging Daemon**
-  - Log daily quota targets to `Tbl_DailyQuotaLog` at midnight for charting history.
-- [ ] **6.3 Monthly Category Budgets**
-  - Maintain monthly limits inside `Tbl_CategoryBudget`.
-- [ ] **6.4 API Endpoints**
+- [x] **6.2 Quota Logging Daemon (Hangfire)**
+  - Log daily quota targets and actual spent to `Tbl_DailyQuotaLog` at midnight Bangkok time (17:00 UTC) for charting history.
+- [x] **6.3 Monthly Category Budgets**
+  - Maintain monthly limits inside `Tbl_CategoryBudget` and calculate monthly category expense comparisons.
+- [x] **6.4 API Endpoints**
   - `GET /api/dashboard/summary`: Return current quota, canteen index, active warnings, total savings, and cash flows.
   - `GET /api/dashboard/trends`: Return daily quota logs over the past month for Recharts plotting.
   - `GET /api/budgets`: List categories and comparison of spent vs. budget limits.
+  - `POST /api/budgets`: Set or update monthly limits.

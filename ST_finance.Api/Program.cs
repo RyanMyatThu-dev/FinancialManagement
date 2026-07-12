@@ -1,13 +1,27 @@
+using Hangfire;
+using Hangfire.PostgreSql;
 using Scalar.AspNetCore;
 using ST_finance.Domain;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
+using ST_finance.Domain.Features.RecurringSchedules;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(FeatureManager).Assembly);
 builder.AddDomain();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalhost", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -59,6 +73,14 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+var connectionString = builder.Configuration.GetConnectionString("DbConnection");
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+builder.Services.AddHangfireServer();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -71,8 +93,22 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowLocalhost");
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard();
+
+RecurringJob.AddOrUpdate<ST_finance.Domain.Features.RecurringSchedules.RecurringJobService>(
+    "ProcessRecurringSchedules",
+    job => job.ProcessRecurringSchedulesAsync(),
+    Cron.Hourly());
+
+RecurringJob.AddOrUpdate<ST_finance.Domain.Features.Dashboard.QuotaLoggingJob>(
+    "LogDailyQuotas",
+    job => job.LogDailyQuotasAsync(),
+    Cron.Daily(17));
 
 app.MapControllers();
 

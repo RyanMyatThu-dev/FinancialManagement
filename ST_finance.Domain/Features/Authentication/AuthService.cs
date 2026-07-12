@@ -5,9 +5,9 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Authentication.Models;
+using ST_finance.Shared;
 
 namespace ST_finance.Domain.Features.Authentication
 {
@@ -27,38 +27,41 @@ namespace ST_finance.Domain.Features.Authentication
             _tokenService = tokenService;
         }
 
-        public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+        public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request)
         {
-            
+            if (request == null)
+            {
+                return Result.Failure<AuthResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
             var existingEmail = await _userManager.FindByEmailAsync(request.Email);
             if (existingEmail != null)
             {
-                throw new ArgumentException("Email is already registered.");
+                return Result.Failure<AuthResponse>(CustomErrors.Auth.EmailAlreadyRegistered);
             }
 
             var existingUsername = await _userManager.FindByNameAsync(request.Username);
             if (existingUsername != null)
             {
-                throw new ArgumentException("Username is already taken.");
+                return Result.Failure<AuthResponse>(CustomErrors.Validation.InvalidInput("Username is already taken."));
             }
 
-            
             var user = new TblUser
             {
                 UserName = request.Username,
                 Email = request.Email,
                 FullName = request.FullName,
-                SecurityStamp = Guid.NewGuid().ToString()
+                SecurityStamp = Guid.NewGuid().ToString(),
+                DeleteFlag = false
             };
 
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                throw new ArgumentException($"User registration failed: {errors}");
+                return Result.Failure<AuthResponse>(new Error("Auth.RegistrationFailed", $"User registration failed: {errors}"));
             }
 
-            
             var profile = new TblUserProfile
             {
                 Id = Guid.NewGuid(),
@@ -73,7 +76,6 @@ namespace ST_finance.Domain.Features.Authentication
             _context.TblUserProfiles.Add(profile);
             await _context.SaveChangesAsync();
 
-            
             var accessToken = _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
@@ -83,7 +85,7 @@ namespace ST_finance.Domain.Features.Authentication
 
             var expiration = DateTime.UtcNow.AddMinutes(60);
 
-            return new AuthResponse(
+            return Result.Success(new AuthResponse(
                 AccessToken: accessToken,
                 RefreshToken: refreshToken,
                 UserId: user.Id,
@@ -91,19 +93,22 @@ namespace ST_finance.Domain.Features.Authentication
                 Email: user.Email!,
                 FullName: user.FullName ?? string.Empty,
                 Expiration: expiration
-            );
+            ));
         }
 
-        public async Task<AuthResponse> LoginAsync(LoginRequest request)
+        public async Task<Result<AuthResponse>> LoginAsync(LoginRequest request)
         {
-            
+            if (request == null)
+            {
+                return Result.Failure<AuthResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
             {
-                throw new UnauthorizedAccessException("Invalid email or password.");
+                return Result.Failure<AuthResponse>(CustomErrors.Auth.InvalidCredentials);
             }
 
-            
             var accessToken = _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
@@ -113,7 +118,7 @@ namespace ST_finance.Domain.Features.Authentication
 
             var expiration = DateTime.UtcNow.AddMinutes(60);
 
-            return new AuthResponse(
+            return Result.Success(new AuthResponse(
                 AccessToken: accessToken,
                 RefreshToken: refreshToken,
                 UserId: user.Id,
@@ -121,48 +126,58 @@ namespace ST_finance.Domain.Features.Authentication
                 Email: user.Email!,
                 FullName: user.FullName ?? string.Empty,
                 Expiration: expiration
-            );
+            ));
         }
 
-        public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+        public async Task<Result<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request)
         {
-            
-            var principal = _tokenService.GetPrincipalFromExpiredToken(request.AccessToken);
-            var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier) ?? principal.FindFirst("sub");
-            
-            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
+            if (request == null)
             {
-                throw new SecurityTokenException("Invalid access token claims.");
+                return Result.Failure<AuthResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
             }
 
-            
-            var user = await _userManager.FindByIdAsync(userId.ToString());
-            if (user == null || user.RefreshToken != request.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            try
             {
-                throw new SecurityTokenException("Invalid or expired refresh token.");
+                var principal = _tokenService.GetPrincipalFromExpiredToken(request.AccessToken);
+                var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier) ?? principal.FindFirst("sub");
+                
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
+                {
+                    return Result.Failure<AuthResponse>(CustomErrors.Auth.RefreshTokenExpired);
+                }
+
+                var user = await _userManager.FindByIdAsync(userId.ToString());
+                if (user == null || user.RefreshToken != request.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+                {
+                    return Result.Failure<AuthResponse>(CustomErrors.Auth.RefreshTokenExpired);
+                }
+
+                var newAccessToken = _tokenService.GenerateAccessToken(user);
+                var newRefreshToken = _tokenService.GenerateRefreshToken();
+
+                user.RefreshToken = newRefreshToken;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+                await _userManager.UpdateAsync(user);
+
+                var expiration = DateTime.UtcNow.AddMinutes(60);
+
+                return Result.Success(new AuthResponse(
+                    AccessToken: newAccessToken,
+                    RefreshToken: newRefreshToken,
+                    UserId: user.Id,
+                    Username: user.UserName!,
+                    Email: user.Email!,
+                    FullName: user.FullName ?? string.Empty,
+                    Expiration: expiration
+                ));
             }
-
-            var newAccessToken = _tokenService.GenerateAccessToken(user);
-            var newRefreshToken = _tokenService.GenerateRefreshToken();
-
-            user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            await _userManager.UpdateAsync(user);
-
-            var expiration = DateTime.UtcNow.AddMinutes(60);
-
-            return new AuthResponse(
-                AccessToken: newAccessToken,
-                RefreshToken: newRefreshToken,
-                UserId: user.Id,
-                Username: user.UserName!,
-                Email: user.Email!,
-                FullName: user.FullName ?? string.Empty,
-                Expiration: expiration
-            );
+            catch
+            {
+                return Result.Failure<AuthResponse>(CustomErrors.Auth.RefreshTokenExpired);
+            }
         }
 
-        public async Task<UserProfileResponse> GetProfileAsync(Guid userId)
+        public async Task<Result<UserProfileResponse>> GetProfileAsync(Guid userId)
         {
             var user = await _userManager.Users
                 .Include(u => u.TblUserProfile)
@@ -170,12 +185,12 @@ namespace ST_finance.Domain.Features.Authentication
 
             if (user == null)
             {
-                throw new KeyNotFoundException("User not found.");
+                return Result.Failure<UserProfileResponse>(CustomErrors.Auth.UserNotFound);
             }
 
             var profile = user.TblUserProfile;
 
-            return new UserProfileResponse(
+            return Result.Success(new UserProfileResponse(
                 UserId: user.Id,
                 Username: user.UserName!,
                 Email: user.Email!,
@@ -185,18 +200,23 @@ namespace ST_finance.Domain.Features.Authentication
                 TargetMonthlySavings: profile?.TargetMonthlySavings,
                 Currency: profile?.Currency,
                 UpdatedAt: profile?.UpdatedAt
-            );
+            ));
         }
 
-        public async Task<UserProfileResponse> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
+        public async Task<Result<UserProfileResponse>> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
         {
+            if (request == null)
+            {
+                return Result.Failure<UserProfileResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
             var user = await _userManager.Users
                 .Include(u => u.TblUserProfile)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
             {
-                throw new KeyNotFoundException("User not found.");
+                return Result.Failure<UserProfileResponse>(CustomErrors.Auth.UserNotFound);
             }
 
             var profile = user.TblUserProfile;
@@ -225,7 +245,7 @@ namespace ST_finance.Domain.Features.Authentication
                 int val = request.AllowanceDayOfMonth.Value;
                 if (val < 1 || val > 31)
                 {
-                    throw new ArgumentException("Allowance cycle day must be between 1 and 31.");
+                    return Result.Failure<UserProfileResponse>(CustomErrors.Validation.InvalidInput("Allowance cycle day must be between 1 and 31."));
                 }
                 profile.AllowanceDayOfMonth = val;
             }
@@ -243,7 +263,7 @@ namespace ST_finance.Domain.Features.Authentication
             profile.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            return new UserProfileResponse(
+            return Result.Success(new UserProfileResponse(
                 UserId: user.Id,
                 Username: user.UserName!,
                 Email: user.Email!,
@@ -253,15 +273,15 @@ namespace ST_finance.Domain.Features.Authentication
                 TargetMonthlySavings: profile.TargetMonthlySavings,
                 Currency: profile.Currency,
                 UpdatedAt: profile.UpdatedAt
-            );
+            ));
         }
 
-        public async Task DeleteUserAsync(Guid userId)
+        public async Task<Result> DeleteUserAsync(Guid userId)
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user == null)
             {
-                throw new KeyNotFoundException("User not found.");
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
             }
 
             user.DeleteFlag = true;
@@ -269,8 +289,10 @@ namespace ST_finance.Domain.Features.Authentication
             if (!result.Succeeded)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"Failed to soft delete user: {errors}");
+                return Result.Failure(new Error("Auth.DeactivateFailed", $"Failed to soft delete user: {errors}"));
             }
+
+            return Result.Success();
         }
     }
 }
