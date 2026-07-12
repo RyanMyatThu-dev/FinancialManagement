@@ -1,0 +1,160 @@
+Table users {
+  id uuid [pk, default: `gen_random_uuid()` ]
+  username varchar(256) [unique, not null]
+  normalized_username varchar(256) [unique, not null]
+  email varchar(256) [unique, not null]
+  normalized_email varchar(256) [unique, not null]
+  password_hash text [not null]
+  security_stamp text
+  concurrency_stamp text
+  phone_number text
+  phone_number_confirmed boolean [default: false]
+  two_factor_enabled boolean [default: false]
+  lockout_end timestamp
+  lockout_enabled boolean [default: false]
+  access_failed_count int [default: 0]
+}
+
+Table user_profiles {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [unique, not null]
+  monthly_stipend_amount numeric(12,2) [default: 16000.00]
+  stipend_day_of_month int [default: 25]
+  target_monthly_savings numeric(12,2) [default: 2000.00]
+  currency varchar(3) [default: 'THB']
+  updated_at timestamp [default: `now()`]
+}
+
+Table accounts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null]
+  name varchar(100) [not null]
+  account_type varchar(50) [not null] // 'Bank', 'EWallet', 'TransitCard', 'Cash'
+  balance numeric(12,2) [default: 0.00]
+  color varchar(7) [not null, default: '#4F46E5']
+  icon varchar(50) [not null, default: 'Wallet']
+  created_at timestamp [default: `now()`]
+}
+
+Table categories {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null]
+  name varchar(50) [not null]
+  type varchar(10) [not null] // 'Income', 'Expense'
+  color varchar(7) [not null, default: '#4F46E5']
+  icon varchar(50) [not null, default: 'Tag']
+  is_default boolean [default: false]
+}
+
+Table tags {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null]
+  name varchar(50) [not null]
+  color varchar(7) [not null, default: '#4F46E5']
+}
+
+Table transactions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null]
+  account_id uuid [not null]
+  target_account_id uuid [null]
+  category_id uuid [null]
+  amount numeric(12,2) [not null]
+  transaction_type varchar(10) [not null] // 'Income', 'Expense', 'Transfer'
+  date timestamp [not null, default: `now()`]
+  description varchar(500)
+  is_recurring_created boolean [default: false]
+  created_at timestamp [default: `now()`]
+}
+
+Table transaction_tags {
+  transaction_id uuid [not null]
+  tag_id uuid [not null]
+  
+  Indexes {
+    (transaction_id, tag_id) [pk]
+  }
+}
+
+Table recurring_schedules {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null]
+  account_id uuid [not null]
+  target_account_id uuid [null]
+  category_id uuid [null]
+  name varchar(150) [not null]
+  amount numeric(12,2) [not null]
+  transaction_type varchar(10) [not null]
+  frequency varchar(20) [not null] // 'Daily', 'Weekly', 'Monthly', 'Yearly'
+  day_of_month int [null]
+  day_of_week int [null]
+  start_date timestamp [not null]
+  end_date timestamp [null]
+  last_triggered_at timestamp [null]
+  next_occurrence_date timestamp [not null]
+}
+
+Table category_budgets {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null]
+  category_id uuid [not null]
+  limit_amount numeric(12,2) [not null]
+  month int [not null]
+  year int [not null]
+  created_at timestamp [default: `now()`]
+}
+
+Table daily_quota_logs {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null]
+  date date [not null]
+  target_quota numeric(12,2) [default: 0.00]
+  actual_spent numeric(12,2) [default: 0.00]
+  created_at timestamp [default: `now()`]
+}
+
+Table savings_goals {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null]
+  goal_name varchar(150) [not null]
+  target_amount numeric(12,2) [not null]
+  target_date timestamp [null]
+  is_completed boolean [default: false]
+  created_at timestamp [default: `now()`]
+}
+
+Table savings_contributions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  savings_goal_id uuid [not null]
+  transaction_id uuid [null]
+  amount numeric(12,2) [not null]
+  date timestamp [not null, default: `now()`]
+  note varchar(250)
+}
+
+// Relationships
+Ref: user_profiles.user_id - users.id [delete: cascade]
+Ref: accounts.user_id > users.id [delete: cascade]
+Ref: categories.user_id > users.id [delete: cascade]
+Ref: tags.user_id > users.id [delete: cascade]
+Ref: transactions.user_id > users.id [delete: cascade]
+Ref: recurring_schedules.user_id > users.id [delete: cascade]
+Ref: category_budgets.user_id > users.id [delete: cascade]
+Ref: daily_quota_logs.user_id > users.id [delete: cascade]
+Ref: savings_goals.user_id > users.id [delete: cascade]
+
+Ref: transactions.account_id > accounts.id [delete: restrict]
+Ref: transactions.target_account_id > accounts.id [delete: restrict]
+Ref: transactions.category_id > categories.id [delete: set null]
+
+Ref: transaction_tags.transaction_id > transactions.id [delete: cascade]
+Ref: transaction_tags.tag_id > tags.id [delete: cascade]
+
+Ref: recurring_schedules.account_id > accounts.id [delete: restrict]
+Ref: recurring_schedules.target_account_id > accounts.id [delete: restrict]
+Ref: recurring_schedules.category_id > categories.id [delete: set null]
+
+Ref: category_budgets.category_id > categories.id [delete: cascade]
+
+Ref: savings_contributions.savings_goal_id > savings_goals.id [delete: cascade]
+Ref: savings_contributions.transaction_id > transactions.id [delete: cascade]

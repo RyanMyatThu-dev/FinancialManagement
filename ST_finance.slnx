@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ST_finance.Api/ST_finance.Api.csproj" />
+  <Project Path="ST_finance.Database/ST_finance.Database.csproj" />
+  <Project Path="ST_finance.Domain/ST_finance.Domain.csproj" />
+  <Project Path="ST_finance.Shared/ST_finance.Shared.csproj" />
+</Solution>

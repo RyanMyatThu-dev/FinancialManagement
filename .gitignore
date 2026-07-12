@@ -1,0 +1,91 @@
+# ==========================================
+# C# / .NET / Visual Studio / Rider
+# ==========================================
+## Build outputs
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio cache and settings
+.vs/
+*.user
+*.userprefs
+*.suo
+*.sln.docstates
+
+## Rider / IntelliJ IDE
+.idea/
+*.sln.iml
+
+## VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+## EF Core migrations / tool cache
+.dotnet/
+.tools/
+
+# ==========================================
+# Node.js / Next.js / Frontend
+# ==========================================
+## Dependency directories
+node_modules/
+jspm_packages/
+
+## Next.js build and dev cache
+.next/
+out/
+build/
+dist/
+
+## Environment variables and local settings
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env.local
+
+## Test coverage
+coverage/
+.nyc_output/
+
+## TypeScript cache
+*.tsbuildinfo
+
+# ==========================================
+# Docker / Postgres
+# ==========================================
+## If any data volume mounts are mapped locally in the project
+pgdata/
+docker-data/
+
+# ==========================================
+# Obsidian Vault Settings
+# ==========================================
+## Exclude local workspace layout state (avoids Git conflicts on pane structures)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# ==========================================
+# OS-Specific Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
