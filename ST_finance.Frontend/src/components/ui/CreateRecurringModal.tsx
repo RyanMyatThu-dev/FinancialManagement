@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { X, Loader2, AlertTriangle, Plus } from "lucide-react";
+import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
 
 interface CreateRecurringModalProps {
   onClose: () => void;
@@ -35,6 +36,36 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
   const [startDate,       setStartDate]       = useState(new Date().toISOString().split("T")[0]);
   const [endDate,         setEndDate]         = useState("");
   const [error,           setError]           = useState<string | null>(null);
+
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryColor, setNewCategoryColor] = useState("#10B981");
+  const [newCategoryIcon, setNewCategoryIcon] = useState("Wallet");
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+
+  // Category Mutation
+  const createCategoryMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.post("/api/transactions/categories", {
+        name: newCategoryName,
+        type: transactionType,
+        icon: newCategoryIcon,
+        color: newCategoryColor,
+      });
+      if (res.data.isSuccess && res.data.value) return res.data.value;
+      throw new Error(res.data.error?.message || "Failed to create category");
+    },
+    onSuccess: (newCat) => {
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      setCategoryId(newCat.id);
+      setNewCategoryName("");
+      setShowAddCategory(false);
+      setCategoryError(null);
+    },
+    onError: (err: any) => {
+      setCategoryError(err.message || "Failed to create category");
+    }
+  });
 
   // 1. Fetch Accounts
   const { data: accountsData } = useQuery<{ items: Account[] }>({
@@ -263,24 +294,115 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
               </div>
             ) : (
               <div>
-                <label htmlFor="rec-category" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                  Category
-                </label>
-                <select
-                  id="rec-category"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="ds-input w-full px-3 py-2.5 text-sm"
-                >
-                  <option value="">None / Uncategorized</option>
-                  {categories
-                    .filter((c) => c.type === transactionType)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="rec-category" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest font-mono">
+                    Category
+                  </label>
+                  {!showAddCategory && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCategory(true)}
+                      className="text-[10px] text-[hsl(var(--primary))] font-bold hover:underline font-mono"
+                    >
+                      + NEW
+                    </button>
+                  )}
+                </div>
+
+                {showAddCategory ? (
+                  <div className="space-y-2 p-3 bg-[hsl(var(--secondary))] border border-[hsl(var(--border))] rounded-lg">
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Category Name"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        className="ds-input w-full px-2 py-1 text-xs"
+                        autoFocus
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono block mb-1">
+                        Icon ({newCategoryIcon})
+                      </span>
+                      <div className="grid grid-cols-5 gap-1.5 p-2 bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-lg">
+                        {STUDENT_ICONS.map((ico) => {
+                          const isSelected = newCategoryIcon === ico.name;
+                          return (
+                            <button
+                              key={ico.name}
+                              type="button"
+                              onClick={() => setNewCategoryIcon(ico.name)}
+                              title={ico.label}
+                              className={`h-7 w-7 rounded border flex items-center justify-center transition-all ${
+                                isSelected
+                                  ? "bg-[hsl(var(--primary)/0.1)] border-[hsl(var(--primary))] text-[hsl(var(--primary))]"
+                                  : "bg-transparent border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--border-hover))] hover:text-[hsl(var(--foreground))]"
+                              }`}
+                            >
+                              <CategoryIcon name={ico.name} className="h-3.5 w-3.5" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1 flex gap-2 items-center">
+                        <span className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono">Color:</span>
+                        <input
+                          type="color"
+                          value={newCategoryColor}
+                          onChange={(e) => setNewCategoryColor(e.target.value)}
+                          className="h-6 w-6 rounded border border-[hsl(var(--border))] bg-transparent cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newCategoryName.trim()) return;
+                            createCategoryMutation.mutate();
+                          }}
+                          disabled={createCategoryMutation.isPending}
+                          className="px-2 py-1 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] text-[10px] font-bold rounded"
+                        >
+                          {createCategoryMutation.isPending ? "..." : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddCategory(false);
+                            setCategoryError(null);
+                          }}
+                          className="px-2 py-1 bg-transparent text-[hsl(var(--muted-foreground))] text-[10px] font-bold rounded"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                    {categoryError && (
+                      <p className="text-[10px] text-[hsl(var(--destructive))] font-mono">
+                        {categoryError}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <select
+                    id="rec-category"
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    className="ds-input w-full px-3 py-2.5 text-sm"
+                  >
+                    <option value="">None / Uncategorized</option>
+                    {categories
+                      .filter((c) => c.type === transactionType)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
               </div>
             )}
           </div>
