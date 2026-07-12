@@ -24,7 +24,7 @@ export default function RegisterPage() {
   const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) router.push("/");
+    if (isAuthenticated) router.push("/dashboard");
   }, [isAuthenticated, router]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -111,7 +111,7 @@ export default function RegisterPage() {
     setIsSubmitting(false);
 
     if (result.success) {
-      router.push("/");
+      router.push("/dashboard");
     } else {
       setError(result.error || "Registration failed.");
     }
@@ -286,7 +286,6 @@ export default function RegisterPage() {
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Ryan Myat Thu"
                       className="ds-input w-full pl-9 pr-3 py-2.5 text-sm"
                     />
                   </div>
@@ -309,7 +308,6 @@ export default function RegisterPage() {
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="ryanmt"
                       className="ds-input w-full pl-8 pr-3 py-2.5 text-sm"
                     />
                   </div>
@@ -330,7 +328,6 @@ export default function RegisterPage() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="student@university.edu"
                       className="ds-input w-full pl-9 pr-3 py-2.5 text-sm"
                     />
                   </div>
@@ -351,7 +348,6 @@ export default function RegisterPage() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
                       className="ds-input w-full pl-9 pr-3 py-2.5 text-sm"
                     />
                   </div>

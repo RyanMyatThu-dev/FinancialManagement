@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const navItems = [
-    { name: "Dashboard",          href: "/",             icon: LayoutDashboard },
+    { name: "Dashboard",          href: "/dashboard",    icon: LayoutDashboard },
     { name: "Wallets & Accounts", href: "/accounts",     icon: Wallet          },
     { name: "Transactions",       href: "/transactions", icon: FileText        },
     { name: "Recurring",          href: "/recurring",    icon: Clock           },
@@ -165,7 +165,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto no-scrollbar">
           {navItems.map((item) => {
             const isActive =
-              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
             const Icon = item.icon;
             return (
               <Link
@@ -289,7 +289,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <nav className="flex-grow space-y-0.5">
               {navItems.map((item) => {
                 const isActive =
-                  item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                  item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
                 const Icon = item.icon;
                 return (
                   <Link

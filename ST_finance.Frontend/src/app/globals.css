@@ -324,8 +324,8 @@ body {
 
 /* ---- Neon Glow Keyframe ---- */
 @keyframes neon-pulse {
-  0%, 100% { box-shadow: 0 0 6px hsl(var(--primary) / 0.25); }
-  50%       { box-shadow: 0 0 18px hsl(var(--primary) / 0.5); }
+  0%, 100% { filter: drop-shadow(0 0 3px hsl(var(--primary) / 0.25)); }
+  50%       { filter: drop-shadow(0 0 12px hsl(var(--primary) / 0.6)); }
 }
 
 .neon-pulse {

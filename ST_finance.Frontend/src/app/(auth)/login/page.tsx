@@ -20,7 +20,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) router.push("/");
+    if (isAuthenticated) router.push("/dashboard");
   }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,7 +38,7 @@ export default function LoginPage() {
     }
 
     if (result.success) {
-      router.push("/");
+      router.push("/dashboard");
     } else {
       setError(result.error || "Invalid email or password.");
     }
@@ -104,7 +104,7 @@ export default function LoginPage() {
     setIsSubmitting(false);
 
     if (result.success) {
-      router.push("/");
+      router.push("/dashboard");
     } else {
       setError(result.error || "Invalid verification code.");
     }
@@ -260,7 +260,6 @@ export default function LoginPage() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="student@university.edu"
                       className="ds-input w-full pl-9 pr-3 py-2.5 text-sm"
                     />
                   </div>
@@ -281,7 +280,6 @@ export default function LoginPage() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
                       className="ds-input w-full pl-9 pr-3 py-2.5 text-sm"
                     />
                   </div>
