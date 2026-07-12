@@ -181,12 +181,14 @@ export default function TransactionsPage() {
             Full history log of your daily earnings and expense transactions.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <TimeframeFilter value={timeframe} onChange={handleTimeframe} />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex justify-start sm:justify-end">
+            <TimeframeFilter value={timeframe} onChange={handleTimeframe} />
+          </div>
           <button
             id="add-transaction-btn"
             onClick={() => setShowCreateModal(true)}
-            className="ds-btn-primary px-4 py-2.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+            className="ds-btn-primary px-4 py-2.5 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Add Transaction
@@ -224,7 +226,7 @@ export default function TransactionsPage() {
 
       {/* Search & Filter Bar */}
       <form onSubmit={handleApplyFilters} className="ds-card p-3 flex flex-col gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
             <input
@@ -236,27 +238,29 @@ export default function TransactionsPage() {
               className="ds-input w-full pl-9 pr-3 py-2 text-sm"
             />
           </div>
-          <button
-            type="submit"
-            className="ds-btn-primary px-4 py-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider h-[38px] shrink-0"
-          >
-            <Search className="h-3.5 w-3.5" />
-            Search
-          </button>
-          <button
-            id="transactions-filter-btn"
-            type="button"
-            onClick={() => setShowFilters(!showFilters)}
-            className={`ds-btn-icon h-[38px] w-[38px] relative shrink-0 ${
-              showFilters || hasActiveFilters ? "text-[hsl(var(--primary))] border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.05)]" : ""
-            }`}
-            title="Toggle Advanced Filters"
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            {hasActiveFilters && (
-              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[hsl(var(--primary))] shadow-[0_0_8px_hsl(var(--primary))]" />
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              className="flex-1 sm:flex-none ds-btn-primary px-4 py-2 flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider h-[38px] shrink-0"
+            >
+              <Search className="h-3.5 w-3.5" />
+              Search
+            </button>
+            <button
+              id="transactions-filter-btn"
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className={`ds-btn-icon h-[38px] w-[38px] relative shrink-0 ${
+                showFilters || hasActiveFilters ? "text-[hsl(var(--primary))] border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.05)]" : ""
+              }`}
+              title="Toggle Advanced Filters"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {hasActiveFilters && (
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[hsl(var(--primary))] shadow-[0_0_8px_hsl(var(--primary))]" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Collapsible Advanced Filters Panel */}
@@ -354,7 +358,7 @@ export default function TransactionsPage() {
       </form>
 
       {/* Table */}
-      <div className="ds-card overflow-hidden">
+      <div className="sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none overflow-hidden">
         {/* Table Header */}
         <div className="grid grid-cols-[1fr_80px_110px] sm:grid-cols-[1fr_120px_80px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
           <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
