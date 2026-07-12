@@ -129,16 +129,16 @@ export default function DashboardHome() {
         </div>
 
         {/* Right: disposable pool + timeframe */}
-        <div className="flex flex-col items-end gap-3">
+        <div className="flex flex-col lg:items-end items-start gap-4 shrink-0">
           <TimeframeFilter value={timeframe} onChange={setTimeframe} />
-          <div className="ds-card p-4 text-right border-[hsl(var(--primary)/0.2)]">
-            <p className="text-[9px] text-[hsl(var(--muted-foreground))] font-bold uppercase tracking-widest mb-1">
+          <div className="lg:text-right text-left">
+            <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono font-bold uppercase tracking-widest mb-1.5">
               Disposable Pool
             </p>
             <CurrencyDisplay
               amount={summary?.disposableBalance ?? 0}
               currency={currency}
-              size="md"
+              size="lg"
             />
           </div>
         </div>
