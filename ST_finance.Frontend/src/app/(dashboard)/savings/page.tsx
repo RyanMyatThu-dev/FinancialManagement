@@ -19,7 +19,10 @@ import {
   ArrowUpLeft,
   Calendar,
   ChevronRight,
+  TrendingDown,
+  Clock,
 } from "lucide-react";
+import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
 
 /* ── API Types (aligned to SavingsGoalModels.cs) ─────────────────── */
 interface SavingsGoalResponse {
@@ -443,6 +446,8 @@ export default function SavingsPage() {
   const [contributeGoal,      setContributeGoal]      = useState<SavingsGoalResponse | null>(null);
   const [contributionsGoal,   setContributionsGoal]   = useState<SavingsGoalResponse | null>(null);
   const [page,                setPage]                = useState(1);
+  const [deleteConfirmId,     setDeleteConfirmId]     = useState<string | null>(null);
+  const [deleteConfirmName,   setDeleteConfirmName]   = useState<string>("");
 
   const { data, isLoading, error } = useQuery<PagedSavingsGoalResponse>({
     queryKey: ["savings-goals", page],
@@ -644,9 +649,8 @@ export default function SavingsPage() {
                   <button
                     id={`delete-goal-btn-${goal.id}`}
                     onClick={() => {
-                      if (confirm(`Delete "${goal.goalName}"? This action is irreversible.`)) {
-                        deleteMutation.mutate(goal.id);
-                      }
+                      setDeleteConfirmId(goal.id);
+                      setDeleteConfirmName(goal.goalName);
                     }}
                     className="ds-btn-icon h-8 w-8 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.08)] transition-all"
                     title="Delete goal"
@@ -692,6 +696,23 @@ export default function SavingsPage() {
       {showCreateModal  && <CreateGoalModal     onClose={() => setShowCreateModal(false)} />}
       {contributeGoal   && <ContributeModal     goal={contributeGoal}    onClose={() => setContributeGoal(null)} />}
       {contributionsGoal && <ContributionsPanel goal={contributionsGoal} onClose={() => setContributionsGoal(null)} />}
+
+      {/* Delete Confirmation Modal */}
+      <CustomConfirmModal
+        isOpen={!!deleteConfirmId}
+        title="Delete Savings Goal"
+        message={`Are you sure you want to delete the savings goal "${deleteConfirmName}"? This action is irreversible.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep It"
+        onConfirm={() => {
+          if (deleteConfirmId) {
+            deleteMutation.mutate(deleteConfirmId);
+          }
+          setDeleteConfirmId(null);
+        }}
+        onCancel={() => setDeleteConfirmId(null)}
+        isDestructive
+      />
     </div>
   );
 }

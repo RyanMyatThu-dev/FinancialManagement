@@ -21,6 +21,7 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
+import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
@@ -30,6 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen]   = useState(false);
   const [isDarkMode, setIsDarkMode]       = useState(true);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -85,8 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   const handleLogout = () => {
-    logout();
-    router.push("/login");
+    setShowLogoutConfirm(true);
   };
 
   const avatarInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
@@ -340,6 +341,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         <div className="max-w-7xl mx-auto w-full py-6">{children}</div>
       </main>
+
+      {/* Logout Confirmation Modal */}
+      <CustomConfirmModal
+        isOpen={showLogoutConfirm}
+        title="Sign Out"
+        message="Are you sure you want to sign out of your financial workspace?"
+        confirmLabel="Sign Out"
+        cancelLabel="Stay"
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          logout();
+          router.push("/login");
+        }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 }

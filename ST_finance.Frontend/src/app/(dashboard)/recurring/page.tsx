@@ -8,6 +8,7 @@ import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
 import { Clock, Repeat, AlertTriangle, Loader2, Calendar, ArrowUpRight, ArrowDownLeft, Plus, X } from "lucide-react";
 import { CreateRecurringModal } from "@/components/ui/CreateRecurringModal";
+import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
 
 interface RecurringSchedule {
   id:               string;
@@ -41,8 +42,10 @@ const FREQUENCY_COLORS: Record<string, string> = {
 export default function RecurringPage() {
   const { user }  = useAuth();
   const currency  = user?.currency || "THB";
-  const [page, setPage] = useState(1);
+  const [page,            setPage]            = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deleteConfirmId,   setDeleteConfirmId]   = useState<string | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState<string>("");
   const qc = useQueryClient();
 
   const { data, isLoading, error } = useQuery<PagedRecurringResponse>({
@@ -202,9 +205,8 @@ export default function RecurringPage() {
                   <button
                     id={`delete-recurring-btn-${schedule.id}`}
                     onClick={() => {
-                      if (confirm(`Delete recurring schedule "${schedule.name}"?`)) {
-                        deleteMutation.mutate(schedule.id);
-                      }
+                      setDeleteConfirmId(schedule.id);
+                      setDeleteConfirmName(schedule.name);
                     }}
                     className="ds-btn-icon h-7 w-7 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.08)] transition-all"
                     title="Delete schedule"
@@ -245,7 +247,27 @@ export default function RecurringPage() {
         </div>
       )}
 
-      {showCreateModal && <CreateRecurringModal onClose={() => setShowCreateModal(false)} />}
+      {/* Create Modal */}
+      {showCreateModal && (
+        <CreateRecurringModal onClose={() => setShowCreateModal(false)} />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <CustomConfirmModal
+        isOpen={!!deleteConfirmId}
+        title="Delete Recurring Schedule"
+        message={`Are you sure you want to delete "${deleteConfirmName}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep It"
+        onConfirm={() => {
+          if (deleteConfirmId) {
+            deleteMutation.mutate(deleteConfirmId);
+          }
+          setDeleteConfirmId(null);
+        }}
+        onCancel={() => setDeleteConfirmId(null)}
+        isDestructive
+      />
     </div>
   );
 }
