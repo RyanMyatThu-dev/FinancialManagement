@@ -41,6 +41,8 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
 
     public virtual DbSet<TblUserProfile> TblUserProfiles { get; set; }
 
+    public virtual DbSet<TblOtpVerification> TblOtpVerifications { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -516,6 +518,32 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
             entity.HasOne(d => d.User).WithOne(p => p.TblUserProfile)
                 .HasForeignKey<TblUserProfile>(d => d.UserId)
                 .HasConstraintName("Tbl_UserProfile_user_id_fkey");
+        });
+
+        modelBuilder.Entity<TblOtpVerification>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("Tbl_OtpVerification_pkey");
+
+            entity.ToTable("Tbl_OtpVerification");
+
+            entity.HasIndex(e => new { e.Email, e.Purpose }, "Tbl_OtpVerification_email_purpose_idx");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Email)
+                .HasMaxLength(256)
+                .HasColumnName("email");
+            entity.Property(e => e.Code)
+                .HasMaxLength(6)
+                .HasColumnName("code");
+            entity.Property(e => e.Purpose)
+                .HasMaxLength(50)
+                .HasColumnName("purpose");
+            entity.Property(e => e.ExpiryTime).HasColumnName("expiry_time");
+            entity.Property(e => e.IsUsed)
+                .HasDefaultValue(false)
+                .HasColumnName("is_used");
         });
 
         OnModelCreatingPartial(modelBuilder);

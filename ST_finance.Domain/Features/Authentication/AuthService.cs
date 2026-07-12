@@ -13,18 +13,40 @@ namespace ST_finance.Domain.Features.Authentication
 {
     public class AuthService : IAuthService
     {
+        private const int OtpExpiryMinutes = 10;
+
         private readonly UserManager<TblUser> _userManager;
         private readonly AppDbContext _context;
         private readonly ITokenService _tokenService;
+        private readonly IEmailService _emailService;
 
         public AuthService(
             UserManager<TblUser> userManager,
             AppDbContext context,
-            ITokenService tokenService)
+            ITokenService tokenService,
+            IEmailService emailService)
         {
             _userManager = userManager;
             _context = context;
             _tokenService = tokenService;
+            _emailService = emailService;
+        }
+
+        public async Task<Result> SendRegisterOtpAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("Email is required."));
+            }
+
+            var existingEmail = await _userManager.FindByEmailAsync(email);
+            if (existingEmail != null)
+            {
+                return Result.Failure(CustomErrors.Auth.EmailAlreadyRegistered);
+            }
+
+            await GenerateAndSendOtpAsync(email, "Register");
+            return Result.Success();
         }
 
         public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request)
@@ -32,6 +54,12 @@ namespace ST_finance.Domain.Features.Authentication
             if (request == null)
             {
                 return Result.Failure<AuthResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            var otpValid = await ValidateOtpAsync(request.Email, request.OtpCode, "Register");
+            if (!otpValid)
+            {
+                return Result.Failure<AuthResponse>(CustomErrors.Auth.InvalidOtp);
             }
 
             var existingEmail = await _userManager.FindByEmailAsync(request.Email);
@@ -51,6 +79,7 @@ namespace ST_finance.Domain.Features.Authentication
                 UserName = request.Username,
                 Email = request.Email,
                 FullName = request.FullName,
+                EmailConfirmed = true,
                 SecurityStamp = Guid.NewGuid().ToString(),
                 DeleteFlag = false
             };
@@ -76,24 +105,7 @@ namespace ST_finance.Domain.Features.Authentication
             _context.TblUserProfiles.Add(profile);
             await _context.SaveChangesAsync();
 
-            var accessToken = _tokenService.GenerateAccessToken(user);
-            var refreshToken = _tokenService.GenerateRefreshToken();
-
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            await _userManager.UpdateAsync(user);
-
-            var expiration = DateTime.UtcNow.AddMinutes(60);
-
-            return Result.Success(new AuthResponse(
-                AccessToken: accessToken,
-                RefreshToken: refreshToken,
-                UserId: user.Id,
-                Username: user.UserName!,
-                Email: user.Email!,
-                FullName: user.FullName ?? string.Empty,
-                Expiration: expiration
-            ));
+            return await BuildAuthResponseAsync(user);
         }
 
         public async Task<Result<AuthResponse>> LoginAsync(LoginRequest request)
@@ -109,24 +121,50 @@ namespace ST_finance.Domain.Features.Authentication
                 return Result.Failure<AuthResponse>(CustomErrors.Auth.InvalidCredentials);
             }
 
-            var accessToken = _tokenService.GenerateAccessToken(user);
-            var refreshToken = _tokenService.GenerateRefreshToken();
+            if (user.TwoFactorEnabled)
+            {
+                await GenerateAndSendOtpAsync(user.Email!, "TwoFactor");
 
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            await _userManager.UpdateAsync(user);
+                return Result.Success(new AuthResponse(
+                    AccessToken: null,
+                    RefreshToken: null,
+                    UserId: user.Id,
+                    Username: user.UserName!,
+                    Email: user.Email!,
+                    FullName: user.FullName ?? string.Empty,
+                    Expiration: null,
+                    IsTwoFactorRequired: true
+                ));
+            }
 
-            var expiration = DateTime.UtcNow.AddMinutes(60);
+            return await BuildAuthResponseAsync(user);
+        }
 
-            return Result.Success(new AuthResponse(
-                AccessToken: accessToken,
-                RefreshToken: refreshToken,
-                UserId: user.Id,
-                Username: user.UserName!,
-                Email: user.Email!,
-                FullName: user.FullName ?? string.Empty,
-                Expiration: expiration
-            ));
+        public async Task<Result<AuthResponse>> VerifyTwoFactorAsync(VerifyTwoFactorRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure<AuthResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+            if (user == null)
+            {
+                return Result.Failure<AuthResponse>(CustomErrors.Auth.UserNotFound);
+            }
+
+            if (!user.TwoFactorEnabled)
+            {
+                return Result.Failure<AuthResponse>(CustomErrors.Validation.InvalidInput("Two-factor authentication is not enabled for this account."));
+            }
+
+            var otpValid = await ValidateOtpAsync(user.Email!, request.OtpCode, "TwoFactor");
+            if (!otpValid)
+            {
+                return Result.Failure<AuthResponse>(CustomErrors.Auth.InvalidOtp);
+            }
+
+            return await BuildAuthResponseAsync(user);
         }
 
         public async Task<Result<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request)
@@ -152,24 +190,7 @@ namespace ST_finance.Domain.Features.Authentication
                     return Result.Failure<AuthResponse>(CustomErrors.Auth.RefreshTokenExpired);
                 }
 
-                var newAccessToken = _tokenService.GenerateAccessToken(user);
-                var newRefreshToken = _tokenService.GenerateRefreshToken();
-
-                user.RefreshToken = newRefreshToken;
-                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-                await _userManager.UpdateAsync(user);
-
-                var expiration = DateTime.UtcNow.AddMinutes(60);
-
-                return Result.Success(new AuthResponse(
-                    AccessToken: newAccessToken,
-                    RefreshToken: newRefreshToken,
-                    UserId: user.Id,
-                    Username: user.UserName!,
-                    Email: user.Email!,
-                    FullName: user.FullName ?? string.Empty,
-                    Expiration: expiration
-                ));
+                return await BuildAuthResponseAsync(user);
             }
             catch
             {
@@ -188,19 +209,7 @@ namespace ST_finance.Domain.Features.Authentication
                 return Result.Failure<UserProfileResponse>(CustomErrors.Auth.UserNotFound);
             }
 
-            var profile = user.TblUserProfile;
-
-            return Result.Success(new UserProfileResponse(
-                UserId: user.Id,
-                Username: user.UserName!,
-                Email: user.Email!,
-                FullName: user.FullName ?? string.Empty,
-                MonthlyAllowanceAmount: profile?.MonthlyAllowanceAmount,
-                AllowanceDayOfMonth: profile?.AllowanceDayOfMonth,
-                TargetMonthlySavings: profile?.TargetMonthlySavings,
-                Currency: profile?.Currency,
-                UpdatedAt: profile?.UpdatedAt
-            ));
+            return Result.Success(BuildUserProfileResponse(user));
         }
 
         public async Task<Result<UserProfileResponse>> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
@@ -263,17 +272,174 @@ namespace ST_finance.Domain.Features.Authentication
             profile.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            return Result.Success(new UserProfileResponse(
-                UserId: user.Id,
-                Username: user.UserName!,
-                Email: user.Email!,
-                FullName: user.FullName ?? string.Empty,
-                MonthlyAllowanceAmount: profile.MonthlyAllowanceAmount,
-                AllowanceDayOfMonth: profile.AllowanceDayOfMonth,
-                TargetMonthlySavings: profile.TargetMonthlySavings,
-                Currency: profile.Currency,
-                UpdatedAt: profile.UpdatedAt
-            ));
+            return Result.Success(BuildUserProfileResponse(user));
+        }
+
+        public async Task<Result> UpdateUsernameAsync(Guid userId, string newUsername)
+        {
+            if (string.IsNullOrWhiteSpace(newUsername))
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("Username is required."));
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            var existing = await _userManager.FindByNameAsync(newUsername);
+            if (existing != null && existing.Id != userId)
+            {
+                return Result.Failure(CustomErrors.Auth.UsernameInUse);
+            }
+
+            user.UserName = newUsername;
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                return Result.Failure(new Error("Auth.UpdateFailed", errors));
+            }
+
+            return Result.Success();
+        }
+
+        public async Task<Result> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))
+            {
+                return Result.Failure(CustomErrors.Auth.IncorrectPassword);
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                return Result.Failure(new Error("Auth.PasswordChangeFailed", errors));
+            }
+
+            return Result.Success();
+        }
+
+        public async Task<Result> RequestEmailChangeAsync(Guid userId, string newEmail)
+        {
+            if (string.IsNullOrWhiteSpace(newEmail))
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("New email is required."));
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            if (string.Equals(user.Email, newEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("New email must be different from your current email."));
+            }
+
+            var existing = await _userManager.FindByEmailAsync(newEmail);
+            if (existing != null)
+            {
+                return Result.Failure(CustomErrors.Auth.EmailInUse);
+            }
+
+            await GenerateAndSendOtpAsync(newEmail, "EmailChange");
+            return Result.Success();
+        }
+
+        public async Task<Result> ConfirmEmailChangeAsync(Guid userId, ConfirmEmailChangeRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            var otpValid = await ValidateOtpAsync(request.NewEmail, request.OtpCode, "EmailChange");
+            if (!otpValid)
+            {
+                return Result.Failure(CustomErrors.Auth.InvalidOtp);
+            }
+
+            var existing = await _userManager.FindByEmailAsync(request.NewEmail);
+            if (existing != null && existing.Id != userId)
+            {
+                return Result.Failure(CustomErrors.Auth.EmailInUse);
+            }
+
+            user.Email = request.NewEmail;
+            user.NormalizedEmail = _userManager.NormalizeEmail(request.NewEmail);
+            user.EmailConfirmed = true;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                return Result.Failure(new Error("Auth.EmailChangeFailed", errors));
+            }
+
+            return Result.Success();
+        }
+
+        public async Task<Result> ToggleTwoFactorAsync(Guid userId, Toggle2FaRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            if (string.IsNullOrWhiteSpace(request.OtpCode))
+            {
+                await GenerateAndSendOtpAsync(user.Email!, "TwoFactor");
+                return Result.Success();
+            }
+
+            var otpValid = await ValidateOtpAsync(user.Email!, request.OtpCode, "TwoFactor");
+            if (!otpValid)
+            {
+                return Result.Failure(CustomErrors.Auth.InvalidOtp);
+            }
+
+            if (request.Enable == user.TwoFactorEnabled)
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput(
+                    request.Enable ? "Two-factor authentication is already enabled." : "Two-factor authentication is already disabled."));
+            }
+
+            user.TwoFactorEnabled = request.Enable;
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                return Result.Failure(new Error("Auth.TwoFactorToggleFailed", errors));
+            }
+
+            return Result.Success();
         }
 
         public async Task<Result> DeleteUserAsync(Guid userId)
@@ -293,6 +459,103 @@ namespace ST_finance.Domain.Features.Authentication
             }
 
             return Result.Success();
+        }
+
+        private async Task GenerateAndSendOtpAsync(string email, string purpose)
+        {
+            var existingOtps = await _context.TblOtpVerifications
+                .Where(o => o.Email == email && o.Purpose == purpose && !o.IsUsed)
+                .ToListAsync();
+
+            foreach (var otp in existingOtps)
+            {
+                otp.IsUsed = true;
+            }
+
+            var code = GenerateOtpCode();
+            var otpEntry = new TblOtpVerification
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                Code = code,
+                Purpose = purpose,
+                ExpiryTime = DateTime.UtcNow.AddMinutes(OtpExpiryMinutes),
+                IsUsed = false
+            };
+
+            _context.TblOtpVerifications.Add(otpEntry);
+            await _context.SaveChangesAsync();
+
+            await _emailService.SendOtpEmailAsync(email, code, purpose);
+        }
+
+        private async Task<bool> ValidateOtpAsync(string email, string code, string purpose)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return false;
+            }
+
+            var otp = await _context.TblOtpVerifications
+                .Where(o => o.Email == email && o.Purpose == purpose && !o.IsUsed && o.ExpiryTime > DateTime.UtcNow)
+                .OrderByDescending(o => o.ExpiryTime)
+                .FirstOrDefaultAsync();
+
+            if (otp == null || otp.Code != code.Trim())
+            {
+                return false;
+            }
+
+            otp.IsUsed = true;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        private static string GenerateOtpCode()
+        {
+            return Random.Shared.Next(100000, 999999).ToString();
+        }
+
+        private async Task<Result<AuthResponse>> BuildAuthResponseAsync(TblUser user)
+        {
+            var accessToken = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            await _userManager.UpdateAsync(user);
+
+            var expiration = DateTime.UtcNow.AddMinutes(60);
+
+            return Result.Success(new AuthResponse(
+                AccessToken: accessToken,
+                RefreshToken: refreshToken,
+                UserId: user.Id,
+                Username: user.UserName!,
+                Email: user.Email!,
+                FullName: user.FullName ?? string.Empty,
+                Expiration: expiration,
+                IsTwoFactorRequired: false
+            ));
+        }
+
+        private static UserProfileResponse BuildUserProfileResponse(TblUser user)
+        {
+            var profile = user.TblUserProfile;
+
+            return new UserProfileResponse(
+                UserId: user.Id,
+                Username: user.UserName!,
+                Email: user.Email!,
+                FullName: user.FullName ?? string.Empty,
+                EmailConfirmed: user.EmailConfirmed,
+                TwoFactorEnabled: user.TwoFactorEnabled,
+                MonthlyAllowanceAmount: profile?.MonthlyAllowanceAmount,
+                AllowanceDayOfMonth: profile?.AllowanceDayOfMonth,
+                TargetMonthlySavings: profile?.TargetMonthlySavings,
+                Currency: profile?.Currency,
+                UpdatedAt: profile?.UpdatedAt
+            );
         }
     }
 }

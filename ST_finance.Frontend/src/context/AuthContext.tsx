@@ -9,6 +9,8 @@ export interface UserProfile {
   username: string;
   email: string;
   fullName: string;
+  emailConfirmed?: boolean;
+  twoFactorEnabled?: boolean;
   monthlyAllowanceAmount?: number;
   allowanceDayOfMonth?: number;
   targetMonthlySavings?: number;
@@ -16,12 +18,21 @@ export interface UserProfile {
   updatedAt?: string;
 }
 
+interface LoginResult {
+  success: boolean;
+  error?: string;
+  isTwoFactorRequired?: boolean;
+  userId?: string;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: UserProfile | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (username: string, email: string, password: string, fullName: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  verifyTwoFactor: (userId: string, otpCode: string) => Promise<{ success: boolean; error?: string }>;
+  sendRegisterOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
+  register: (username: string, email: string, password: string, fullName: string, otpCode: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
   updateProfile: (profileData: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
@@ -53,6 +64,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const storeAuthTokens = async (value: {
+    accessToken: string;
+    refreshToken: string;
+    userId: string;
+    username: string;
+    email: string;
+    fullName: string;
+  }) => {
+    localStorage.setItem("accessToken", value.accessToken);
+    localStorage.setItem("refreshToken", value.refreshToken);
+
+    const initialUser: UserProfile = {
+      userId: value.userId,
+      username: value.username,
+      email: value.email,
+      fullName: value.fullName,
+    };
+    setUser(initialUser);
+    setIsAuthenticated(true);
+
+    await fetchProfile();
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       if (typeof window !== "undefined") {
@@ -64,7 +98,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(JSON.parse(cachedProfile));
             setIsAuthenticated(true);
             setIsLoading(false);
-            // Verify and refresh profile in background
             fetchProfile();
           } else {
             await fetchProfile();
@@ -77,24 +110,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
       const response = await apiClient.post("/api/auth/login", { email, password });
       const result = response.data;
 
       if (result.isSuccess && result.value) {
+        if (result.value.isTwoFactorRequired) {
+          return {
+            success: false,
+            isTwoFactorRequired: true,
+            userId: result.value.userId,
+          };
+        }
+
         const { accessToken, refreshToken, userId, username, fullName } = result.value;
-
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("refreshToken", refreshToken);
-
-        // Map initial user data
-        const initialUser: UserProfile = { userId, username, email, fullName };
-        setUser(initialUser);
-        setIsAuthenticated(true);
-
-        // Fetch full profile (budget settings etc.) in background
-        await fetchProfile();
+        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName });
         return { success: true };
       } else {
         return { success: false, error: result.error?.message || "Login failed." };
@@ -105,27 +136,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (username: string, email: string, password: string, fullName: string) => {
+  const verifyTwoFactor = async (userId: string, otpCode: string) => {
+    try {
+      const response = await apiClient.post("/api/auth/login/verify-2fa", { userId, otpCode });
+      const result = response.data;
+
+      if (result.isSuccess && result.value) {
+        const { accessToken, refreshToken, username, email, fullName } = result.value;
+        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName });
+        return { success: true };
+      } else {
+        return { success: false, error: result.error?.message || "Verification failed." };
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || "Invalid verification code.";
+      return { success: false, error: msg };
+    }
+  };
+
+  const sendRegisterOtp = async (email: string) => {
+    try {
+      const response = await apiClient.post("/api/auth/register/send-otp", { email });
+      const result = response.data;
+
+      if (result.isSuccess) {
+        return { success: true };
+      } else {
+        return { success: false, error: result.error?.message || "Failed to send verification code." };
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || "Failed to send verification code.";
+      return { success: false, error: msg };
+    }
+  };
+
+  const register = async (username: string, email: string, password: string, fullName: string, otpCode: string) => {
     try {
       const response = await apiClient.post("/api/auth/register", {
         username,
         email,
         password,
         fullName,
+        otpCode,
       });
       const result = response.data;
 
       if (result.isSuccess && result.value) {
         const { accessToken, refreshToken, userId } = result.value;
-
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("refreshToken", refreshToken);
-
-        const initialUser: UserProfile = { userId, username, email, fullName };
-        setUser(initialUser);
-        setIsAuthenticated(true);
-
-        await fetchProfile();
+        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName });
         return { success: true };
       } else {
         return { success: false, error: result.error?.message || "Registration failed." };
@@ -142,7 +200,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("userProfile");
     setUser(null);
     setIsAuthenticated(false);
-    // Flush all cached React Query data so the next user gets a clean slate
     queryClient.clear();
   };
 
@@ -180,6 +237,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         user,
         login,
+        verifyTwoFactor,
+        sendRegisterOtp,
         register,
         logout,
         refreshProfile,

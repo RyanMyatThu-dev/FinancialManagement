@@ -29,7 +29,16 @@ public static class FeatureManager
             options.User.RequireUniqueEmail = true;
         })
         .AddRoles<IdentityRole<Guid>>()
-        .AddEntityFrameworkStores<AppDbContext>();
+        .AddEntityFrameworkStores<AppDbContext>()
+        .AddDefaultTokenProviders();
+
+        builder.Services.AddTransient<Resend.IResend>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var apiKey = config["Resend:ApiKey"];
+            return Resend.ResendClient.Create(apiKey ?? "re_temp");
+        });
+        builder.Services.AddScoped<IEmailService, EmailService>();
 
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<ITokenService, TokenService>();

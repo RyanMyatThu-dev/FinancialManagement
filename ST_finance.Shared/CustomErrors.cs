@@ -33,6 +33,10 @@ namespace ST_finance.Shared
             public static readonly Error RefreshTokenExpired = new("Auth.RefreshTokenExpired", "Refresh token has expired or is invalid.");
             public static readonly Error ProfileNotFound = new("Auth.ProfileNotFound", "User profile not found.");
             public static readonly Error EmailAlreadyRegistered = new("Auth.EmailAlreadyRegistered", "Email is already registered.");
+            public static readonly Error InvalidOtp = new("Auth.InvalidOtp", "Invalid or expired verification code.");
+            public static readonly Error EmailInUse = new("Auth.EmailInUse", "This email address is already in use.");
+            public static readonly Error UsernameInUse = new("Auth.UsernameInUse", "This username is already taken.");
+            public static readonly Error IncorrectPassword = new("Auth.IncorrectPassword", "Current password is incorrect.");
         }
     }
 }

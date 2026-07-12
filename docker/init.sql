@@ -158,3 +158,15 @@ CREATE TABLE IF NOT EXISTS "Tbl_SavingsContribution" (
     date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     note VARCHAR(250) NULL
 );
+
+-- 13. OTP Verification table
+CREATE TABLE IF NOT EXISTS "Tbl_OtpVerification" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(256) NOT NULL,
+    code VARCHAR(6) NOT NULL,
+    purpose VARCHAR(50) NOT NULL,
+    expiry_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    is_used BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS "Tbl_OtpVerification_email_purpose_idx" ON "Tbl_OtpVerification"(email, purpose);

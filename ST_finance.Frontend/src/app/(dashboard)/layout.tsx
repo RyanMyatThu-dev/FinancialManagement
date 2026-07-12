@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { AccountSwitcher } from "@/components/ui/AccountSwitcher";
+import { Logo } from "@/components/ui/Logo";
 import {
   LayoutDashboard,
   Wallet,
@@ -103,13 +104,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <header className="md:hidden w-full h-14 fixed top-0 left-0 bg-[hsl(var(--card))] border-b border-[hsl(var(--border))] px-4 flex items-center justify-between z-40">
         <div className="flex items-center gap-2.5">
           {/* Logo badge */}
-          <div className="h-7 w-7 rounded-lg bg-[hsl(var(--primary))] flex items-center justify-center">
-            <span className="text-[hsl(var(--primary-foreground))] font-black text-[11px]">SF</span>
-          </div>
+          <Logo className="h-7 w-7" />
           <span className="font-extrabold text-sm tracking-tight">ST-Finance</span>
         </div>
         <div className="flex items-center gap-2">
-          <AccountSwitcher accountName={user?.fullName?.split(" ")[0] ?? "Account"} />
           <button
             id="mobile-theme-toggle"
             onClick={toggleTheme}
@@ -137,9 +135,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Brand Header */}
         <div className="h-14 flex items-center px-3.5 border-b border-[hsl(var(--border))] justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-7 w-7 shrink-0 rounded-lg bg-[hsl(var(--primary))] flex items-center justify-center">
-              <span className="text-[hsl(var(--primary-foreground))] font-black text-[11px]">SF</span>
-            </div>
+            <Logo className="h-7 w-7 shrink-0" />
             {!isSidebarCollapsed && (
               <span className="font-extrabold text-sm tracking-tight truncate">ST-Finance</span>
             )}
@@ -279,9 +275,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <aside className="relative flex flex-col w-64 h-full bg-[hsl(var(--card))] border-r border-[hsl(var(--border))] p-4 z-50">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2.5">
-                <div className="h-7 w-7 rounded-lg bg-[hsl(var(--primary))] flex items-center justify-center">
-                  <span className="text-[hsl(var(--primary-foreground))] font-black text-[11px]">SF</span>
-                </div>
+                <Logo className="h-7 w-7" />
                 <span className="font-extrabold text-sm">ST-Finance</span>
               </div>
               <button
