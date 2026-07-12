@@ -102,7 +102,7 @@ namespace ST_finance.Domain.Features.Transactions
                 query = query.Where(t => t.Amount <= maxAmount.Value);
             }
 
-            query = query.OrderByDescending(t => t.Date);
+            query = query.OrderByDescending(t => t.Date).ThenByDescending(t => (DateTime?)t.CreatedAt);
 
             var totalCount = await query.CountAsync();
 
@@ -471,6 +471,58 @@ namespace ST_finance.Domain.Features.Transactions
             await _context.SaveChangesAsync();
 
             return Result.Success(new TagResponse(tag.Id, tag.Name, tag.Color));
+        }
+
+        public async Task<Result<PagedResponse<CategoryResponse>>> GetCategoriesPagedAsync(Guid userId, int pageNumber, int pageSize, string? search)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100;
+
+            var query = _context.TblCategories
+                .Where(c => c.UserId == userId && !c.DeleteFlag);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(c => c.Name.ToLower().Contains(search.ToLower()));
+            }
+
+            query = query.OrderBy(c => c.Name);
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(c => new CategoryResponse(c.Id, c.Name, c.Type, c.Icon, c.Color))
+                .ToListAsync();
+
+            return Result.Success(PagedResponse<CategoryResponse>.Create(items, totalCount, pageNumber, pageSize));
+        }
+
+        public async Task<Result<PagedResponse<TagResponse>>> GetTagsPagedAsync(Guid userId, int pageNumber, int pageSize, string? search)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100;
+
+            var query = _context.TblTags
+                .Where(t => t.UserId == userId && !t.DeleteFlag);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(t => t.Name.ToLower().Contains(search.ToLower()));
+            }
+
+            query = query.OrderBy(t => t.Name);
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(t => new TagResponse(t.Id, t.Name, t.Color))
+                .ToListAsync();
+
+            return Result.Success(PagedResponse<TagResponse>.Create(items, totalCount, pageNumber, pageSize));
         }
     }
 }
