@@ -1,19 +1,19 @@
-# Chula Scholarship Financial Manager & Budget Tracker
+# Financial Manager & Budget Tracker
 
-A tailored, premium financial management, data visualizer, and budget tracker application designed specifically for scholarship students at Chulalongkorn University. 
+A tailored, premium financial management, data visualizer, and budget tracker application designed specifically for Students. 
 
-This app is optimized to manage a monthly stipend of **16,000 Baht**, with student-centric features like a **Dynamic Safe-to-Spend Quota** and a **Chula Canteen Meal Index** (calculating your daily budget in units of ~50 Baht canteen meals).
+This app is optimized to manage with a set monthly allowance amount, with student-centric features like a **Dynamic Safe-to-Spend Quota** and a **Canteen Meal Index** (calculating your daily budget in units of ~50 Baht canteen meals).
 
 ---
 
 ## 🚀 Key Features
 
-*   **16,000 Baht Stipend Tracker**: Countdown to the next disbursement day (the 25th of the month).
+*   **Monthly Allowance**: Countdown to the next disbursement day (the 25th of the month).
 *   **Fixed Deductions Baseline**: Subtracts fixed costs (like dorm rent and utility bills) immediately to isolate your actual disposable budget.
 *   **Dynamic Rolling Daily Limit**: Automatically recalculates how much you can spend today. If you overspend, tomorrow's limit shrinks; if you save, tomorrow's limit grows.
-*   **Chula Canteen Meal Index**: Translates monetary amounts into canteen meals (50 THB each) so you always know your budget in food terms.
+*   **Canteen Meal Index**: Translates monetary amounts into canteen meals (50 THB each) so you always know your budget in food terms.
 *   **Multi-Account Ledger**: Track SCB Bank, TrueMoney E-wallet, Rabbit Card transit card, and Cash balances with seamless transfer logs.
-*   **Advanced Tagging**: Add tags like `#chula-canteen`, `#commute`, and `#exam-prep` for custom reports.
+*   **Advanced Tagging**: Add tags like `#canteen`, `#commute`, and `#exam-prep` for custom reports.
 *   **Virtual Savings Goals**: Earmark savings for textbooks, study gear (like an iPad), or emergency reserves.
 
 ---
@@ -61,7 +61,7 @@ You can launch a local PostgreSQL container pre-configured with the schema SQL b
 ```bash
 docker compose up -d db
 ```
-This starts the database on port `5432` with database name `chula_financial_db` and executes the initialization script in `docker/init.sql` to generate all 12 tables instantly.
+This starts the database on port `5432` with database name `st_financial_db` and executes the initialization script in `docker/init.sql` to generate all 12 tables instantly.
 
 To run the entire stack (both Database and .NET Web API) inside containers:
 ```bash
@@ -73,7 +73,7 @@ If running the API directly on your host machine (outside Docker):
 1.  Ensure your local PostgreSQL instance is running (via Docker or local service).
 2.  Navigate to `ST_finance.Api/appsettings.json`.
 3.  Ensure the `ConnectionStrings:DefaultConnection` matches your PostgreSQL details:
-    `Host=localhost;Port=5432;Database=chula_financial_db;Username=chula_admin;Password=chula_secure_pwd_2026;`
+    `Host=localhost;Port=5432;Database=st_financial_db;Username=postgres;Password=postgres;`
 4.  Run the API:
     ```bash
     dotnet run --project ST_finance.Api/ST_finance.Api.csproj
