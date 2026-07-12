@@ -26,5 +26,7 @@ namespace ST_finance.Domain.Features.Transactions
         Task<Result<IEnumerable<TagResponse>>> GetTagsAsync(Guid userId);
         Task<Result<CategoryResponse>> CreateCategoryAsync(Guid userId, CreateCategoryRequest request);
         Task<Result<TagResponse>> CreateTagAsync(Guid userId, CreateTagRequest request);
+        Task<Result<PagedResponse<CategoryResponse>>> GetCategoriesPagedAsync(Guid userId, int pageNumber, int pageSize, string? search);
+        Task<Result<PagedResponse<TagResponse>>> GetTagsPagedAsync(Guid userId, int pageNumber, int pageSize, string? search);
     }
 }

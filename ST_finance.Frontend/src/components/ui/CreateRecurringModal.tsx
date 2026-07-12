@@ -171,7 +171,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
           </div>
           <h2 className="text-lg font-bold tracking-tight">Create Recurring Schedule</h2>
           <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">
-            Setup stipend deposits, automated billing cycles, or regular expenses.
+            Set up automated income, bill payments, or subscription charges.
           </p>
         </div>
 
@@ -195,7 +195,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
               maxLength={150}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Monthly Rent, Monthly Stipend, NetEase Sub"
+              placeholder="e.g. Monthly Rent, Salary Deposit, Netflix Sub"
               className="ds-input w-full px-3 py-2.5 text-sm"
             />
           </div>

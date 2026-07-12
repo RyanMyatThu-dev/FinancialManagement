@@ -10,7 +10,7 @@ interface AccountSwitcherProps {
 }
 
 export function AccountSwitcher({
-  accountName = "Stipend Account",
+  accountName = "Main Account",
   badge = "CU",
   badgeColor = "bg-[hsl(var(--chula-pink))]",
   onClick,

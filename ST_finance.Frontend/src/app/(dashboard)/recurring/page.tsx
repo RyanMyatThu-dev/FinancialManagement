@@ -91,7 +91,7 @@ export default function RecurringPage() {
         <div>
           <h1 className="text-2xl font-black tracking-tight">Recurring Schedules</h1>
           <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">
-            Configure stipend resets, billing schedules, and subscriptions.
+            Manage automated income deposits, bill payments, and subscription cycles.
           </p>
         </div>
         <button

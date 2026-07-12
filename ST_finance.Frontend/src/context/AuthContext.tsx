@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(initialUser);
         setIsAuthenticated(true);
 
-        // Fetch full profile (stipend settings etc.) in background
+        // Fetch full profile (budget settings etc.) in background
         await fetchProfile();
         return { success: true };
       } else {

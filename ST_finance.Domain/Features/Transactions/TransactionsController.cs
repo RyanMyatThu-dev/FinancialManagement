@@ -81,11 +81,22 @@ namespace ST_finance.Domain.Features.Transactions
         }
 
         [HttpGet("categories")]
-        public async Task<IActionResult> GetCategories()
+        public async Task<IActionResult> GetCategories(
+            [FromQuery] int pageNumber = 0,
+            [FromQuery] int pageSize   = 0,
+            [FromQuery] string? search = null)
         {
             var userId = GetUserId();
-            var result = await _transactionService.GetCategoriesAsync(userId);
-            return HandleResult(result);
+            if (pageNumber > 0 && pageSize > 0)
+            {
+                var result = await _transactionService.GetCategoriesPagedAsync(userId, pageNumber, pageSize, search);
+                return HandleResult(result);
+            }
+            else
+            {
+                var result = await _transactionService.GetCategoriesAsync(userId);
+                return HandleResult(result);
+            }
         }
 
         [HttpPost("categories")]
@@ -103,11 +114,22 @@ namespace ST_finance.Domain.Features.Transactions
         }
 
         [HttpGet("tags")]
-        public async Task<IActionResult> GetTags()
+        public async Task<IActionResult> GetTags(
+            [FromQuery] int pageNumber = 0,
+            [FromQuery] int pageSize   = 0,
+            [FromQuery] string? search = null)
         {
             var userId = GetUserId();
-            var result = await _transactionService.GetTagsAsync(userId);
-            return HandleResult(result);
+            if (pageNumber > 0 && pageSize > 0)
+            {
+                var result = await _transactionService.GetTagsPagedAsync(userId, pageNumber, pageSize, search);
+                return HandleResult(result);
+            }
+            else
+            {
+                var result = await _transactionService.GetTagsAsync(userId);
+                return HandleResult(result);
+            }
         }
 
         [HttpPost("tags")]
