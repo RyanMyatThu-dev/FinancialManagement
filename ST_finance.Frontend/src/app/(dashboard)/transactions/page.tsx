@@ -360,7 +360,10 @@ export default function TransactionsPage() {
       {/* Table */}
       <div className="sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none overflow-hidden">
         {/* Table Header */}
-        <div className="grid grid-cols-[1fr_80px_110px] sm:grid-cols-[1fr_120px_80px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
+        <div className="grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
+            No.
+          </span>
           <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
             Description
           </span>
@@ -394,10 +397,15 @@ export default function TransactionsPage() {
         {transactions.map((tx, idx) => (
           <div
             key={tx.id ?? `tx-${idx}`}
-            className={`ds-table-row grid grid-cols-[1fr_80px_110px] sm:grid-cols-[1fr_120px_80px_130px] px-5 py-3.5 items-center ${
+            className={`ds-table-row grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-3.5 items-center ${
               idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
             }`}
           >
+            {/* Number index */}
+            <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
+              {(page - 1) * PAGE_SIZE + idx + 1}
+            </span>
+
             {/* Description */}
             <div className="min-w-0">
               <p className="text-sm font-medium truncate">
