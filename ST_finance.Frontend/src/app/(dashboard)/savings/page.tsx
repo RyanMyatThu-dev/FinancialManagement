@@ -119,6 +119,15 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (targetDate) {
+      const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local format
+      if (targetDate <= todayStr) {
+        setError("Target date must be in the future.");
+        return;
+      }
+    }
+
     mutation.mutate({
       goalName,
       targetAmount: parseFloat(targetAmount) || 0,

@@ -60,6 +60,10 @@ namespace ST_finance.Domain.Features.SavingsGoals
             {
                 return Result.Failure<SavingsGoalResponse>(CustomErrors.Validation.InvalidInput("Target amount must be greater than zero."));
             }
+            if (request.TargetDate.HasValue && request.TargetDate.Value.Date <= DateTime.UtcNow.AddHours(7).Date)
+            {
+                return Result.Failure<SavingsGoalResponse>(CustomErrors.Validation.InvalidInput("Target date must be in the future."));
+            }
 
             var goal = new TblSavingsGoal
             {
@@ -67,7 +71,7 @@ namespace ST_finance.Domain.Features.SavingsGoals
                 UserId = userId,
                 GoalName = request.GoalName,
                 TargetAmount = request.TargetAmount,
-                TargetDate = request.TargetDate,
+                TargetDate = request.TargetDate.HasValue ? DateTime.SpecifyKind(request.TargetDate.Value, DateTimeKind.Utc) : null,
                 IsCompleted = false,
                 CreatedAt = DateTime.UtcNow,
                 DeleteFlag = false
