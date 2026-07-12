@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { X, Loader2, AlertTriangle, Plus, Tag } from "lucide-react";
+import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
 
 interface CreateTransactionModalProps {
   onClose: () => void;
@@ -335,6 +336,31 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
                         className="ds-input w-full px-2 py-1 text-xs"
                         autoFocus
                       />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono block mb-1">
+                        Icon ({newCategoryIcon})
+                      </span>
+                      <div className="grid grid-cols-5 gap-1.5 p-2 bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-lg">
+                        {STUDENT_ICONS.map((ico) => {
+                          const isSelected = newCategoryIcon === ico.name;
+                          return (
+                            <button
+                              key={ico.name}
+                              type="button"
+                              onClick={() => setNewCategoryIcon(ico.name)}
+                              title={ico.label}
+                              className={`h-7 w-7 rounded border flex items-center justify-center transition-all ${
+                                isSelected
+                                  ? "bg-[hsl(var(--primary)/0.1)] border-[hsl(var(--primary))] text-[hsl(var(--primary))]"
+                                  : "bg-transparent border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--border-hover))] hover:text-[hsl(var(--foreground))]"
+                              }`}
+                            >
+                              <CategoryIcon name={ico.name} className="h-3.5 w-3.5" />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                     <div className="flex gap-2 items-center">
                       <div className="flex-1 flex gap-2 items-center">

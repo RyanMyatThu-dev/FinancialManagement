@@ -14,7 +14,60 @@ import {
   FolderOpen as FolderIcon,
   Tag as TagIcon,
   Sparkles,
+  BookOpen,
+  Coffee,
+  Utensils,
+  Bus,
+  Home,
+  GraduationCap,
+  Gamepad2,
+  Dumbbell,
+  ShoppingBag,
+  Wifi,
+  Gift,
+  Briefcase,
+  Heart,
+  Wallet
 } from "lucide-react";
+
+export const STUDENT_ICONS = [
+  { name: "BookOpen", label: "Studies" },
+  { name: "Coffee", label: "Coffee/Drinks" },
+  { name: "Utensils", label: "Food/Meals" },
+  { name: "Bus", label: "Transit/Commute" },
+  { name: "Home", label: "Rent/Dorm" },
+  { name: "GraduationCap", label: "Tuition" },
+  { name: "Sparkles", label: "Fun/Leisure" },
+  { name: "Gamepad2", label: "Gaming" },
+  { name: "Dumbbell", label: "Sports/Gym" },
+  { name: "ShoppingBag", label: "Shopping" },
+  { name: "Wifi", label: "Internet" },
+  { name: "Gift", label: "Allowance" },
+  { name: "Briefcase", label: "Part-time Job" },
+  { name: "Heart", label: "Personal" },
+  { name: "Wallet", label: "Savings/Cash" }
+];
+
+export const CategoryIcon = ({ name, className }: { name: string; className?: string }) => {
+  switch (name) {
+    case "BookOpen": return <BookOpen className={className} />;
+    case "Coffee": return <Coffee className={className} />;
+    case "Utensils": return <Utensils className={className} />;
+    case "Bus": return <Bus className={className} />;
+    case "Home": return <Home className={className} />;
+    case "GraduationCap": return <GraduationCap className={className} />;
+    case "Sparkles": return <Sparkles className={className} />;
+    case "Gamepad2": return <Gamepad2 className={className} />;
+    case "Dumbbell": return <Dumbbell className={className} />;
+    case "ShoppingBag": return <ShoppingBag className={className} />;
+    case "Wifi": return <Wifi className={className} />;
+    case "Gift": return <Gift className={className} />;
+    case "Briefcase": return <Briefcase className={className} />;
+    case "Heart": return <Heart className={className} />;
+    case "Wallet": return <Wallet className={className} />;
+    default: return <FolderOpen className={className} />;
+  }
+};
 
 interface Category {
   id: string;
@@ -179,17 +232,17 @@ export default function CategoriesPage() {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
                   Color Theme
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <input
                     type="color"
                     value={newCatColor}
                     onChange={(e) => setNewCatColor(e.target.value)}
-                    className="h-9 w-9 rounded-lg border border-[hsl(var(--border))] bg-transparent cursor-pointer"
+                    className="h-9 w-9 rounded-lg border border-[hsl(var(--border))] bg-transparent cursor-pointer shrink-0"
                   />
                   <span className="text-xs font-mono tracking-tight text-[hsl(var(--muted-foreground))]">
                     {newCatColor.toUpperCase()}
@@ -198,19 +251,29 @@ export default function CategoriesPage() {
               </div>
 
               <div>
-                <label htmlFor="cat-icon" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                  Icon Identifier
+                <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
+                  Select Icon
                 </label>
-                <input
-                  id="cat-icon"
-                  type="text"
-                  required
-                  maxLength={30}
-                  placeholder="e.g. Coffee, Home"
-                  value={newCatIcon}
-                  onChange={(e) => setNewCatIcon(e.target.value)}
-                  className="ds-input w-full px-3 py-2 text-xs font-mono"
-                />
+                <div className="grid grid-cols-5 gap-2 p-3 bg-[hsl(var(--secondary))] border border-[hsl(var(--border))] rounded-lg">
+                  {STUDENT_ICONS.map((ico) => {
+                    const isSelected = newCatIcon === ico.name;
+                    return (
+                      <button
+                        key={ico.name}
+                        type="button"
+                        onClick={() => setNewCatIcon(ico.name)}
+                        title={ico.label}
+                        className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-all ${
+                          isSelected
+                            ? "bg-[hsl(var(--primary)/0.1)] border-[hsl(var(--primary))] text-[hsl(var(--primary))]"
+                            : "bg-transparent border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--border-hover))] hover:text-[hsl(var(--foreground))]"
+                        }`}
+                      >
+                        <CategoryIcon name={ico.name} className="h-4.5 w-4.5" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -310,17 +373,23 @@ export default function CategoriesPage() {
                     className="ds-card p-4 flex items-center justify-between border-l-4 transition-all hover:translate-x-0.5"
                     style={{ borderLeftColor: c.color || "hsl(var(--border))" }}
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: c.color || "hsl(var(--muted))" }}
-                        />
-                        <h4 className="text-xs font-bold">{c.name}</h4>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-8 w-8 rounded-lg flex items-center justify-center border transition-all"
+                        style={{
+                          backgroundColor: `${c.color}0d`,
+                          borderColor: `${c.color}35`,
+                          color: c.color,
+                        }}
+                      >
+                        <CategoryIcon name={c.icon || "FolderOpen"} className="h-4.5 w-4.5" />
                       </div>
-                      <p className="text-[9px] text-[hsl(var(--muted-foreground))] font-mono">
-                        Icon: {c.icon || "Folder"}
-                      </p>
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-bold">{c.name}</h4>
+                        <p className="text-[9px] text-[hsl(var(--muted-foreground))] font-mono">
+                          Icon: {c.icon || "FolderOpen"}
+                        </p>
+                      </div>
                     </div>
 
                     <span
