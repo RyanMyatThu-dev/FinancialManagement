@@ -54,9 +54,9 @@ export default function DashboardHome() {
   const [timeframe, setTimeframe] = useState<Timeframe>("Month");
 
   const { data: summary, isLoading: isSummaryLoading, error: summaryError } = useQuery<DashboardSummary>({
-    queryKey: ["dashboardSummary"],
+    queryKey: ["dashboardSummary", timeframe],
     queryFn: async () => {
-      const res = await apiClient.get("/api/dashboard/summary");
+      const res = await apiClient.get(`/api/dashboard/summary?timeframe=${timeframe}`);
       if (res.data.isSuccess && res.data.value) return res.data.value;
       throw new Error(res.data.error?.message || "Failed to fetch dashboard summary");
     },
@@ -180,11 +180,11 @@ export default function DashboardHome() {
           <CurrencyDisplay amount={summary?.totalSavings ?? 0} currency={currency} size="md" />
         </Link>
 
-        {/* Monthly Inflow */}
+        {/* Inflow Card */}
         <Link href="/transactions" className="ds-card ds-card-interactive p-5 block">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
-              Monthly Inflow
+              {timeframe === "Day" ? "Daily" : timeframe === "Week" ? "Weekly" : timeframe === "Month" ? "Monthly" : "Yearly"} Inflow
             </span>
             <div className="ds-btn-icon h-8 w-8">
               <TrendingUp className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
@@ -198,11 +198,11 @@ export default function DashboardHome() {
           />
         </Link>
 
-        {/* Monthly Outflow */}
+        {/* Outflow Card */}
         <Link href="/transactions" className="ds-card ds-card-interactive p-5 block">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
-              Monthly Outflow
+              {timeframe === "Day" ? "Daily" : timeframe === "Week" ? "Weekly" : timeframe === "Month" ? "Monthly" : "Yearly"} Outflow
             </span>
             <div className="ds-btn-icon h-8 w-8">
               <TrendingDown className="h-3.5 w-3.5 text-[hsl(var(--destructive))]" />

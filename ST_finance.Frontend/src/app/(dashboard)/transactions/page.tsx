@@ -202,7 +202,7 @@ export default function TransactionsPage() {
           <div className="flex items-center gap-2 mb-2">
             <ArrowDownLeft className="h-4 w-4 text-[hsl(var(--primary))]" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
-              Page Inflow
+              Period Inflow ({timeframe})
             </span>
           </div>
           <p className="font-mono tabular-nums font-bold text-lg text-[hsl(var(--primary))]">
@@ -214,7 +214,7 @@ export default function TransactionsPage() {
           <div className="flex items-center gap-2 mb-2">
             <ArrowUpRight className="h-4 w-4 text-[hsl(var(--destructive))]" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
-              Page Outflow
+              Period Outflow ({timeframe})
             </span>
           </div>
           <p className="font-mono tabular-nums font-bold text-lg text-[hsl(var(--destructive))]">

@@ -16,7 +16,8 @@ namespace ST_finance.Domain.Features.Transactions
             Guid? tagId = null,
             decimal? minAmount = null,
             decimal? maxAmount = null,
-            string? search = null
+            string? search = null,
+            string? timeframe = null
         );
         Task<Result<TransactionResponse>> CreateTransactionAsync(Guid userId, TransactionRequest request);
         Task<Result<TransactionResponse>> UpdateTransactionAsync(Guid userId, Guid transactionId, TransactionRequest request);

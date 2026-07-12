@@ -19,10 +19,10 @@ namespace ST_finance.Domain.Features.Dashboard
         }
 
         [HttpGet("summary")]
-        public async Task<IActionResult> GetSummary()
+        public async Task<IActionResult> GetSummary([FromQuery] string timeframe = "Month")
         {
             var userId = GetUserId();
-            var result = await _dashboardService.GetDashboardSummaryAsync(userId);
+            var result = await _dashboardService.GetDashboardSummaryAsync(userId, timeframe);
             return HandleResult(result);
         }
 

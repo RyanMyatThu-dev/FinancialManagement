@@ -29,7 +29,8 @@ namespace ST_finance.Domain.Features.Transactions
             Guid? tagId = null,
             decimal? minAmount = null,
             decimal? maxAmount = null,
-            string? search = null
+            string? search = null,
+            string? timeframe = null
         )
         {
             if (pageNumber < 1) pageNumber = 1;
@@ -39,6 +40,42 @@ namespace ST_finance.Domain.Features.Transactions
             var query = _context.TblTransactions
                 .Include(t => t.Tags)
                 .Where(t => t.UserId == userId);
+
+            if (!string.IsNullOrWhiteSpace(timeframe))
+            {
+                var nowUtc = DateTime.UtcNow;
+                var currentBkk = nowUtc.AddHours(7);
+                DateTime startDate = DateTime.MinValue;
+                DateTime endDate = DateTime.MaxValue;
+
+                if (timeframe.Equals("Day", StringComparison.OrdinalIgnoreCase))
+                {
+                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    endDate = startDate.AddDays(1);
+                }
+                else if (timeframe.Equals("Week", StringComparison.OrdinalIgnoreCase))
+                {
+                    int diff = (7 + (currentBkk.DayOfWeek - DayOfWeek.Monday)) % 7;
+                    var startOfWeekBkk = currentBkk.AddDays(-1 * diff);
+                    startDate = DateTime.SpecifyKind(new DateTime(startOfWeekBkk.Year, startOfWeekBkk.Month, startOfWeekBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    endDate = startDate.AddDays(7);
+                }
+                else if (timeframe.Equals("Month", StringComparison.OrdinalIgnoreCase))
+                {
+                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    endDate = startDate.AddMonths(1);
+                }
+                else if (timeframe.Equals("Year", StringComparison.OrdinalIgnoreCase))
+                {
+                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    endDate = startDate.AddYears(1);
+                }
+
+                if (startDate != DateTime.MinValue)
+                {
+                    query = query.Where(t => t.Date >= startDate && t.Date < endDate);
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {

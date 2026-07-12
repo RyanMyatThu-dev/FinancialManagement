@@ -28,11 +28,12 @@ namespace ST_finance.Domain.Features.Transactions
             [FromQuery] Guid? tagId      = null,
             [FromQuery] decimal? minAmount = null,
             [FromQuery] decimal? maxAmount = null,
-            [FromQuery] string? search     = null)
+            [FromQuery] string? search     = null,
+            [FromQuery] string? timeframe  = null)
         {
             var userId = GetUserId();
             var result = await _transactionService.GetTransactionsAsync(
-                userId, pageNumber, pageSize, categoryId, tagId, minAmount, maxAmount, search
+                userId, pageNumber, pageSize, categoryId, tagId, minAmount, maxAmount, search, timeframe
             );
             return HandleResult(result);
         }
