@@ -56,12 +56,28 @@ namespace ST_finance.Domain.Features.Dashboard
                 var needed = goal.TargetAmount - saved;
                 if (needed > 0)
                 {
-                    remainingGoalNeeds += needed;
+                    if (goal.TargetDate.HasValue && goal.TargetDate.Value > currentBkk)
+                    {
+                        var totalDays = (goal.TargetDate.Value.Date - currentBkk.Date).Days;
+                        if (totalDays > 0)
+                        {
+                            var dailyShare = needed / (decimal)totalDays;
+                            remainingGoalNeeds += dailyShare * daysRemaining;
+                        }
+                        else
+                        {
+                            remainingGoalNeeds += needed;
+                        }
+                    }
+                    else
+                    {
+                        remainingGoalNeeds += needed;
+                    }
                 }
             }
 
             // 5. Calculate Daily Quota
-            var balanceForQuota = totalBalance - remainingBills - remainingGoalNeeds;
+            var balanceForQuota = disposableBalance - remainingBills - remainingGoalNeeds;
             var quota = balanceForQuota / daysRemaining;
             if (quota < 0) quota = 0m; // Avoid negative quotas
 
