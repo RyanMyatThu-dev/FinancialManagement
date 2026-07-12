@@ -11,6 +11,7 @@ namespace ST_finance.Domain.Features.Dashboard.Models
         decimal DisposableBalance,
         decimal MonthlyIncome,
         decimal MonthlyExpense,
+        decimal SpentToday,
         List<string> ActiveWarnings
     );
 

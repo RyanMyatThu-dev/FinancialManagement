@@ -39,6 +39,7 @@ interface DashboardSummary {
   disposableBalance: number;
   monthlyIncome: number;
   monthlyExpense: number;
+  spentToday: number;
   activeWarnings: string[];
 }
 
@@ -96,18 +97,24 @@ export default function DashboardHome() {
     );
   }
 
-  const chartData = (trends || []).map((item) => ({
-    ...item,
-    formattedDate: new Date(item.date).toLocaleDateString(undefined, {
-      month: "short",
-      day:   "numeric",
-    }),
-  }));
+  const chartData = (trends || []).map((item) => {
+    const parts = String(item.date).split("-");
+    const formattedDate = parts.length === 3
+      ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).toLocaleDateString(undefined, {
+          month: "short",
+          day:   "numeric",
+        })
+      : String(item.date);
+    return {
+      ...item,
+      formattedDate,
+    };
+  });
 
   // Calculate quota usage % (example: spent vs quota)
   const quotaUsedPercent =
     summary && summary.quota > 0
-      ? Math.min(100, ((summary.monthlyExpense / 30) / summary.quota) * 100)
+      ? Math.min(100, (summary.spentToday / summary.quota) * 100)
       : 0;
 
   return (
@@ -246,12 +253,18 @@ export default function DashboardHome() {
             color={quotaUsedPercent > 80 ? "destructive" : quotaUsedPercent > 60 ? "warning" : "primary"}
           />
 
-          <div className="border-t border-[hsl(var(--border))] pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-[11px] text-[hsl(var(--muted-foreground))] font-mono">
+          <div className="border-t border-[hsl(var(--border))] pt-4 grid grid-cols-3 gap-4 text-[11px] text-[hsl(var(--muted-foreground))] font-mono">
             <div>
               <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Reset Day</p>
               <p className="font-bold text-[hsl(var(--foreground))] flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                 {user?.allowanceDayOfMonth ?? 25}th of Month
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Spent Today</p>
+              <p className="font-bold text-[hsl(var(--destructive))]">
+                ฿{summary?.spentToday?.toFixed(2) ?? "0.00"}
               </p>
             </div>
             <div>

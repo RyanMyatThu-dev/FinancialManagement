@@ -124,6 +124,7 @@ namespace ST_finance.Domain.Features.Dashboard
                 DisposableBalance: disposableBalance,
                 MonthlyIncome: monthlyIncome,
                 MonthlyExpense: monthlyExpense,
+                SpentToday: spentToday,
                 ActiveWarnings: warnings
             ));
         }
