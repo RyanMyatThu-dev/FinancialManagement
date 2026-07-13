@@ -14,57 +14,54 @@ namespace ST_finance.Domain.Features
         public static async Task SeedAsync(UserManager<TblUser> userManager, AppDbContext context)
         {
             // 1. Clean up existing test users if they exist
-            var existingUser1 = await userManager.FindByNameAsync("ryan");
-            if (existingUser1 != null)
+            var oldUsers = new[] { "ryan", "pim", "somchai", "kanya" };
+            foreach (var username in oldUsers)
             {
-                await DeleteUserDataAsync(context, existingUser1.Id);
-                await userManager.DeleteAsync(existingUser1);
+                var existingUser = await userManager.FindByNameAsync(username);
+                if (existingUser != null)
+                {
+                    await DeleteUserDataAsync(context, existingUser.Id);
+                    await userManager.DeleteAsync(existingUser);
+                }
             }
 
-            var existingUser2 = await userManager.FindByNameAsync("pim");
-            if (existingUser2 != null)
-            {
-                await DeleteUserDataAsync(context, existingUser2.Id);
-                await userManager.DeleteAsync(existingUser2);
-            }
-
-            // 2. Create User 1: Ryan (Scholarship Student)
-            var ryan = new TblUser
+            // 2. Create User 1: Somchai (Scholarship Student)
+            var somchai = new TblUser
             {
                 Id = Guid.NewGuid(),
-                UserName = "ryan",
-                Email = "ryan@chula.ac.th",
-                FullName = "Ryan Myat Thu",
+                UserName = "somchai",
+                Email = "somchai.s@chula.ac.th",
+                FullName = "Somchai Somdee",
                 EmailConfirmed = true,
                 SecurityStamp = Guid.NewGuid().ToString(),
                 DeleteFlag = false
             };
-            var result1 = await userManager.CreateAsync(ryan, "Password123!");
+            var result1 = await userManager.CreateAsync(somchai, "Password123!");
             if (!result1.Succeeded)
             {
-                throw new Exception($"Failed to seed Ryan user: {string.Join(", ", result1.Errors.Select(e => e.Description))}");
+                throw new Exception($"Failed to seed Somchai user: {string.Join(", ", result1.Errors.Select(e => e.Description))}");
             }
 
-            // 3. Create User 2: Pim (Standard Student)
-            var pim = new TblUser
+            // 3. Create User 2: Kanya (Standard Student)
+            var kanya = new TblUser
             {
                 Id = Guid.NewGuid(),
-                UserName = "pim",
-                Email = "pim@chula.ac.th",
-                FullName = "Pim Chula",
+                UserName = "kanya",
+                Email = "kanya.w@chula.ac.th",
+                FullName = "Kanya Srisai",
                 EmailConfirmed = true,
                 SecurityStamp = Guid.NewGuid().ToString(),
                 DeleteFlag = false
             };
-            var result2 = await userManager.CreateAsync(pim, "Password123!");
+            var result2 = await userManager.CreateAsync(kanya, "Password123!");
             if (!result2.Succeeded)
             {
-                throw new Exception($"Failed to seed Pim user: {string.Join(", ", result2.Errors.Select(e => e.Description))}");
+                throw new Exception($"Failed to seed Kanya user: {string.Join(", ", result2.Errors.Select(e => e.Description))}");
             }
 
             // 4. Seed user specific data
-            await SeedRyanDataAsync(context, ryan.Id);
-            await SeedPimDataAsync(context, pim.Id);
+            await SeedSomchaiDataAsync(context, somchai.Id);
+            await SeedKanyaDataAsync(context, kanya.Id);
         }
 
         private static async Task DeleteUserDataAsync(AppDbContext context, Guid userId)
@@ -103,7 +100,7 @@ namespace ST_finance.Domain.Features
             await context.SaveChangesAsync();
         }
 
-        private static async Task SeedRyanDataAsync(AppDbContext context, Guid userId)
+        private static async Task SeedSomchaiDataAsync(AppDbContext context, Guid userId)
         {
             var now = DateTime.UtcNow;
 
@@ -120,11 +117,11 @@ namespace ST_finance.Domain.Features
             };
             context.TblUserProfiles.Add(profile);
 
-            // Accounts
-            var scb = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "SCB Bank", AccountType = AccountType.Bank, Balance = 24500.00m, Color = "#3b82f6", Icon = "Wallet", CreatedAt = now, DeleteFlag = false };
-            var wallet = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "TrueMoney Wallet", AccountType = AccountType.EWallet, Balance = 3200.00m, Color = "#ef4444", Icon = "Smartphone", CreatedAt = now, DeleteFlag = false };
-            var rabbit = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Rabbit Card", AccountType = AccountType.TransitCard, Balance = 800.00m, Color = "#f59e0b", Icon = "CreditCard", CreatedAt = now, DeleteFlag = false };
-            var cash = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Cash Pocket", AccountType = AccountType.Cash, Balance = 1500.00m, Color = "#10b981", Icon = "Coins", CreatedAt = now, DeleteFlag = false };
+            // Accounts - starting balances at the beginning of the 1-year history
+            var scb = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "SCB Bank", AccountType = AccountType.Bank, Balance = 12000.00m, Color = "#3b82f6", Icon = "Wallet", CreatedAt = now, DeleteFlag = false };
+            var wallet = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "TrueMoney Wallet", AccountType = AccountType.EWallet, Balance = 1000.00m, Color = "#ef4444", Icon = "Smartphone", CreatedAt = now, DeleteFlag = false };
+            var rabbit = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Rabbit Card", AccountType = AccountType.TransitCard, Balance = 200.00m, Color = "#f59e0b", Icon = "CreditCard", CreatedAt = now, DeleteFlag = false };
+            var cash = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Cash Pocket", AccountType = AccountType.Cash, Balance = 500.00m, Color = "#10b981", Icon = "Coins", CreatedAt = now, DeleteFlag = false };
             context.TblAccounts.AddRange(scb, wallet, rabbit, cash);
 
             // Categories
@@ -205,7 +202,7 @@ namespace ST_finance.Domain.Features
                     });
                 }
 
-                // 3. BTS Card Topup on the 1st
+                // 3. BTS Card Topup on the 1st (Transfer from SCB to Rabbit Card)
                 var btsDate = new DateTime(monthDate.Year, monthDate.Month, 1, 8, 30, 0, DateTimeKind.Utc);
                 if (btsDate <= now)
                 {
@@ -214,9 +211,10 @@ namespace ST_finance.Domain.Features
                         Id = Guid.NewGuid(),
                         UserId = userId,
                         AccountId = scb.Id,
+                        TargetAccountId = rabbit.Id,
                         CategoryId = catTransit.Id,
                         Amount = 800.00m,
-                        TransactionType = "Expense",
+                        TransactionType = "Transfer",
                         Date = btsDate,
                         Description = "BTS Transit Pass Refill",
                         CreatedAt = btsDate,
@@ -224,6 +222,44 @@ namespace ST_finance.Domain.Features
                     };
                     txBts.Tags.Add(tagBts);
                     transactions.Add(txBts);
+                }
+
+                // 3b. ATM Cash Withdrawal on the 26th (Transfer from SCB to Cash)
+                var atmDate = new DateTime(monthDate.Year, monthDate.Month, 26, 9, 0, 0, DateTimeKind.Utc);
+                if (atmDate <= now)
+                {
+                    transactions.Add(new TblTransaction
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        AccountId = scb.Id,
+                        TargetAccountId = cash.Id,
+                        Amount = 3000.00m,
+                        TransactionType = "Transfer",
+                        Date = atmDate,
+                        Description = "ATM Cash Withdrawal",
+                        CreatedAt = atmDate,
+                        DeleteFlag = false
+                    });
+                }
+
+                // 3c. TrueMoney Wallet Topup on the 26th (Transfer from SCB to Wallet)
+                var walletTopupDate = new DateTime(monthDate.Year, monthDate.Month, 26, 10, 0, 0, DateTimeKind.Utc);
+                if (walletTopupDate <= now)
+                {
+                    transactions.Add(new TblTransaction
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        AccountId = scb.Id,
+                        TargetAccountId = wallet.Id,
+                        Amount = 2000.00m,
+                        TransactionType = "Transfer",
+                        Date = walletTopupDate,
+                        Description = "Transfer to TrueMoney Wallet",
+                        CreatedAt = walletTopupDate,
+                        DeleteFlag = false
+                    });
                 }
 
                 // 4. Mobile Plan on the 10th
@@ -393,10 +429,33 @@ namespace ST_finance.Domain.Features
             }
             context.TblDailyQuotaLogs.AddRange(quotaLogs);
 
+            // Calculate final balances dynamically to make transactions and balances mathematically consistent
+            foreach (var tx in transactions)
+            {
+                if (tx.TransactionType == "Income")
+                {
+                    var acc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
+                    if (acc != null) acc.Balance = (acc.Balance ?? 0m) + tx.Amount;
+                }
+                else if (tx.TransactionType == "Expense")
+                {
+                    var acc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
+                    if (acc != null) acc.Balance = (acc.Balance ?? 0m) - tx.Amount;
+                }
+                else if (tx.TransactionType == "Transfer")
+                {
+                    var sourceAcc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
+                    if (sourceAcc != null) sourceAcc.Balance = (sourceAcc.Balance ?? 0m) - tx.Amount;
+
+                    var targetAcc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.TargetAccountId);
+                    if (targetAcc != null) targetAcc.Balance = (targetAcc.Balance ?? 0m) + tx.Amount;
+                }
+            }
+
             await context.SaveChangesAsync();
         }
 
-        private static async Task SeedPimDataAsync(AppDbContext context, Guid userId)
+        private static async Task SeedKanyaDataAsync(AppDbContext context, Guid userId)
         {
             var now = DateTime.UtcNow;
 
@@ -413,10 +472,10 @@ namespace ST_finance.Domain.Features
             };
             context.TblUserProfiles.Add(profile);
 
-            // Accounts
-            var kbank = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Kasikorn Bank", AccountType = AccountType.Bank, Balance = 15200.00m, Color = "#10b981", Icon = "Wallet", CreatedAt = now, DeleteFlag = false };
-            var rabbit = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Rabbit Card", AccountType = AccountType.TransitCard, Balance = 350.00m, Color = "#f59e0b", Icon = "CreditCard", CreatedAt = now, DeleteFlag = false };
-            var cash = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Cash Pocket", AccountType = AccountType.Cash, Balance = 900.00m, Color = "#6b7280", Icon = "Coins", CreatedAt = now, DeleteFlag = false };
+            // Accounts - starting balances at the beginning of the 1-year history
+            var kbank = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Kasikorn Bank", AccountType = AccountType.Bank, Balance = 8000.00m, Color = "#10b981", Icon = "Wallet", CreatedAt = now, DeleteFlag = false };
+            var rabbit = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Rabbit Card", AccountType = AccountType.TransitCard, Balance = 150.00m, Color = "#f59e0b", Icon = "CreditCard", CreatedAt = now, DeleteFlag = false };
+            var cash = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Cash Pocket", AccountType = AccountType.Cash, Balance = 300.00m, Color = "#6b7280", Icon = "Coins", CreatedAt = now, DeleteFlag = false };
             context.TblAccounts.AddRange(kbank, rabbit, cash);
 
             // Categories
@@ -494,7 +553,7 @@ namespace ST_finance.Domain.Features
                     });
                 }
 
-                // 3. BTS Card Topup on the 1st
+                // 3. BTS Card Topup on the 1st (Transfer from KBank to Rabbit Card)
                 var btsDate = new DateTime(monthDate.Year, monthDate.Month, 1, 11, 0, 0, DateTimeKind.Utc);
                 if (btsDate <= now)
                 {
@@ -503,9 +562,10 @@ namespace ST_finance.Domain.Features
                         Id = Guid.NewGuid(),
                         UserId = userId,
                         AccountId = kbank.Id,
+                        TargetAccountId = rabbit.Id,
                         CategoryId = catTransit.Id,
-                        Amount = 500.00m,
-                        TransactionType = "Expense",
+                        Amount = 700.00m,
+                        TransactionType = "Transfer",
                         Date = btsDate,
                         Description = "BTS Topup",
                         CreatedAt = btsDate,
@@ -513,6 +573,25 @@ namespace ST_finance.Domain.Features
                     };
                     txBts.Tags.Add(tagBts);
                     transactions.Add(txBts);
+                }
+
+                // 3b. ATM Cash Withdrawal on the 2nd (Transfer from KBank to Cash)
+                var atmDate = new DateTime(monthDate.Year, monthDate.Month, 2, 9, 0, 0, DateTimeKind.Utc);
+                if (atmDate <= now)
+                {
+                    transactions.Add(new TblTransaction
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        AccountId = kbank.Id,
+                        TargetAccountId = cash.Id,
+                        Amount = 3000.00m,
+                        TransactionType = "Transfer",
+                        Date = atmDate,
+                        Description = "ATM Cash Withdrawal",
+                        CreatedAt = atmDate,
+                        DeleteFlag = false
+                    });
                 }
 
                 // 4. Spotify on the 15th
@@ -633,6 +712,29 @@ namespace ST_finance.Domain.Features
                 });
             }
             context.TblDailyQuotaLogs.AddRange(quotaLogs);
+
+            // Calculate final balances dynamically to make transactions and balances mathematically consistent
+            foreach (var tx in transactions)
+            {
+                if (tx.TransactionType == "Income")
+                {
+                    var acc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
+                    if (acc != null) acc.Balance = (acc.Balance ?? 0m) + tx.Amount;
+                }
+                else if (tx.TransactionType == "Expense")
+                {
+                    var acc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
+                    if (acc != null) acc.Balance = (acc.Balance ?? 0m) - tx.Amount;
+                }
+                else if (tx.TransactionType == "Transfer")
+                {
+                    var sourceAcc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
+                    if (sourceAcc != null) sourceAcc.Balance = (sourceAcc.Balance ?? 0m) - tx.Amount;
+
+                    var targetAcc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.TargetAccountId);
+                    if (targetAcc != null) targetAcc.Balance = (targetAcc.Balance ?? 0m) + tx.Amount;
+                }
+            }
 
             await context.SaveChangesAsync();
         }

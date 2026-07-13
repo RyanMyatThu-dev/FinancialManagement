@@ -1,13 +1,14 @@
+using FluentEmail.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ST_finance.Database.Data;
-using ST_finance.Domain.Features.Authentication;
-using ST_finance.Domain.Features.Transactions;
-using ST_finance.Domain.Features.RecurringSchedules;
 using ST_finance.Domain.Features.Accounts;
+using ST_finance.Domain.Features.Authentication;
+using ST_finance.Domain.Features.RecurringSchedules;
+using ST_finance.Domain.Features.Transactions;
 
 namespace ST_finance.Domain;
 
@@ -31,13 +32,15 @@ public static class FeatureManager
         .AddRoles<IdentityRole<Guid>>()
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
+        var gmail = builder.Configuration.GetSection("Gmail");
+        var smtpHost = gmail["SmtpHost"] ?? "smtp.gmail.com";
+        var username = gmail["Username"] ?? "[EMAIL_ADDRESS]";
+        var password = gmail["Password"] ?? "";
+        var fromEmail = gmail["FromEmail"] ?? "[EMAIL_ADDRESS]";
 
-        builder.Services.AddTransient<Resend.IResend>(sp =>
-        {
-            var config = sp.GetRequiredService<IConfiguration>();
-            var apiKey = config["Resend:ApiKey"];
-            return Resend.ResendClient.Create(apiKey ?? "re_temp");
-        });
+        builder.Services.AddFluentEmail(fromEmail)
+                        .AddSmtpSender(smtpHost, 587, username, password);
+
         builder.Services.AddScoped<IEmailService, EmailService>();
 
         builder.Services.AddScoped<IAuthService, AuthService>();

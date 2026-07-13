@@ -1,27 +1,22 @@
 using System;
 using System.Threading.Tasks;
+using FluentEmail.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Resend;
 
 namespace ST_finance.Domain.Features.Authentication;
 
 public class EmailService : IEmailService
 {
-    private readonly IResend _resend;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<EmailService> _logger;
-
-    public EmailService(IResend resend, IConfiguration configuration, ILogger<EmailService> logger)
+    private readonly IFluentEmailFactory _fluentEmail;
+    public EmailService(IFluentEmailFactory fluentEmail)
     {
-        _resend = resend;
-        _configuration = configuration;
-        _logger = logger;
+        _fluentEmail = fluentEmail;
+
     }
 
     public async Task SendOtpEmailAsync(string toEmail, string otpCode, string purpose)
     {
-        var apiKey = _configuration["Resend:ApiKey"];
         var subject = purpose switch
         {
             "Register" => "Verify your ST-Finance registration",
@@ -39,24 +34,13 @@ public class EmailService : IEmailService
             </div>
             """;
 
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            _logger.LogWarning(
-                "[EmailService] Resend:ApiKey not configured. OTP for {Email} ({Purpose}): {OtpCode}",
-                toEmail, purpose, otpCode);
-            Console.WriteLine($"[DEV EMAIL] To: {toEmail} | Purpose: {purpose} | OTP: {otpCode}");
-            return;
-        }
+        var email = _fluentEmail.Create();
 
-        var message = new EmailMessage
-        {
-            From = "ST-Finance <onboarding@resend.dev>",
-            To = { toEmail },
-            Subject = subject,
-            HtmlBody = htmlBody,
-            TextBody = $"Your ST-Finance verification code is: {otpCode}. This code expires in 10 minutes."
-        };
+        await email
+        .To(toEmail)
+        .Subject(subject)
+        .Body(htmlBody, true)
+        .SendAsync();
 
-        await _resend.EmailSendAsync(message);
     }
 }

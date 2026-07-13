@@ -63,6 +63,12 @@ docker compose up -d db
 ```
 This starts the database on port `5432` with database name `st_financial_db` and executes the initialization script in `docker/init.sql` to generate all 12 tables instantly.
 
+### 🔄 Automatic Startup Migrations & Seeding
+When the backend API boots up, it automatically checks the database:
+1. **Migrations**: It runs all pending EF Core Migrations to ensure the database schema is up-to-date.
+2. **Guarded Seeding**: It checks if there are any users in the database. If the database is completely empty, it automatically triggers `DbSeeder.SeedAsync()` to populate the database with 2 realistic, person-specific demo student accounts (`somchai` and `kanya`) containing 1 year of historical transactions, monthly budgets, saving goals, and daily quota logs.
+   * **Note**: Seeding is strictly guarded and **will not run** if any users exist in the database. This prevents duplicate seed data or overriding user-registered accounts.
+
 To run the entire stack (both Database and .NET Web API) inside containers:
 ```bash
 docker compose up --build

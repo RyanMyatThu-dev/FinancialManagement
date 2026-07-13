@@ -1,5 +1,6 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using ST_finance.Domain;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -82,6 +83,36 @@ builder.Services.AddHangfire(config => config
 builder.Services.AddHangfireServer();
 
 var app = builder.Build();
+
+// Apply automatic migration and seeding on startup (guarded)
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ST_finance.Database.Data.AppDbContext>();
+        
+        // 1. Run migrations if there are pending migrations
+        var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+        if (pendingMigrations.Any())
+        {
+            await context.Database.MigrateAsync();
+        }
+
+        // 2. Seed database if it's completely empty of users
+        var userManager = services.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<ST_finance.Database.Data.TblUser>>();
+        var userCount = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.CountAsync(context.Users);
+        if (userCount == 0)
+        {
+            await ST_finance.Domain.Features.DbSeeder.SeedAsync(userManager, context);
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred during startup database migration or seeding.");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
