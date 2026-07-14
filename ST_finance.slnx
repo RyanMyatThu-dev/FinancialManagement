@@ -3,4 +3,5 @@
   <Project Path="ST_finance.Database/ST_finance.Database.csproj" />
   <Project Path="ST_finance.Domain/ST_finance.Domain.csproj" />
   <Project Path="ST_finance.Shared/ST_finance.Shared.csproj" />
+  <Project Path="ST_finance.UnitTests/ST_finance.UnitTests.csproj" />
 </Solution>

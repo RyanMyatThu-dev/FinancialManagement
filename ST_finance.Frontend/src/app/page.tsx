@@ -19,11 +19,65 @@ import {
   HelpCircle,
   Moon,
   Sun,
+  X,
+  ChevronLeft,
+  ZoomIn,
 } from "lucide-react";
+
+const LIGHTBOX_IMAGES = [
+  {
+    src: "/features/dashboard-desktop.png",
+    title: "ST-Finance Dashboard - Desktop View",
+    description: "Your financial central command. Monitor your balance, view dynamic daily safe-to-spend quotas, and track recent transactions at a glance."
+  },
+  {
+    src: "/features/Dashboard-Mobile.png",
+    title: "ST-Finance Dashboard - Mobile View",
+    description: "Optimized for on-the-go tracking. Check your rolling daily allowance limit and record transactions right at the checkout counter."
+  },
+  {
+    src: "/features/Transactions-Desktop.png",
+    title: "Transactions History",
+    description: "Detailed chronological ledger of all income, expenses, and internal account transfers with powerful filtering options."
+  },
+  {
+    src: "/features/Desktop-Savings-Goals.png",
+    title: "Savings Goals Active - Desktop",
+    description: "Define targets for dorm, tuition, or travel. The app automatically partitions these reserves from your daily spending pool."
+  },
+  {
+    src: "/features/Completed-Goals-Desktop.png",
+    title: "Completed Goals Archive",
+    description: "Keep track of your financial milestones. Review past achievements to stay motivated."
+  },
+  {
+    src: "/features/User-profile-management-desktop.png",
+    title: "Secure Profile & OTP Verification",
+    description: "Protecting your settings with 6-digit email OTP verifications via Resend API to keep your database strictly secure."
+  },
+  {
+    src: "/features/Multiple-Accounts-Desktop.png",
+    title: "Multi-Accounts Management",
+    description: "Consolidate checking, savings, student cards, and cash. Track combined net balance in real-time."
+  },
+  {
+    src: "/features/Recuring-schedules-desktop.png",
+    title: "Recurring Schedules & Automation",
+    description: "Set up automated recurring transactions for bills or allowances to prevent any end-of-month surprises."
+  }
+];
 
 export default function LandingPage() {
   const { isAuthenticated, user } = useAuth();
   const [scrollY, setScrollY] = useState(0);
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
+
+  const openLightbox = (src: string) => {
+    const index = LIGHTBOX_IMAGES.findIndex(img => img.src.toLowerCase() === src.toLowerCase());
+    if (index !== -1) {
+      setActiveImageIndex(index);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,6 +86,35 @@ export default function LandingPage() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (activeImageIndex !== null) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [activeImageIndex]);
+
+  useEffect(() => {
+    if (activeImageIndex === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveImageIndex(null);
+      } else if (e.key === "ArrowRight") {
+        setActiveImageIndex((prev) => (prev !== null ? (prev + 1) % LIGHTBOX_IMAGES.length : null));
+      } else if (e.key === "ArrowLeft") {
+        setActiveImageIndex((prev) => (prev !== null ? (prev - 1 + LIGHTBOX_IMAGES.length) % LIGHTBOX_IMAGES.length : null));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeImageIndex]);
+
 
   return (
     <div className="relative min-h-screen bg-zinc-950 text-zinc-50 overflow-x-hidden selection:bg-[hsl(var(--primary)/0.3)] selection:text-[hsl(var(--primary))] font-sans">
@@ -141,7 +224,7 @@ export default function LandingPage() {
 
         {/* ─── Hero App Showcase ─── */}
         <ScrollReveal>
-          <section className="relative mt-12 w-full max-w-4xl mx-auto px-4">
+          <section className="relative mt-12 w-full max-w-5xl mx-auto px-4">
             <div className="text-center mb-10">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--primary))] mb-2">Designed for modern student lifestyles</p>
               <h2 className="text-2xl font-black tracking-tight text-zinc-100">Realistic Multi-Platform Workspace</h2>
@@ -151,15 +234,25 @@ export default function LandingPage() {
             <div className="relative aspect-[16/10] w-full bg-zinc-950/20 rounded-2xl border border-zinc-900/50 p-4 md:p-6 overflow-visible flex items-center justify-center">
 
               {/* Back Card (Transactions page peeking out) */}
-              <div className="absolute -left-6 -top-6 w-[55%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-2xl opacity-45 hover:opacity-75 transition-opacity duration-300 pointer-events-none transform -rotate-3 translate-x-2">
+              <div 
+                onClick={() => openLightbox("/features/Transactions-Desktop.png")}
+                className="absolute -left-6 -top-6 w-[55%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-2xl opacity-45 hover:opacity-100 transition-all duration-300 transform -rotate-3 translate-x-2 hover:scale-[1.02] cursor-zoom-in z-10 group/txs"
+              >
                 <div className="bg-zinc-900/90 h-6 border-b border-zinc-800" />
                 <div className="relative w-full h-[calc(100%-1.5rem)] bg-zinc-950">
                   <Image src="/features/Transactions-Desktop.png" alt="Transactions History" fill className="object-cover object-top" quality={60} />
+                  <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/txs:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1.5 text-zinc-50 z-30">
+                    <ZoomIn className="h-4.5 w-4.5 text-[hsl(var(--primary))]" />
+                    <span className="text-[10px] font-bold font-sans">Enlarge Ledger</span>
+                  </div>
                 </div>
               </div>
 
               {/* Main Desktop Browser Frame */}
-              <div className="relative w-[85%] aspect-[16/10] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] z-20 transform transition-all duration-500 hover:scale-[1.01]">
+              <div 
+                onClick={() => openLightbox("/features/dashboard-desktop.png")}
+                className="relative w-[85%] aspect-[16/10] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] z-20 transform transition-all duration-500 hover:scale-[1.01] cursor-zoom-in group/main"
+              >
                 {/* Browser Chrome Header */}
                 <div className="bg-zinc-900 h-8 flex items-center px-4 gap-2 border-b border-zinc-800 select-none">
                   <div className="flex gap-1.5">
@@ -174,18 +267,29 @@ export default function LandingPage() {
                 {/* Browser Content */}
                 <div className="relative w-full h-[calc(100%-2rem)]">
                   <Image src="/features/dashboard-desktop.png" alt="ST-Finance Dashboard - Desktop View" fill className="object-cover object-top" quality={95} priority />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/main:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 text-zinc-100 z-30">
+                    <ZoomIn className="h-6 w-6 text-[hsl(var(--primary))]" />
+                    <span className="text-xs font-bold font-sans">Click to Enlarge</span>
+                  </div>
                 </div>
               </div>
 
               {/* Overlapping Mobile Phone View */}
-              <div className="absolute -right-4 -bottom-6 w-[22%] min-w-[140px] aspect-[9/19.5] rounded-[2rem] overflow-hidden border-4 border-zinc-700 bg-zinc-950 shadow-[0_30px_70px_-10px_rgba(0,0,0,0.9)] z-30 transform rotate-2 hover:rotate-0 transition-transform duration-300">
+              <div 
+                onClick={() => openLightbox("/features/Dashboard-Mobile.png")}
+                className="absolute -right-4 -bottom-6 w-[22%] min-w-[140px] aspect-[9/18.2] rounded-[2rem] overflow-hidden border-4 border-zinc-700 bg-zinc-950 shadow-[0_30px_70px_-10px_rgba(0,0,0,0.9)] z-30 transform rotate-2 hover:rotate-0 hover:scale-[1.03] transition-all duration-305 cursor-zoom-in group/phone"
+              >
                 {/* Phone Speaker Notch */}
                 <div className="absolute top-0 inset-x-0 h-4 bg-zinc-950 z-40 flex items-center justify-center">
                   <div className="w-12 h-2.5 bg-zinc-900 rounded-b-lg" />
                 </div>
                 {/* Phone Content */}
-                <div className="relative w-full h-full pt-4">
+                <div className="relative w-full aspect-[1264/1868] mt-4">
                   <Image src="/features/Dashboard-Mobile.png" alt="ST-Finance Dashboard - Mobile View" fill className="object-cover object-top" quality={90} />
+                  <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/phone:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1 text-zinc-50 z-30">
+                    <ZoomIn className="h-4 w-4 text-[hsl(var(--primary))]" />
+                    <span className="text-[10px] font-bold font-sans">Enlarge</span>
+                  </div>
                 </div>
               </div>
 
@@ -285,7 +389,10 @@ export default function LandingPage() {
                   <div className="relative aspect-[16/10] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 md:p-6 overflow-visible flex items-center justify-center">
 
                     {/* Desktop Browser mockup */}
-                    <div className="relative w-[85%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl">
+                    <div 
+                      onClick={() => openLightbox("/features/dashboard-desktop.png")}
+                      className="relative w-[90%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl hover:scale-[1.01] transition-transform duration-300 cursor-zoom-in group/desktop1"
+                    >
                       <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800">
                         <div className="h-2 w-2 rounded-full bg-red-500/60" />
                         <div className="h-2 w-2 rounded-full bg-yellow-500/60" />
@@ -293,13 +400,24 @@ export default function LandingPage() {
                       </div>
                       <div className="relative w-full h-[calc(100%-1.5rem)]">
                         <Image src="/features/dashboard-desktop.png" alt="Daily Quota - Desktop" fill className="object-cover object-top" quality={90} />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/desktop1:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 text-zinc-100 z-30">
+                          <ZoomIn className="h-5 w-5 text-[hsl(var(--primary))]" />
+                          <span className="text-xs font-bold font-sans">Click to Enlarge</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Mobile Mockup overlapping */}
-                    <div className="absolute -left-2 bottom-2 w-[22%] min-w-[110px] aspect-[9/19.5] rounded-[1.5rem] overflow-hidden border-2 border-zinc-700 bg-zinc-950 shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-30 transform -rotate-2">
-                      <div className="relative w-full h-full pt-3">
+                    <div 
+                      onClick={() => openLightbox("/features/Dashboard-Mobile.png")}
+                      className="absolute -left-2 bottom-2 w-[24%] min-w-[110px] aspect-[9/18.2] rounded-[1.5rem] overflow-hidden border-2 border-zinc-700 bg-zinc-950 shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-30 transform -rotate-2 hover:rotate-0 hover:scale-[1.03] transition-all duration-300 cursor-zoom-in group/mobile1"
+                    >
+                      <div className="relative w-full aspect-[1264/1868] mt-3">
                         <Image src="/features/Dashboard-Mobile.png" alt="Daily Quota - Mobile" fill className="object-cover object-top" quality={80} />
+                        <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/mobile1:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1 text-zinc-50 z-30">
+                          <ZoomIn className="h-4 w-4 text-[hsl(var(--primary))]" />
+                          <span className="text-[10px] font-bold font-sans">Enlarge</span>
+                        </div>
                       </div>
                     </div>
 
@@ -316,18 +434,28 @@ export default function LandingPage() {
                   <div className="relative aspect-[16/10] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 md:p-6 overflow-visible flex items-center justify-center">
 
                     {/* Back Browser Card (Completed Goals) */}
-                    <div className="absolute -left-4 -top-4 w-[80%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-xl opacity-50 hover:opacity-75 transition-opacity duration-300 transform -rotate-1 scale-95 z-10 pointer-events-none">
+                    <div 
+                      onClick={() => openLightbox("/features/Completed-Goals-Desktop.png")}
+                      className="absolute -left-4 -top-4 w-[85%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-xl opacity-50 hover:opacity-100 transition-all duration-300 transform -rotate-1 scale-95 z-10 hover:scale-[0.97] cursor-zoom-in group/completed"
+                    >
                       <div className="bg-zinc-900 h-6 flex items-center px-3 border-b border-zinc-800">
                         <div className="h-2 w-2 rounded-full bg-red-500/40" />
                         <span className="ml-3 text-[8px] font-mono text-zinc-600">Completed Archive</span>
                       </div>
                       <div className="relative w-full h-[calc(100%-1.5rem)]">
                         <Image src="/features/Completed-Goals-Desktop.png" alt="Savings Goals Completed - Desktop" fill className="object-cover object-top" quality={80} />
+                        <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/completed:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1.5 text-zinc-50 z-30">
+                          <ZoomIn className="h-4 w-4 text-[hsl(var(--primary))]" />
+                          <span className="text-[10px] font-bold font-sans">Enlarge Archive</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Front Browser Card (Active Goals) */}
-                    <div className="relative w-[85%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl z-20">
+                    <div 
+                      onClick={() => openLightbox("/features/Desktop-Savings-Goals.png")}
+                      className="relative w-[90%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl z-20 hover:scale-[1.01] transition-transform duration-300 cursor-zoom-in group/active"
+                    >
                       <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800">
                         <div className="h-2 w-2 rounded-full bg-red-500/60" />
                         <div className="h-2 w-2 rounded-full bg-yellow-500/60" />
@@ -335,6 +463,10 @@ export default function LandingPage() {
                       </div>
                       <div className="relative w-full h-[calc(100%-1.5rem)]">
                         <Image src="/features/Desktop-Savings-Goals.png" alt="Savings Goals Active - Desktop" fill className="object-cover object-top" quality={90} />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/active:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 text-zinc-100 z-30">
+                          <ZoomIn className="h-5 w-5 text-[hsl(var(--primary))]" />
+                          <span className="text-xs font-bold font-sans">Click to Enlarge</span>
+                        </div>
                       </div>
                     </div>
 
@@ -394,7 +526,10 @@ export default function LandingPage() {
                   {/* Single Desktop Mockup - No mobile screenshot provided */}
                   <div className="relative aspect-[16/10] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 md:p-6 overflow-visible flex items-center justify-center">
 
-                    <div className="relative w-[95%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl">
+                    <div 
+                      onClick={() => openLightbox("/features/User-profile-management-desktop.png")}
+                      className="relative w-[98%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl hover:scale-[1.01] transition-transform duration-300 cursor-zoom-in group/profile"
+                    >
                       <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800">
                         <div className="h-2 w-2 rounded-full bg-red-500/60" />
                         <div className="h-2 w-2 rounded-full bg-yellow-500/60" />
@@ -402,6 +537,10 @@ export default function LandingPage() {
                       </div>
                       <div className="relative w-full h-[calc(100%-1.5rem)]">
                         <Image src="/features/User-profile-management-desktop.png" alt="Secure Verification - Desktop" fill className="object-cover object-top" quality={90} />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/profile:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 text-zinc-100 z-30">
+                          <ZoomIn className="h-5 w-5 text-[hsl(var(--primary))]" />
+                          <span className="text-xs font-bold font-sans">Click to Enlarge</span>
+                        </div>
                       </div>
                     </div>
 
@@ -412,6 +551,107 @@ export default function LandingPage() {
 
           </div>
         </section>
+
+        {/* ─── Unified Ledger & Automation Section ─── */}
+        <ScrollReveal>
+          <section className="space-y-16 border-t border-zinc-900 pt-16">
+            <div className="text-center max-w-2xl mx-auto space-y-4">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/60 text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--primary))]">
+                Unified Ecosystem
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-50">
+                Advanced Ledger & Automation Engine
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto leading-relaxed">
+                Consolidate your entire student financial stack. Control multiple active wallets and automate recurring payments to shield your allowance proactively.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+              {/* Feature A: Multi-Accounts */}
+              <div className="space-y-6 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-[hsl(var(--primary)/0.08)] border border-[hsl(var(--primary)/0.2)] text-[10px] font-bold text-[hsl(var(--primary))] uppercase">
+                    Accounts & Wallets
+                  </div>
+                  <h3 className="text-xl font-bold text-zinc-100">Unified Multi-Account Integration</h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed font-sans">
+                    Track all your spending pools in one interface. Whether it is cash on hand, checking accounts, student cards, or mobile wallets (like GPay), stay aware of your total combined net balance in real-time.
+                  </p>
+                </div>
+                
+                {/* Browser Mockup */}
+                <div className="relative aspect-[16/9] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 overflow-hidden flex items-center justify-center group">
+                  <div 
+                    onClick={() => openLightbox("/features/Multiple-Accounts-Desktop.png")}
+                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl transition-all duration-300 group-hover:scale-[1.01] cursor-zoom-in group/accounts"
+                  >
+                    {/* Browser Chrome Header */}
+                    <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800 select-none">
+                      <div className="flex gap-1">
+                        <div className="h-1.5 w-1.5 rounded-full bg-red-500/60" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-yellow-500/60" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500/60" />
+                      </div>
+                      <div className="flex-1 max-w-[120px] mx-auto bg-zinc-950 h-3.5 rounded border border-zinc-800/80 flex items-center justify-center text-[7px] font-mono text-zinc-500">
+                        st-finance.com/accounts
+                      </div>
+                    </div>
+                    {/* Browser Content */}
+                    <div className="relative w-full h-[calc(100%-1.5rem)]">
+                      <Image src="/features/Multiple-Accounts-Desktop.png" alt="Multi-Accounts Management" fill className="object-cover object-top" quality={90} />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/accounts:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1.5 text-zinc-100 z-30">
+                        <ZoomIn className="h-5 w-5 text-[hsl(var(--primary))]" />
+                        <span className="text-xs font-bold font-sans">Click to Enlarge</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature B: Recurring Schedules */}
+              <div className="space-y-6 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-[hsl(var(--primary)/0.08)] border border-[hsl(var(--primary)/0.2)] text-[10px] font-bold text-[hsl(var(--primary))] uppercase">
+                    Automation Engine
+                  </div>
+                  <h3 className="text-xl font-bold text-zinc-100">Automated Recurring Cycles</h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed font-sans">
+                    Automate deposits and bills to eliminate surprises. Set up scholarship or freelance retainers alongside recurring rent, bills, or mobile data plans to automatically isolate funds before calculating your daily safe-to-spend limit.
+                  </p>
+                </div>
+
+                {/* Browser Mockup */}
+                <div className="relative aspect-[16/9] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 overflow-hidden flex items-center justify-center group">
+                  <div 
+                    onClick={() => openLightbox("/features/Recuring-schedules-desktop.png")}
+                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl transition-all duration-300 group-hover:scale-[1.01] cursor-zoom-in group/recurring"
+                  >
+                    {/* Browser Chrome Header */}
+                    <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800 select-none">
+                      <div className="flex gap-1">
+                        <div className="h-1.5 w-1.5 rounded-full bg-red-500/60" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-yellow-500/60" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500/60" />
+                      </div>
+                      <div className="flex-1 max-w-[120px] mx-auto bg-zinc-950 h-3.5 rounded border border-zinc-800/80 flex items-center justify-center text-[7px] font-mono text-zinc-500">
+                        st-finance.com/recurring
+                      </div>
+                    </div>
+                    {/* Browser Content */}
+                    <div className="relative w-full h-[calc(100%-1.5rem)]">
+                      <Image src="/features/Recuring-schedules-desktop.png" alt="Recurring Schedules Management" fill className="object-cover object-top" quality={90} />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/recurring:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1.5 text-zinc-100 z-30">
+                        <ZoomIn className="h-5 w-5 text-[hsl(var(--primary))]" />
+                        <span className="text-xs font-bold font-sans">Click to Enlarge</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </ScrollReveal>
 
         {/* ─── FAQ section ─── */}
         <ScrollReveal>
@@ -477,6 +717,83 @@ export default function LandingPage() {
       <footer className="border-t border-zinc-900 bg-zinc-950 py-8 px-4 md:px-8 text-center text-[10px] text-zinc-500 font-mono">
         <p>&copy; {new Date().getFullYear()} ST-Finance. All rights reserved. Built for Student Budget Safeguarding.</p>
       </footer>
+
+      {/* ─── Lightbox Modal ─── */}
+      {activeImageIndex !== null && (
+        <div 
+          className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex flex-col items-center justify-between p-4 md:p-8 animate-fade-in transition-all duration-300"
+          onClick={() => setActiveImageIndex(null)}
+        >
+          {/* Top Bar */}
+          <div className="w-full flex items-center justify-between z-10">
+            <div className="text-xs font-mono text-zinc-400">
+              {activeImageIndex + 1} / {LIGHTBOX_IMAGES.length}
+            </div>
+            <button 
+              onClick={() => setActiveImageIndex(null)}
+              className="p-2 rounded-full bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-800 transition-colors"
+              aria-label="Close Lightbox"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="relative flex-1 w-full max-w-7xl flex items-center justify-center my-4">
+            {/* Left Control Arrow */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveImageIndex((prev) => (prev !== null ? (prev - 1 + LIGHTBOX_IMAGES.length) % LIGHTBOX_IMAGES.length : null));
+              }}
+              className="absolute left-0 md:left-4 p-3 rounded-full bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-800 transition-colors z-20"
+              aria-label="Previous Image"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+
+            {/* Image Container */}
+            <div 
+              className="relative w-full h-[80%] max-w-[85vw] max-h-[70vh] flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image
+                src={LIGHTBOX_IMAGES[activeImageIndex].src}
+                alt={LIGHTBOX_IMAGES[activeImageIndex].title}
+                fill
+                className="object-contain animate-scale-in"
+                quality={100}
+                priority
+              />
+            </div>
+
+            {/* Right Control Arrow */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveImageIndex((prev) => (prev !== null ? (prev + 1) % LIGHTBOX_IMAGES.length : null));
+              }}
+              className="absolute right-0 md:right-4 p-3 rounded-full bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-800 transition-colors z-20"
+              aria-label="Next Image"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Bottom Caption Card */}
+          <div 
+            className="w-full max-w-2xl bg-zinc-900/80 border border-zinc-800/80 p-6 rounded-2xl text-center space-y-2 z-10 backdrop-blur"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-black tracking-tight text-zinc-50">
+              {LIGHTBOX_IMAGES[activeImageIndex].title}
+            </h3>
+            <p className="text-xs text-zinc-400 leading-relaxed max-w-xl mx-auto">
+              {LIGHTBOX_IMAGES[activeImageIndex].description}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
