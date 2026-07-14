@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { X, Loader2, AlertTriangle, Plus, Tag } from "lucide-react";
 import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
+import { useAuth } from "@/context/AuthContext";
 
 interface CreateTransactionModalProps {
   onClose: () => void;
@@ -30,6 +31,8 @@ interface TagType {
 
 export function CreateTransactionModal({ onClose }: CreateTransactionModalProps) {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const currency = user?.currency || "THB";
 
   const [description,     setDescription]     = useState("");
   const [amount,          setAmount]          = useState("");
@@ -41,6 +44,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
   const [selectedTagIds,  setSelectedTagIds]  = useState<string[]>([]);
   const [isRecurring,     setIsRecurring]     = useState(false);
   const [error,           setError]           = useState<string | null>(null);
+  const [showOverdraftModal, setShowOverdraftModal] = useState(false);
 
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -103,13 +107,21 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
 
   // 1. Fetch Accounts
   const { data: accountsData } = useQuery<{ items: Account[] }>({
-    queryKey: ["accounts-all"],
+    queryKey: ["accounts", "all"],
     queryFn: async () => {
       const res = await apiClient.get("/api/accounts?pageSize=100");
       return res.data.value || { items: [] };
     },
   });
   const accounts = accountsData?.items || [];
+
+  const currentNetBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+  const txAmount = parseFloat(amount) || 0;
+  const proposedNetBalance =
+    transactionType === "Expense" ? currentNetBalance - txAmount :
+    transactionType === "Income" ? currentNetBalance + txAmount :
+    currentNetBalance;
+  const isOverdraft = proposedNetBalance < 0;
 
   // 2. Fetch Categories
   const { data: categoriesData } = useQuery<Category[]>({
@@ -162,7 +174,13 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
       qc.invalidateQueries({ queryKey: ["accounts"] });
       onClose();
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => {
+      if (err.message.includes("InsufficientNetBalance") || err.message.includes("negative total net balance")) {
+        setShowOverdraftModal(true);
+      } else {
+        setError(err.message);
+      }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -572,10 +590,23 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
             </label>
           </div>
 
+          {/* Overdraft Warning */}
+          {isOverdraft && (
+            <div className="ds-alert-error flex items-start gap-2.5 p-3.5 rounded-xl border border-[hsl(var(--destructive)/0.25)] bg-[hsl(var(--destructive)/0.06)] text-xs text-[hsl(var(--destructive))] font-mono animate-pulse">
+              <AlertTriangle className="h-4.5 w-4.5 shrink-0 mt-0.5 animate-bounce" />
+              <div>
+                <p className="font-bold uppercase tracking-wider text-[10px] mb-1">Overdraft Violation Blocked</p>
+                <p className="opacity-90 leading-normal">
+                  Your total net balance is {currentNetBalance.toFixed(2)} {currency}. Spending {txAmount.toFixed(2)} {currency} will drop it to {proposedNetBalance.toFixed(2)} {currency}.
+                </p>
+              </div>
+            </div>
+          )}
+
           <button
             id="create-transaction-submit"
             type="submit"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || isOverdraft}
             className="ds-btn-primary w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider"
           >
             {mutation.isPending ? (
@@ -586,6 +617,30 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
           </button>
         </form>
       </div>
+
+      {showOverdraftModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+          <div className="ds-card w-full max-w-sm p-6 border-[hsl(var(--destructive)/0.5)] bg-[hsl(var(--card))] shadow-2xl relative text-center space-y-4">
+            <div className="mx-auto h-12 w-12 rounded-full bg-[hsl(var(--destructive)/0.1)] border border-[hsl(var(--destructive)/0.3)] flex items-center justify-center">
+              <AlertTriangle className="h-6 w-6 text-[hsl(var(--destructive))]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-[hsl(var(--destructive))]">
+                Overdraft Prevented
+              </h3>
+              <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2 font-mono leading-relaxed">
+                This transaction has been blocked by the system guardrails because it would reduce your total net balance below zero.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowOverdraftModal(false)}
+              className="w-full ds-btn-primary bg-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.85)] text-white text-xs font-bold uppercase tracking-wider py-2.5 rounded-lg font-sans"
+            >
+              Understand & Review
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

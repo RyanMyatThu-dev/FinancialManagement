@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 import { Logo } from "@/components/ui/Logo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import {
@@ -34,7 +35,7 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen bg-zinc-950 text-zinc-50 overflow-x-hidden selection:bg-[hsl(var(--primary)/0.3)] selection:text-[hsl(var(--primary))] font-sans">
-      
+
       {/* ─── Parallax Background Logo ─── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <div
@@ -45,9 +46,9 @@ export default function LandingPage() {
         >
           <img src="/logo-large.png" alt="Large ST-Finance Shield" className="w-full h-full object-contain" />
         </div>
-        
+
         {/* Soft grid overlay for futuristic feel */}
-        <div 
+        <div
           className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem]"
           style={{
             transform: `translateY(${scrollY * -0.02}px)`,
@@ -106,7 +107,7 @@ export default function LandingPage() {
             </span>
           </h1>
           <p className="text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
-            As students, monthly allowances disappear instantly because of unintentional overspending. 
+            As students, monthly allowances disappear instantly because of unintentional overspending.
             ST-Finance shields your money using automatic rolling daily quotas, automated bills reservation, and active safety safeguards.
           </p>
           <div className="flex flex-wrap gap-4 pt-4">
@@ -138,6 +139,60 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ─── Hero App Showcase ─── */}
+        <ScrollReveal>
+          <section className="relative mt-12 w-full max-w-4xl mx-auto px-4">
+            <div className="text-center mb-10">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--primary))] mb-2">Designed for modern student lifestyles</p>
+              <h2 className="text-2xl font-black tracking-tight text-zinc-100">Realistic Multi-Platform Workspace</h2>
+            </div>
+
+            {/* Overlapping Deck */}
+            <div className="relative aspect-[16/10] w-full bg-zinc-950/20 rounded-2xl border border-zinc-900/50 p-4 md:p-6 overflow-visible flex items-center justify-center">
+
+              {/* Back Card (Transactions page peeking out) */}
+              <div className="absolute -left-6 -top-6 w-[55%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-2xl opacity-45 hover:opacity-75 transition-opacity duration-300 pointer-events-none transform -rotate-3 translate-x-2">
+                <div className="bg-zinc-900/90 h-6 border-b border-zinc-800" />
+                <div className="relative w-full h-[calc(100%-1.5rem)] bg-zinc-950">
+                  <Image src="/features/Transactions-Desktop.png" alt="Transactions History" fill className="object-cover object-top" quality={60} />
+                </div>
+              </div>
+
+              {/* Main Desktop Browser Frame */}
+              <div className="relative w-[85%] aspect-[16/10] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] z-20 transform transition-all duration-500 hover:scale-[1.01]">
+                {/* Browser Chrome Header */}
+                <div className="bg-zinc-900 h-8 flex items-center px-4 gap-2 border-b border-zinc-800 select-none">
+                  <div className="flex gap-1.5">
+                    <div className="h-3 w-3 rounded-full bg-red-500/60" />
+                    <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
+                    <div className="h-3 w-3 rounded-full bg-green-500/60" />
+                  </div>
+                  <div className="flex-1 max-w-sm mx-auto bg-zinc-950 h-5 rounded-md border border-zinc-800/80 flex items-center justify-center text-[10px] font-mono text-zinc-500">
+                    ST-Finance
+                  </div>
+                </div>
+                {/* Browser Content */}
+                <div className="relative w-full h-[calc(100%-2rem)]">
+                  <Image src="/features/dashboard-desktop.png" alt="ST-Finance Dashboard - Desktop View" fill className="object-cover object-top" quality={95} priority />
+                </div>
+              </div>
+
+              {/* Overlapping Mobile Phone View */}
+              <div className="absolute -right-4 -bottom-6 w-[22%] min-w-[140px] aspect-[9/19.5] rounded-[2rem] overflow-hidden border-4 border-zinc-700 bg-zinc-950 shadow-[0_30px_70px_-10px_rgba(0,0,0,0.9)] z-30 transform rotate-2 hover:rotate-0 transition-transform duration-300">
+                {/* Phone Speaker Notch */}
+                <div className="absolute top-0 inset-x-0 h-4 bg-zinc-950 z-40 flex items-center justify-center">
+                  <div className="w-12 h-2.5 bg-zinc-900 rounded-b-lg" />
+                </div>
+                {/* Phone Content */}
+                <div className="relative w-full h-full pt-4">
+                  <Image src="/features/Dashboard-Mobile.png" alt="ST-Finance Dashboard - Mobile View" fill className="object-cover object-top" quality={90} />
+                </div>
+              </div>
+
+            </div>
+          </section>
+        </ScrollReveal>
+
         {/* ─── The Student Problem Section ─── */}
         <ScrollReveal>
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center border-t border-zinc-900 pt-16">
@@ -149,7 +204,7 @@ export default function LandingPage() {
                 Why student allowances vanish instantly
               </h2>
               <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                Most budgeting apps are passive. They track where your money went *after* you have already overspent. 
+                Most budgeting apps are passive. They track where your money went *after* you have already overspent.
                 Without active guardrails, a sudden dinner or forgotten subscription leaves students broke by week two.
               </p>
               <div className="space-y-4">
@@ -163,7 +218,7 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-6 lg:pl-6">
               <div className="h-10 w-10 rounded-xl bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.3)] flex items-center justify-center text-[hsl(var(--primary))]">
                 <Shield className="h-5 w-5" />
@@ -198,7 +253,7 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-32">
-            
+
             {/* Feature 1: Rolling Daily Quotas */}
             <ScrollReveal>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -210,7 +265,7 @@ export default function LandingPage() {
                     Rolling Daily Quotas
                   </h3>
                   <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                    Instead of a generic monthly limit, ST-Finance divides your disposable balance by the days left in the cycle. 
+                    Instead of a generic monthly limit, ST-Finance divides your disposable balance by the days left in the cycle.
                     Staying under today rolls your remaining allowance over to boost tomorrow's buying power automatically. Overspending adapts tomorrow's budget down to keep you on track.
                   </p>
                   <ul className="space-y-3 text-xs text-zinc-300">
@@ -224,22 +279,30 @@ export default function LandingPage() {
                     </li>
                   </ul>
                 </div>
-                
+
                 <div className="lg:col-span-7">
-                  {/* Clean Gray Bounded Placeholder Card */}
-                  <div className="relative aspect-video w-full rounded-2xl border border-zinc-800 bg-zinc-900/30 flex items-center justify-center p-8 overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/10 to-zinc-950/50" />
-                    <div className="z-10 flex flex-col items-center gap-3 text-center">
-                      <div className="h-12 w-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 group-hover:text-zinc-300 transition-colors">
-                        <TrendingUp className="h-6 w-6" />
+                  {/* Overlapping Mockup */}
+                  <div className="relative aspect-[16/10] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 md:p-6 overflow-visible flex items-center justify-center">
+
+                    {/* Desktop Browser mockup */}
+                    <div className="relative w-[85%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl">
+                      <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800">
+                        <div className="h-2 w-2 rounded-full bg-red-500/60" />
+                        <div className="h-2 w-2 rounded-full bg-yellow-500/60" />
+                        <div className="h-2 w-2 rounded-full bg-green-500/60" />
                       </div>
-                      <p className="text-[11px] font-mono uppercase tracking-widest text-zinc-500">
-                        [ Daily Quota Dashboard Screenshot Placeholder ]
-                      </p>
-                      <p className="text-[10px] text-zinc-600 max-w-xs">
-                        Replace with daily quota tracking screenshot inside `/public/features/daily-quota.png`
-                      </p>
+                      <div className="relative w-full h-[calc(100%-1.5rem)]">
+                        <Image src="/features/dashboard-desktop.png" alt="Daily Quota - Desktop" fill className="object-cover object-top" quality={90} />
+                      </div>
                     </div>
+
+                    {/* Mobile Mockup overlapping */}
+                    <div className="absolute -left-2 bottom-2 w-[22%] min-w-[110px] aspect-[9/19.5] rounded-[1.5rem] overflow-hidden border-2 border-zinc-700 bg-zinc-950 shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-30 transform -rotate-2">
+                      <div className="relative w-full h-full pt-3">
+                        <Image src="/features/Dashboard-Mobile.png" alt="Daily Quota - Mobile" fill className="object-cover object-top" quality={80} />
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </div>
@@ -249,20 +312,32 @@ export default function LandingPage() {
             <ScrollReveal>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                 <div className="lg:col-span-7 order-last lg:order-first">
-                  {/* Clean Gray Bounded Placeholder Card */}
-                  <div className="relative aspect-video w-full rounded-2xl border border-zinc-800 bg-zinc-900/30 flex items-center justify-center p-8 overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/10 to-zinc-950/50" />
-                    <div className="z-10 flex flex-col items-center gap-3 text-center">
-                      <div className="h-12 w-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 group-hover:text-zinc-300 transition-colors">
-                        <Wallet className="h-6 w-6" />
+                  {/* Overlapping Desktop Mockups (Active Goals overlapping Completed Goals) */}
+                  <div className="relative aspect-[16/10] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 md:p-6 overflow-visible flex items-center justify-center">
+
+                    {/* Back Browser Card (Completed Goals) */}
+                    <div className="absolute -left-4 -top-4 w-[80%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-xl opacity-50 hover:opacity-75 transition-opacity duration-300 transform -rotate-1 scale-95 z-10 pointer-events-none">
+                      <div className="bg-zinc-900 h-6 flex items-center px-3 border-b border-zinc-800">
+                        <div className="h-2 w-2 rounded-full bg-red-500/40" />
+                        <span className="ml-3 text-[8px] font-mono text-zinc-600">Completed Archive</span>
                       </div>
-                      <p className="text-[11px] font-mono uppercase tracking-widest text-zinc-500">
-                        [ Disposable Pools Setup Screenshot Placeholder ]
-                      </p>
-                      <p className="text-[10px] text-zinc-600 max-w-xs">
-                        Replace with savings allowance allocation screenshot inside `/public/features/savings-pool.png`
-                      </p>
+                      <div className="relative w-full h-[calc(100%-1.5rem)]">
+                        <Image src="/features/Completed-Goals-Desktop.png" alt="Savings Goals Completed - Desktop" fill className="object-cover object-top" quality={80} />
+                      </div>
                     </div>
+
+                    {/* Front Browser Card (Active Goals) */}
+                    <div className="relative w-[85%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl z-20">
+                      <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800">
+                        <div className="h-2 w-2 rounded-full bg-red-500/60" />
+                        <div className="h-2 w-2 rounded-full bg-yellow-500/60" />
+                        <div className="h-2 w-2 rounded-full bg-green-500/60" />
+                      </div>
+                      <div className="relative w-full h-[calc(100%-1.5rem)]">
+                        <Image src="/features/Desktop-Savings-Goals.png" alt="Savings Goals Active - Desktop" fill className="object-cover object-top" quality={90} />
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
@@ -316,20 +391,20 @@ export default function LandingPage() {
                 </div>
 
                 <div className="lg:col-span-7">
-                  {/* Clean Gray Bounded Placeholder Card */}
-                  <div className="relative aspect-video w-full rounded-2xl border border-zinc-800 bg-zinc-900/30 flex items-center justify-center p-8 overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/10 to-zinc-950/50" />
-                    <div className="z-10 flex flex-col items-center gap-3 text-center">
-                      <div className="h-12 w-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 group-hover:text-zinc-300 transition-colors">
-                        <Shield className="h-6 w-6" />
+                  {/* Single Desktop Mockup - No mobile screenshot provided */}
+                  <div className="relative aspect-[16/10] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 md:p-6 overflow-visible flex items-center justify-center">
+
+                    <div className="relative w-[95%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl">
+                      <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800">
+                        <div className="h-2 w-2 rounded-full bg-red-500/60" />
+                        <div className="h-2 w-2 rounded-full bg-yellow-500/60" />
+                        <div className="h-2 w-2 rounded-full bg-green-500/60" />
                       </div>
-                      <p className="text-[11px] font-mono uppercase tracking-widest text-zinc-500">
-                        [ Secure 2FA / OTP Verification Screenshot Placeholder ]
-                      </p>
-                      <p className="text-[10px] text-zinc-600 max-w-xs">
-                        Replace with secure 2FA dashboard screenshot inside `/public/features/verification.png`
-                      </p>
+                      <div className="relative w-full h-[calc(100%-1.5rem)]">
+                        <Image src="/features/User-profile-management-desktop.png" alt="Secure Verification - Desktop" fill className="object-cover object-top" quality={90} />
+                      </div>
                     </div>
+
                   </div>
                 </div>
               </div>
@@ -347,7 +422,7 @@ export default function LandingPage() {
               </div>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-50">Frequently Asked Questions</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto text-left">
               <div className="ds-card p-6 space-y-2">
                 <h4 className="text-xs font-bold text-zinc-100">How does the daily rolling quota work?</h4>

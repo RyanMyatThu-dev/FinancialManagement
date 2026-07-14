@@ -47,7 +47,7 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=chula_financial_db;Username=postgres;Password=postgres;");
+            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=ST_Finance;Username=postgres;Password=postgres;");
         }
     }
 
@@ -305,6 +305,8 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+            entity.Property(e => e.CompletedAt)
+                .HasColumnName("completed_at");
             entity.Property(e => e.DeleteFlag)
                 .HasDefaultValue(false)
                 .HasColumnName("delete_flag");

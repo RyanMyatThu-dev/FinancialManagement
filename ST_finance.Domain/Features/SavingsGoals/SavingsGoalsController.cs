@@ -30,6 +30,17 @@ namespace ST_finance.Domain.Features.SavingsGoals
             return HandleResult(result);
         }
 
+        [HttpGet("completed")]
+        public async Task<IActionResult> GetCompletedGoals(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize   = 12,
+            [FromQuery] string sortBy = "CompletedAt")
+        {
+            var userId = GetUserId();
+            var result = await _savingsGoalService.GetCompletedGoalsAsync(userId, pageNumber, pageSize, sortBy);
+            return HandleResult(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateGoal([FromBody] CreateSavingsGoalRequest request)
         {
@@ -59,6 +70,14 @@ namespace ST_finance.Domain.Features.SavingsGoals
 
             var userId = GetUserId();
             var result = await _savingsGoalService.ContributeToGoalAsync(userId, id, request);
+            return HandleResult(result);
+        }
+
+        [HttpPost("{id}/complete")]
+        public async Task<IActionResult> CompleteGoal(Guid id)
+        {
+            var userId = GetUserId();
+            var result = await _savingsGoalService.CompleteGoalAsync(userId, id);
             return HandleResult(result);
         }
 

@@ -29,4 +29,11 @@ namespace ST_finance.Domain.Features.Accounts.Models
         string Icon,
         DateTime CreatedAt
     );
+
+    public class GetAccountsRequest
+    {
+        public string? Search { get; set; } = null;
+        public AccountType? Type { get; set; } = null;
+        public string? SortBy { get; set; } = null;
+    }
 }

@@ -38,6 +38,22 @@ namespace ST_finance.Domain.Features.Transactions
             return HandleResult(result);
         }
 
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetTransactionSummary(
+            [FromQuery] Guid? categoryId = null,
+            [FromQuery] Guid? tagId      = null,
+            [FromQuery] decimal? minAmount = null,
+            [FromQuery] decimal? maxAmount = null,
+            [FromQuery] string? search     = null,
+            [FromQuery] string? timeframe  = null)
+        {
+            var userId = GetUserId();
+            var result = await _transactionService.GetTransactionSummaryAsync(
+                userId, categoryId, tagId, minAmount, maxAmount, search, timeframe
+            );
+            return HandleResult(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateTransaction([FromBody] TransactionRequest request)
         {

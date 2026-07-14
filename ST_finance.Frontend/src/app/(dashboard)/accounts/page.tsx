@@ -6,7 +6,7 @@ import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
-import { Wallet, CreditCard, PiggyBank, TrendingUp, Loader2, AlertTriangle, Plus } from "lucide-react";
+import { Wallet, CreditCard, PiggyBank, TrendingUp, Loader2, AlertTriangle, Plus, LayoutGrid, List, Search, X } from "lucide-react";
 import { CreateAccountModal } from "@/components/ui/CreateAccountModal";
 
 interface Account {
@@ -15,6 +15,7 @@ interface Account {
   accountType: string;
   balance: number;
   currency?: string;
+  createdAt: string;
 }
 
 interface PagedAccountResponse {
@@ -30,6 +31,12 @@ interface PagedAccountResponse {
 const PAGE_SIZE = 12;
 
 const ACCOUNT_ICONS: Record<string, React.ReactNode> = {
+  "1":         <Wallet      className="h-5 w-5" />,
+  "2":         <CreditCard  className="h-5 w-5" />,
+  "3":         <CreditCard  className="h-5 w-5" />,
+  "4":         <PiggyBank   className="h-5 w-5" />,
+  "5":         <PiggyBank   className="h-5 w-5" />,
+  "6":         <CreditCard  className="h-5 w-5" />,
   Bank:        <Wallet      className="h-5 w-5" />,
   EWallet:     <CreditCard  className="h-5 w-5" />,
   TransitCard: <CreditCard  className="h-5 w-5" />,
@@ -40,6 +47,12 @@ const ACCOUNT_ICONS: Record<string, React.ReactNode> = {
 };
 
 const ACCOUNT_COLORS: Record<string, string> = {
+  "1":         "text-[hsl(var(--primary))]         bg-[hsl(var(--primary)/0.1)]         border-[hsl(var(--primary)/0.25)]",
+  "2":         "text-[hsl(var(--safe-to-spend))]   bg-[hsl(var(--safe-to-spend)/0.1)]   border-[hsl(var(--safe-to-spend)/0.25)]",
+  "3":         "text-[hsl(var(--chula-pink))]      bg-[hsl(var(--chula-pink)/0.1)]      border-[hsl(var(--chula-pink)/0.25)]",
+  "4":         "text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]           border-[hsl(var(--border))]",
+  "5":         "text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]           border-[hsl(var(--border))]",
+  "6":         "text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]           border-[hsl(var(--border))]",
   Bank:        "text-[hsl(var(--primary))]         bg-[hsl(var(--primary)/0.1)]         border-[hsl(var(--primary)/0.25)]",
   EWallet:     "text-[hsl(var(--safe-to-spend))]   bg-[hsl(var(--safe-to-spend)/0.1)]   border-[hsl(var(--safe-to-spend)/0.25)]",
   TransitCard: "text-[hsl(var(--chula-pink))]      bg-[hsl(var(--chula-pink)/0.1)]      border-[hsl(var(--chula-pink)/0.25)]",
@@ -47,20 +60,69 @@ const ACCOUNT_COLORS: Record<string, string> = {
   default:     "text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]           border-[hsl(var(--border))]",
 };
 
+const getAccountTypeLabel = (type: any): string => {
+  switch (String(type)) {
+    case "1":
+    case "Bank":
+      return "Bank";
+    case "2":
+    case "EWallet":
+      return "E-Wallet";
+    case "3":
+    case "TransitCard":
+      return "Transit Card";
+    case "4":
+    case "Cash":
+      return "Cash";
+    case "5":
+    case "Savings":
+      return "Savings";
+    case "6":
+    case "Credit":
+      return "Credit";
+    default:
+      return String(type);
+  }
+};
+
 export default function AccountsPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [tempSearch, setTempSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [sortBy, setSortBy] = useState("NameAsc");
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   const { data, isLoading, error } = useQuery<PagedAccountResponse>({
-    queryKey: ["accounts", page],
+    queryKey: ["accounts", page, search, typeFilter, sortBy],
     queryFn: async () => {
-      const res = await apiClient.get(`/api/accounts?pageNumber=${page}&pageSize=${PAGE_SIZE}`);
+      let url = `/api/accounts?pageNumber=${page}&pageSize=${PAGE_SIZE}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (typeFilter) url += `&type=${typeFilter}`;
+      if (sortBy) url += `&sortBy=${sortBy}`;
+
+      const res = await apiClient.get(url);
       if (res.data.isSuccess && res.data.value) return res.data.value;
       throw new Error(res.data.error?.message || "Failed to fetch accounts");
     },
     placeholderData: (prev) => prev,
   });
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(tempSearch);
+    setPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setTempSearch("");
+    setSearch("");
+    setTypeFilter("");
+    setSortBy("NameAsc");
+    setPage(1);
+  };
 
   const currency     = user?.currency || "THB";
   const accounts     = data?.items ?? [];
@@ -117,6 +179,115 @@ export default function AccountsPage() {
         </div>
       </div>
 
+      {/* Search and Filters Bar */}
+      <form onSubmit={handleSearchSubmit} className="ds-card p-3.5 flex flex-col gap-3 w-full">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 w-full">
+          {/* Text Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
+            <input
+              id="accounts-search"
+              type="text"
+              placeholder="Search account name..."
+              value={tempSearch}
+              onChange={(e) => setTempSearch(e.target.value)}
+              className="ds-input w-full pl-9 pr-3 py-2.5 text-xs font-medium font-sans"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+            {/* Account Type Filter */}
+            <select
+              id="accounts-type-filter"
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setPage(1);
+              }}
+              className="ds-input px-3 py-2.5 text-xs font-semibold font-sans min-w-[140px]"
+            >
+              <option value="">All Account Types</option>
+              <option value="1">Bank Accounts</option>
+              <option value="2">E-Wallets</option>
+              <option value="3">Transit Cards</option>
+              <option value="4">Physical Cash</option>
+              <option value="5">Savings Goals</option>
+              <option value="6">Credit Lines</option>
+            </select>
+
+            {/* Sort Criteria */}
+            <select
+              id="accounts-sort"
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setPage(1);
+              }}
+              className="ds-input px-3 py-2.5 text-xs font-semibold font-sans min-w-[140px]"
+            >
+              <option value="NameAsc">Name (A-Z)</option>
+              <option value="NameDesc">Name (Z-A)</option>
+              <option value="BalanceHigh">Balance (Highest First)</option>
+              <option value="BalanceLow">Balance (Lowest First)</option>
+              <option value="DateDesc">Date Created (Newest)</option>
+              <option value="DateAsc">Date Created (Oldest)</option>
+            </select>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                className="flex-1 sm:flex-initial ds-btn-primary px-4 py-2.5 flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider h-[38px] font-sans min-w-[80px]"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Find
+              </button>
+              {(search || typeFilter || sortBy !== "NameAsc") && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="ds-btn-destructive px-3.5 py-2.5 flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider h-[38px] font-sans"
+                  title="Reset Filters"
+                >
+                  <X className="h-3.5 w-3.5" /> Clear
+                </button>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="h-6 w-[1px] bg-[hsl(var(--border))] hidden lg:block" />
+
+            {/* Grid vs Table View Switcher */}
+            <div className="flex items-center gap-1.5 bg-[hsl(var(--secondary)/0.5)] border border-[hsl(var(--border))] rounded-lg p-1 w-fit ml-auto sm:ml-0">
+              <button
+                type="button"
+                onClick={() => setViewMode("card")}
+                className={`p-1.5 rounded-md transition-all ${
+                  viewMode === "card"
+                    ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-md"
+                    : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                }`}
+                title="Grid Card Layout"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={`p-1.5 rounded-md transition-all ${
+                  viewMode === "table"
+                    ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-md"
+                    : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                }`}
+                title="List Table Layout"
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
@@ -132,47 +303,120 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* Accounts Grid */}
+      {/* Accounts Grid / Table */}
       {accounts.length > 0 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accounts.map((account, idx) => {
-              const colorClass = ACCOUNT_COLORS[account.accountType] ?? ACCOUNT_COLORS.default;
-              const icon       = ACCOUNT_ICONS[account.accountType] ?? ACCOUNT_ICONS.default;
-              return (
-                <div
-                  key={account.id ?? `account-${idx}`}
-                  className="ds-card ds-card-interactive p-5 flex flex-col gap-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className={`h-10 w-10 rounded-xl border flex items-center justify-center ${colorClass}`}>
-                      {icon}
+          {viewMode === "card" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {accounts.map((account, idx) => {
+                const typeStr = String(account.accountType);
+                const colorClass = ACCOUNT_COLORS[typeStr] ?? ACCOUNT_COLORS.default;
+                const icon       = ACCOUNT_ICONS[typeStr] ?? ACCOUNT_ICONS.default;
+                const typeLabel  = getAccountTypeLabel(account.accountType);
+                return (
+                  <div
+                    key={account.id ?? `account-${idx}`}
+                    className="ds-card ds-card-interactive p-5 flex flex-col gap-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className={`h-10 w-10 rounded-xl border flex items-center justify-center ${colorClass}`}>
+                        {icon}
+                      </div>
+                      <span className={`ds-badge ${colorClass}`}>{typeLabel}</span>
                     </div>
-                    <span className={`ds-badge ${colorClass}`}>{account.accountType}</span>
+                    <div>
+                      <p className="font-bold text-sm">{account.name}</p>
+                      <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono mt-0.5 uppercase">
+                        {typeLabel} Account
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-[hsl(var(--border))]">
+                      <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1">
+                        Balance
+                      </p>
+                      <CurrencyDisplay
+                        amount={account.balance}
+                        currency={account.currency || currency}
+                        size="md"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-sm">{account.name}</p>
-                    <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono mt-0.5 uppercase">
-                      {account.accountType} Account
+                );
+              })}
+            </div>
+          ) : (
+            <div className="sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none overflow-hidden">
+              {/* Table Header */}
+              <div className="grid grid-cols-[40px_1fr_110px_130px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
+                  No.
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
+                  Account Name
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
+                  Account Type
+                </span>
+                <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
+                  Created Date
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-right">
+                  Balance
+                </span>
+              </div>
+
+              {/* Table Rows */}
+              {accounts.map((account, idx) => {
+                const typeStr = String(account.accountType);
+                const colorClass = ACCOUNT_COLORS[typeStr] ?? ACCOUNT_COLORS.default;
+                const typeLabel  = getAccountTypeLabel(account.accountType);
+                return (
+                  <div
+                    key={account.id ?? `account-${idx}`}
+                    className={`ds-table-row grid grid-cols-[40px_1fr_110px_130px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-3.5 items-center ${
+                      idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
+                    }`}
+                  >
+                    {/* Number index */}
+                    <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
+                      {(page - 1) * PAGE_SIZE + idx + 1}
+                    </span>
+
+                    {/* Name */}
+                    <p className="text-sm font-medium truncate">
+                      {account.name}
                     </p>
+
+                    {/* Account Type badge */}
+                    <div className="flex justify-center">
+                      <span className={`ds-badge ${colorClass}`}>{typeLabel}</span>
+                    </div>
+
+                    {/* Created Date (desktop) */}
+                    <div className="hidden sm:flex justify-center">
+                      <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
+                        {new Date(account.createdAt).toLocaleDateString(undefined, {
+                          day: "2-digit", month: "short", year: "numeric"
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Balance */}
+                    <div className="text-right">
+                      <CurrencyDisplay
+                        amount={account.balance}
+                        currency={account.currency || currency}
+                        size="sm"
+                      />
+                    </div>
                   </div>
-                  <div className="pt-3 border-t border-[hsl(var(--border))]">
-                    <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1">
-                      Balance
-                    </p>
-                    <CurrencyDisplay
-                      amount={account.balance}
-                      currency={account.currency || currency}
-                      size="md"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Pagination */}
-          {meta && (
+          {meta && meta.totalPages > 1 && (
             <div className="ds-card p-4">
               <Pagination meta={meta} onPageChange={setPage} />
             </div>
@@ -186,17 +430,35 @@ export default function AccountsPage() {
           <div className="h-14 w-14 rounded-2xl bg-[hsl(var(--secondary))] flex items-center justify-center mb-4">
             <Wallet className="h-7 w-7 text-[hsl(var(--muted-foreground))]" />
           </div>
-          <h3 className="text-sm font-bold mb-1">No Accounts Yet</h3>
-          <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono mb-5">
-            Add your first wallet or bank account to get started.
-          </p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="ds-btn-primary px-5 py-2.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
-          >
-            <Plus className="h-4 w-4" />
-            Add First Account
-          </button>
+          {search || typeFilter ? (
+            <>
+              <h3 className="text-sm font-bold mb-1">No Accounts Found</h3>
+              <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono mb-5">
+                No wallets or cards match your search criteria.
+              </p>
+              <button
+                onClick={handleResetFilters}
+                className="ds-btn-secondary px-5 py-2.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+              >
+                <X className="h-4 w-4" />
+                Reset Filters
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-sm font-bold mb-1">No Accounts Yet</h3>
+              <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono mb-5">
+                Add your first wallet or bank account to get started.
+              </p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="ds-btn-primary px-5 py-2.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+              >
+                <Plus className="h-4 w-4" />
+                Add First Account
+              </button>
+            </>
+          )}
         </div>
       )}
 

@@ -99,10 +99,10 @@ using (var scope = app.Services.CreateScope())
             await context.Database.MigrateAsync();
         }
 
-        // 2. Seed database if it's completely empty of users
+        // 2. Seed database if the generic demo user 'alex' does not exist
         var userManager = services.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<ST_finance.Database.Data.TblUser>>();
-        var userCount = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.CountAsync(context.Users);
-        if (userCount == 0)
+        var hasDemoUser = await context.Users.AnyAsync(u => u.UserName == "alex");
+        if (!hasDemoUser)
         {
             await ST_finance.Domain.Features.DbSeeder.SeedAsync(userManager, context);
         }

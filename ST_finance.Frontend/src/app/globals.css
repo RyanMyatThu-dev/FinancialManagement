@@ -126,6 +126,24 @@ body {
 }
 
 /* ---- Buttons ---- */
+button,
+.ds-btn-primary,
+.ds-btn-secondary,
+.ds-btn-destructive,
+.ds-btn-outline,
+.ds-btn-icon {
+  transition: transform 0.08s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+button:active:not(:disabled),
+.ds-btn-primary:active:not(:disabled),
+.ds-btn-secondary:active:not(:disabled),
+.ds-btn-destructive:active:not(:disabled),
+.ds-btn-outline:active:not(:disabled),
+.ds-btn-icon:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 .ds-btn-primary {
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
@@ -133,7 +151,6 @@ body {
   border-radius: calc(var(--radius) - 2px);
   font-weight: 600;
   font-size: 0.8125rem;
-  transition: background-color 0.15s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
 
@@ -153,7 +170,6 @@ body {
   border-radius: calc(var(--radius) - 2px);
   font-weight: 500;
   font-size: 0.8125rem;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
   cursor: pointer;
 }
 
@@ -167,7 +183,6 @@ body {
   border: 1px solid hsl(var(--border));
   border-radius: 9999px;
   padding: 0.5rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -177,6 +192,42 @@ body {
 .ds-btn-icon:hover {
   border-color: hsl(var(--primary) / 0.6);
   box-shadow: 0 0 8px hsl(var(--primary) / 0.2);
+}
+
+.ds-btn-secondary {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-btn-secondary:hover:not(:disabled) {
+  background-color: hsl(var(--secondary));
+  border-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+.ds-btn-destructive {
+  background-color: transparent;
+  color: hsl(var(--destructive));
+  border: 1px solid hsl(var(--destructive) / 0.35);
+  border-radius: calc(var(--radius) - 2px);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-btn-destructive:hover:not(:disabled) {
+  background-color: hsl(var(--destructive) / 0.08);
+  border-color: hsl(var(--destructive) / 0.6);
 }
 
 /* ---- Data Tables ---- */

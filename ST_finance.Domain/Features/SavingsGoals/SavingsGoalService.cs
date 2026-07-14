@@ -26,7 +26,7 @@ namespace ST_finance.Domain.Features.SavingsGoals
 
             var query = _context.TblSavingsGoals
                 .Include(g => g.TblSavingsContributions)
-                .Where(g => g.UserId == userId && !g.DeleteFlag)
+                .Where(g => g.UserId == userId && !g.DeleteFlag && !(g.IsCompleted ?? false))
                 .OrderByDescending(g => g.CreatedAt);
 
             var totalCount = await query.CountAsync();
@@ -44,7 +44,8 @@ namespace ST_finance.Domain.Features.SavingsGoals
                 TargetDate: g.TargetDate,
                 IsCompleted: g.IsCompleted ?? false,
                 CurrentAmount: g.TblSavingsContributions.Sum(c => c.Amount),
-                CreatedAt: g.CreatedAt ?? DateTime.UtcNow
+                CreatedAt: g.CreatedAt ?? DateTime.UtcNow,
+                CompletedAt: g.CompletedAt
             )).ToList();
 
             return Result.Success(PagedResponse<SavingsGoalResponse>.Create(responses, totalCount, pageNumber, pageSize));
@@ -88,7 +89,8 @@ namespace ST_finance.Domain.Features.SavingsGoals
                 TargetDate: goal.TargetDate,
                 IsCompleted: false,
                 CurrentAmount: 0m,
-                CreatedAt: goal.CreatedAt.Value
+                CreatedAt: goal.CreatedAt.Value,
+                CompletedAt: null
             ));
         }
 
@@ -108,7 +110,17 @@ namespace ST_finance.Domain.Features.SavingsGoals
                 return Result.Failure<SavingsGoalResponse>(new Error("SavingsGoal.NotFound", "Savings goal not found."));
             }
 
+            if (goal.IsCompleted ?? false)
+            {
+                return Result.Failure<SavingsGoalResponse>(CustomErrors.Validation.InvalidInput("Cannot contribute to a completed goal."));
+            }
+
             var currentGoalSavings = goal.TblSavingsContributions.Sum(c => c.Amount);
+
+            if (request.Amount > 0 && currentGoalSavings >= goal.TargetAmount)
+            {
+                return Result.Failure<SavingsGoalResponse>(CustomErrors.Validation.InvalidInput("Goal has already reached its target amount."));
+            }
 
             if (request.Amount < 0 && (currentGoalSavings + request.Amount < 0))
             {
@@ -146,7 +158,6 @@ namespace ST_finance.Domain.Features.SavingsGoals
             _context.TblSavingsContributions.Add(contribution);
             
             var newTotal = currentGoalSavings + request.Amount;
-            goal.IsCompleted = newTotal >= goal.TargetAmount;
 
             await _context.SaveChangesAsync();
 
@@ -158,7 +169,88 @@ namespace ST_finance.Domain.Features.SavingsGoals
                 TargetDate: goal.TargetDate,
                 IsCompleted: goal.IsCompleted ?? false,
                 CurrentAmount: newTotal,
-                CreatedAt: goal.CreatedAt ?? DateTime.UtcNow
+                CreatedAt: goal.CreatedAt ?? DateTime.UtcNow,
+                CompletedAt: goal.CompletedAt
+            ));
+        }
+
+        public async Task<Result<PagedResponse<SavingsGoalResponse>>> GetCompletedGoalsAsync(Guid userId, int pageNumber, int pageSize, string sortBy)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize  < 1) pageSize  = 12;
+            if (pageSize  > 100) pageSize = 100;
+
+            IQueryable<TblSavingsGoal> query = _context.TblSavingsGoals
+                .Include(g => g.TblSavingsContributions)
+                .Where(g => g.UserId == userId && !g.DeleteFlag && (g.IsCompleted ?? false));
+
+            if (string.Equals(sortBy, "CreatedAt", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.OrderByDescending(g => g.CreatedAt);
+            }
+            else if (string.Equals(sortBy, "TargetDate", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.OrderByDescending(g => g.TargetDate);
+            }
+            else // Default CompletedAt
+            {
+                query = query.OrderByDescending(g => g.CompletedAt).ThenByDescending(g => g.CreatedAt);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var responses = items.Select(g => new SavingsGoalResponse(
+                Id: g.Id,
+                UserId: g.UserId,
+                GoalName: g.GoalName,
+                TargetAmount: g.TargetAmount,
+                TargetDate: g.TargetDate,
+                IsCompleted: g.IsCompleted ?? false,
+                CurrentAmount: g.TblSavingsContributions.Sum(c => c.Amount),
+                CreatedAt: g.CreatedAt ?? DateTime.UtcNow,
+                CompletedAt: g.CompletedAt
+            )).ToList();
+
+            return Result.Success(PagedResponse<SavingsGoalResponse>.Create(responses, totalCount, pageNumber, pageSize));
+        }
+
+        public async Task<Result<SavingsGoalResponse>> CompleteGoalAsync(Guid userId, Guid goalId)
+        {
+            var goal = await _context.TblSavingsGoals
+                .Include(g => g.TblSavingsContributions)
+                .FirstOrDefaultAsync(g => g.Id == goalId && g.UserId == userId && !g.DeleteFlag);
+
+            if (goal == null)
+            {
+                return Result.Failure<SavingsGoalResponse>(new Error("SavingsGoal.NotFound", "Savings goal not found."));
+            }
+
+            var currentGoalSavings = goal.TblSavingsContributions.Sum(c => c.Amount);
+            if (currentGoalSavings < goal.TargetAmount)
+            {
+                return Result.Failure<SavingsGoalResponse>(CustomErrors.Validation.InvalidInput("Goal target amount has not been reached yet."));
+            }
+
+            goal.IsCompleted = true;
+            goal.CompletedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Result.Success(new SavingsGoalResponse(
+                Id: goal.Id,
+                UserId: goal.UserId,
+                GoalName: goal.GoalName,
+                TargetAmount: goal.TargetAmount,
+                TargetDate: goal.TargetDate,
+                IsCompleted: true,
+                CurrentAmount: currentGoalSavings,
+                CreatedAt: goal.CreatedAt ?? DateTime.UtcNow,
+                CompletedAt: goal.CompletedAt
             ));
         }
 

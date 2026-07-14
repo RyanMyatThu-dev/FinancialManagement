@@ -8,7 +8,7 @@ namespace ST_finance.Domain.Features.Accounts
 {
     public interface IAccountService
     {
-        Task<Result<PagedResponse<AccountResponse>>> GetAccountsAsync(Guid userId, int pageNumber, int pageSize);
+        Task<Result<PagedResponse<AccountResponse>>> GetAccountsAsync(Guid userId, int pageNumber, int pageSize, GetAccountsRequest request);
         Task<Result<AccountResponse>> CreateAccountAsync(Guid userId, CreateAccountRequest request);
         Task<Result<AccountResponse>> UpdateAccountAsync(Guid userId, Guid accountId, UpdateAccountRequest request);
         Task<Result> DeleteAccountAsync(Guid userId, Guid accountId, bool force);

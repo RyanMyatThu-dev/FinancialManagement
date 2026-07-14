@@ -23,6 +23,7 @@ namespace ST_finance.Shared
             public static readonly Error NegativeAmount = new("Transaction.NegativeAmount", "Transaction amount cannot be negative.");
             public static readonly Error MissingTargetAccount = new("Transaction.MissingTargetAccount", "Target account is required for transfers.");
             public static readonly Error SameAccounts = new("Transaction.SameAccounts", "Source and target accounts must be different.");
+            public static readonly Error InsufficientNetBalance = new("Transaction.InsufficientNetBalance", "This action is blocked because it would result in a negative total net balance.");
         }
 
         public static class Auth

@@ -326,7 +326,7 @@ A containerized PostgreSQL setup is configured for instant schema deployment. It
 - **Connection Details**:
   - Host: `localhost` (or `db` inside Docker network)
   - Port: `5432`
-  - Database name: `chula_financial_db`
+  - Database name: `ST_Finance`
   - Username: `chula_admin`
   - Password: `chula_secure_pwd_2026`
 

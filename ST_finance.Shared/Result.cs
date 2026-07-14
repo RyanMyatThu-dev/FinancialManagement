@@ -1,7 +1,9 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace ST_finance.Shared;
 
+[JsonConverter(typeof(ResultJsonConverterFactory))]
 public class Result
 {
     protected Result(bool isSuccess, Error error)

@@ -22,7 +22,8 @@ namespace ST_finance.Domain.Features.SavingsGoals.Models
         DateTime? TargetDate,
         bool IsCompleted,
         decimal CurrentAmount,
-        DateTime CreatedAt
+        DateTime CreatedAt,
+        DateTime? CompletedAt
     );
 
     public record SavingsContributionResponse(

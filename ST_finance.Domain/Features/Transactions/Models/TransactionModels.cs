@@ -33,6 +33,11 @@ namespace ST_finance.Domain.Features.Transactions.Models
         public List<string> TagNames { get; set; } = new List<string>();
     }
 
+    public record TransactionSummaryResponse(
+        decimal Inflow,
+        decimal Outflow
+    );
+
     public record CategoryResponse(
         Guid Id,
         string Name,

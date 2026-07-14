@@ -19,7 +19,6 @@ import {
   ArrowUpLeft,
   Calendar,
   ChevronRight,
-  TrendingDown,
   Clock,
 } from "lucide-react";
 import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
@@ -34,6 +33,7 @@ interface SavingsGoalResponse {
   isCompleted: boolean;
   currentAmount: number;
   createdAt: string;
+  completedAt: string | null;
 }
 
 interface SavingsContributionResponse {
@@ -77,6 +77,12 @@ const fetchGoals = async (page: number): Promise<PagedSavingsGoalResponse> => {
   throw new Error(res.data.error?.message || "Failed to fetch savings goals");
 };
 
+const fetchCompletedGoals = async (page: number, sortBy: string): Promise<PagedSavingsGoalResponse> => {
+  const res = await apiClient.get(`/api/savings-goals/completed?pageNumber=${page}&pageSize=${PAGE_SIZE}&sortBy=${sortBy}`);
+  if (res.data.isSuccess && res.data.value) return res.data.value;
+  throw new Error(res.data.error?.message || "Failed to fetch completed savings goals");
+};
+
 const fetchContributions = async (goalId: string): Promise<SavingsContributionResponse[]> => {
   const res = await apiClient.get(`/api/savings-goals/${goalId}/contributions`);
   if (res.data.isSuccess && res.data.value) return res.data.value;
@@ -93,6 +99,12 @@ const contributeToGoal = async (goalId: string, body: ContributeRequest): Promis
   const res = await apiClient.post(`/api/savings-goals/${goalId}/contribute`, body);
   if (res.data.isSuccess && res.data.value) return res.data.value;
   throw new Error(res.data.error?.message || "Failed to contribute");
+};
+
+const completeGoal = async (goalId: string): Promise<SavingsGoalResponse> => {
+  const res = await apiClient.post(`/api/savings-goals/${goalId}/complete`);
+  if (res.data.isSuccess && res.data.value) return res.data.value;
+  throw new Error(res.data.error?.message || "Failed to complete goal");
 };
 
 const deleteGoal = async (goalId: string): Promise<void> => {
@@ -354,6 +366,105 @@ function ContributeModal({
   );
 }
 
+/** Complete Goal (Congratulatory Confirmation) Modal */
+function CompleteGoalModal({
+  goal,
+  onClose,
+}: {
+  goal: SavingsGoalResponse;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () => completeGoal(goal.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["savings-goals"] });
+      qc.invalidateQueries({ queryKey: ["completed-savings-goals"] });
+      onClose();
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const handleConfirm = () => {
+    setError(null);
+    mutation.mutate();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="ds-card w-full max-w-md p-6 relative overflow-hidden border-[hsl(var(--primary)/0.3)]">
+        {/* Decorative background glow */}
+        <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-[hsl(var(--primary)/0.15)] blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-[hsl(var(--safe-to-spend)/0.15)] blur-3xl pointer-events-none" />
+
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 ds-btn-icon h-7 w-7 z-10"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="text-center space-y-4 pt-4 relative z-10 font-mono">
+          <div className="mx-auto h-16 w-16 rounded-full bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.25)] flex items-center justify-center text-[hsl(var(--primary))] animate-bounce">
+            <Target className="h-8 w-8 animate-pulse" />
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[hsl(var(--primary))]">
+              Goal Target Achieved! 🎉
+            </span>
+            <h2 className="text-xl font-black tracking-tight font-sans">{goal.goalName}</h2>
+          </div>
+
+          <p className="text-xs text-[hsl(var(--muted-foreground))] max-w-sm mx-auto leading-relaxed font-sans">
+            Amazing job! You have fully funded this goal. Confirming completion will archive this goal, locking it from modifications and making it appear in your completed achievements list.
+          </p>
+
+          <div className="bg-[hsl(var(--secondary))] border border-[hsl(var(--border))] rounded-xl p-3.5 flex justify-between text-left text-xs">
+            <div>
+              <span className="block opacity-60 uppercase text-[9px] tracking-wider mb-0.5">Target</span>
+              <span className="font-bold">{goal.targetAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="text-right">
+              <span className="block opacity-60 uppercase text-[9px] tracking-wider mb-0.5">Saved</span>
+              <span className="font-bold text-[hsl(var(--primary))]">{goal.currentAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+
+          {error && (
+            <div className="ds-alert-error flex items-start gap-2 p-3 text-xs text-left">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>{error}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2 font-sans">
+            <button
+              onClick={onClose}
+              className="flex-1 ds-btn-outline py-2.5 text-xs font-bold uppercase tracking-wider"
+            >
+              Keep Active
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={mutation.isPending}
+              className="flex-1 ds-btn-primary py-2.5 flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider"
+            >
+              {mutation.isPending ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Archiving...</>
+              ) : (
+                <><CheckCircle className="h-3.5 w-3.5" /> Confirm Complete</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Contributions History Panel */
 function ContributionsPanel({ goal, onClose }: { goal: SavingsGoalResponse; onClose: () => void }) {
   const { data, isLoading } = useQuery<SavingsContributionResponse[]>({
@@ -436,6 +547,227 @@ function ContributionsPanel({ goal, onClose }: { goal: SavingsGoalResponse; onCl
   );
 }
 
+/** Completed Goals Section Component */
+function CompletedGoalsSection({ currency }: { currency: string }) {
+  const qc = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState("CompletedAt");
+  const [contributionsGoal, setContributionsGoal] = useState<SavingsGoalResponse | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState<string>("");
+
+  const { data, isLoading } = useQuery<PagedSavingsGoalResponse>({
+    queryKey: ["completed-savings-goals", page, sortBy],
+    queryFn:  () => fetchCompletedGoals(page, sortBy),
+    placeholderData: (prev) => prev,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteGoal,
+    onSuccess:  () => {
+      qc.invalidateQueries({ queryKey: ["completed-savings-goals"] });
+      setPage(1);
+    },
+  });
+
+  const goals = data?.items ?? [];
+  const meta: PaginationMeta | null = data
+    ? {
+        pageNumber:      data.pageNumber,
+        pageSize:        data.pageSize,
+        totalCount:      data.totalCount,
+        totalPages:      data.totalPages,
+        hasPreviousPage: data.hasPreviousPage,
+        hasNextPage:     data.hasNextPage,
+      }
+    : null;
+
+  if (isLoading && page === 1) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-[hsl(var(--primary))]" />
+      </div>
+    );
+  }
+
+  if (goals.length === 0) return null;
+
+  return (
+    <div className="space-y-4 border-t border-[hsl(var(--border))] pt-8 mt-12">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-[hsl(var(--primary))]" />
+            Completed Archive
+          </h2>
+          <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5 font-sans">
+            Goals you have successfully fully funded and archived.
+          </p>
+        </div>
+
+        {/* Sort Selector */}
+        <div className="flex items-center gap-2">
+          <label htmlFor="sort-completed" className="text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest font-mono">
+            Sort By
+          </label>
+          <select
+            id="sort-completed"
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setPage(1);
+            }}
+            className="ds-input py-1 px-2.5 text-xs font-mono"
+          >
+            <option value="CompletedAt">Completion Date</option>
+            <option value="CreatedAt">Start Date</option>
+            <option value="TargetDate">Target Date</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {goals.map((goal, idx) => {
+          const startDate = new Date(goal.createdAt).toLocaleDateString(undefined, {
+            day: "2-digit", month: "short", year: "numeric",
+          });
+          const targetDate = goal.targetDate
+            ? new Date(goal.targetDate).toLocaleDateString(undefined, {
+                day: "2-digit", month: "short", year: "numeric",
+              })
+            : "No target date";
+          const compDate = goal.completedAt
+            ? new Date(goal.completedAt).toLocaleDateString(undefined, {
+                day: "2-digit", month: "short", year: "numeric",
+              })
+            : "Unknown";
+
+          // Calculate "how early we completed that"
+          let completionBadge = null;
+          if (goal.targetDate && goal.completedAt) {
+            const tDate = new Date(goal.targetDate);
+            const cDate = new Date(goal.completedAt);
+            const tDateOnly = new Date(tDate.getFullYear(), tDate.getMonth(), tDate.getDate());
+            const cDateOnly = new Date(cDate.getFullYear(), cDate.getMonth(), cDate.getDate());
+            const diffTime = tDateOnly.getTime() - cDateOnly.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays > 0) {
+              completionBadge = (
+                <span className="ds-badge ds-badge-success text-[9px] uppercase tracking-wider font-bold">
+                  {diffDays} days early!
+                </span>
+              );
+            } else if (diffDays === 0) {
+              completionBadge = (
+                <span className="ds-badge ds-badge-success text-[9px] uppercase tracking-wider font-bold">
+                  On time
+                </span>
+              );
+            } else {
+              completionBadge = (
+                <span className="ds-badge ds-badge-warning text-[9px] uppercase tracking-wider font-bold">
+                  {Math.abs(diffDays)} days late
+                </span>
+              );
+            }
+          }
+
+          return (
+            <div
+              key={goal.id ?? `completed-${idx}`}
+              className="ds-card p-5 border-[hsl(var(--primary)/0.15)] bg-[hsl(var(--secondary)/0.3)] flex flex-col gap-4 relative overflow-hidden"
+            >
+              {/* Completed background stamp */}
+              <div className="absolute -bottom-8 -right-8 opacity-[0.03] text-[hsl(var(--primary))] pointer-events-none">
+                <CheckCircle className="h-32 w-32" />
+              </div>
+
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-sm text-[hsl(var(--foreground))] line-clamp-1">{goal.goalName}</h3>
+                {completionBadge}
+              </div>
+
+              <div className="space-y-2 text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
+                <div className="flex justify-between">
+                  <span>Start Date:</span>
+                  <span className="text-[hsl(var(--foreground))] font-medium">{startDate}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Target Date:</span>
+                  <span className="text-[hsl(var(--foreground))] font-medium">{targetDate}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Completed At:</span>
+                  <span className="text-[hsl(var(--primary))] font-bold">{compDate}</span>
+                </div>
+              </div>
+
+              <div className="flex items-end justify-between border-t border-[hsl(var(--border)/0.5)] pt-3.5">
+                <div>
+                  <span className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest block mb-0.5">Funded</span>
+                  <CurrencyDisplay amount={goal.currentAmount} currency={currency} size="sm" positiveColor />
+                </div>
+                <div className="text-right">
+                  <span className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest block mb-0.5">Target</span>
+                  <span className="text-xs font-semibold font-mono opacity-80">{goal.targetAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} {currency}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 border-t border-[hsl(var(--border)/0.5)] pt-3.5 font-sans">
+                <button
+                  onClick={() => setContributionsGoal(goal)}
+                  className="flex-1 ds-btn-outline py-1.5 text-[11px] font-bold flex items-center justify-center gap-1"
+                >
+                  <Clock className="h-3 w-3" />
+                  History
+                </button>
+                <button
+                  onClick={() => {
+                    setDeleteConfirmId(goal.id);
+                    setDeleteConfirmName(goal.goalName);
+                  }}
+                  className="ds-btn-icon h-7 w-7 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.08)] transition-all"
+                  title="Delete archive"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {meta && (
+        <div className="ds-card p-4">
+          <Pagination meta={meta} onPageChange={setPage} />
+        </div>
+      )}
+
+      {/* Modals within CompletedGoalsSection */}
+      {contributionsGoal && (
+        <ContributionsPanel goal={contributionsGoal} onClose={() => setContributionsGoal(null)} />
+      )}
+
+      <CustomConfirmModal
+        isOpen={!!deleteConfirmId}
+        title="Delete Savings Goal Archive"
+        message={`Are you sure you want to delete the archived savings goal "${deleteConfirmName}"? This action is irreversible.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep It"
+        onConfirm={() => {
+          if (deleteConfirmId) {
+            deleteMutation.mutate(deleteConfirmId);
+          }
+          setDeleteConfirmId(null);
+        }}
+        onCancel={() => setDeleteConfirmId(null)}
+        isDestructive
+      />
+    </div>
+  );
+}
+
 /* ── Main Page ─────────────────────────────────────────────────────── */
 export default function SavingsPage() {
   const { user } = useAuth();
@@ -444,6 +776,7 @@ export default function SavingsPage() {
 
   const [showCreateModal,     setShowCreateModal]     = useState(false);
   const [contributeGoal,      setContributeGoal]      = useState<SavingsGoalResponse | null>(null);
+  const [completeGoalItem,    setCompleteGoalItem]    = useState<SavingsGoalResponse | null>(null);
   const [contributionsGoal,   setContributionsGoal]   = useState<SavingsGoalResponse | null>(null);
   const [page,                setPage]                = useState(1);
   const [deleteConfirmId,     setDeleteConfirmId]     = useState<string | null>(null);
@@ -559,8 +892,8 @@ export default function SavingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {goals.map((goal, idx) => {
             const pct        = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
-            const isComplete = goal.isCompleted;
             const remaining  = goal.targetAmount - goal.currentAmount;
+            const isTargetMet = goal.currentAmount >= goal.targetAmount;
 
             return (
               <div
@@ -570,17 +903,11 @@ export default function SavingsPage() {
                 {/* Icon + status */}
                 <div className="flex items-center justify-between">
                   <div
-                    className={`h-10 w-10 rounded-xl border flex items-center justify-center ${
-                      isComplete
-                        ? "text-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.1)] border-[hsl(var(--primary)/0.25)]"
-                        : "text-[hsl(var(--safe-to-spend))] bg-[hsl(var(--safe-to-spend)/0.1)] border-[hsl(var(--safe-to-spend)/0.25)]"
-                    }`}
+                    className="h-10 w-10 rounded-xl border flex items-center justify-center text-[hsl(var(--safe-to-spend))] bg-[hsl(var(--safe-to-spend)/0.1)] border-[hsl(var(--safe-to-spend)/0.25)]"
                   >
-                    {isComplete ? <CheckCircle className="h-5 w-5" /> : <Target className="h-5 w-5" />}
+                    <Target className="h-5 w-5" />
                   </div>
-                  {isComplete ? (
-                    <span className="ds-badge ds-badge-success">Completed</span>
-                  ) : goal.targetDate ? (
+                  {goal.targetDate ? (
                     <span className="flex items-center gap-1 text-[10px] font-mono text-[hsl(var(--muted-foreground))]">
                       <Calendar className="h-3 w-3" />
                       {new Date(goal.targetDate).toLocaleDateString(undefined, {
@@ -593,13 +920,11 @@ export default function SavingsPage() {
                 {/* Name */}
                 <div>
                   <p className="font-bold text-sm">{goal.goalName}</p>
-                  {!isComplete && (
-                    <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono mt-0.5">
-                      {remaining > 0
-                        ? `${remaining.toLocaleString("en-US", { minimumFractionDigits: 2 })} ${currency} remaining`
-                        : "Target reached!"}
-                    </p>
-                  )}
+                  <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono mt-0.5">
+                    {remaining > 0
+                      ? `${remaining.toLocaleString("en-US", { minimumFractionDigits: 2 })} ${currency} remaining`
+                      : "Target reached!"}
+                  </p>
                 </div>
 
                 {/* Amounts */}
@@ -621,14 +946,23 @@ export default function SavingsPage() {
                 {/* Progress Widget */}
                 <TechProgress
                   value={pct}
-                  color={isComplete ? "primary" : "safe"}
+                  color="safe"
                   minVal="0%"
                   maxVal="100%"
                 />
 
                 {/* Action Buttons */}
-                <div className="flex items-center gap-2 pt-1 border-t border-[hsl(var(--border))]">
-                  {!isComplete && (
+                <div className="flex items-center gap-2 pt-1 border-t border-[hsl(var(--border))] font-sans">
+                  {isTargetMet ? (
+                    <button
+                      id={`complete-btn-${goal.id}`}
+                      onClick={() => setCompleteGoalItem(goal)}
+                      className="flex-1 ds-btn-primary py-2 text-xs font-bold flex items-center justify-center gap-1.5 bg-[hsl(var(--primary))] border-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.95)]"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      Complete Goal
+                    </button>
+                  ) : (
                     <button
                       id={`contribute-btn-${goal.id}`}
                       onClick={() => setContributeGoal(goal)}
@@ -692,9 +1026,13 @@ export default function SavingsPage() {
         </div>
       )}
 
+      {/* ── Completed Goals Section ──────────────────────────────────── */}
+      <CompletedGoalsSection currency={currency} />
+
       {/* ── Modals ────────────────────────────────────────────────────── */}
       {showCreateModal  && <CreateGoalModal     onClose={() => setShowCreateModal(false)} />}
       {contributeGoal   && <ContributeModal     goal={contributeGoal}    onClose={() => setContributeGoal(null)} />}
+      {completeGoalItem && <CompleteGoalModal   goal={completeGoalItem}  onClose={() => setCompleteGoalItem(null)} />}
       {contributionsGoal && <ContributionsPanel goal={contributionsGoal} onClose={() => setContributionsGoal(null)} />}
 
       {/* Delete Confirmation Modal */}

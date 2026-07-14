@@ -23,10 +23,11 @@ namespace ST_finance.Domain.Features.Accounts
         [HttpGet]
         public async Task<IActionResult> GetAccounts(
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize   = 20)
+            [FromQuery] int pageSize   = 20,
+            [FromQuery] GetAccountsRequest? request = null)
         {
             var userId = GetUserId();
-            var result = await _accountService.GetAccountsAsync(userId, pageNumber, pageSize);
+            var result = await _accountService.GetAccountsAsync(userId, pageNumber, pageSize, request ?? new GetAccountsRequest());
             return HandleResult(result);
         }
 

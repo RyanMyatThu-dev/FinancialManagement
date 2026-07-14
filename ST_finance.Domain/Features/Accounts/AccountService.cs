@@ -19,15 +19,42 @@ namespace ST_finance.Domain.Features.Accounts
             _context = context;
         }
 
-        public async Task<Result<PagedResponse<AccountResponse>>> GetAccountsAsync(Guid userId, int pageNumber, int pageSize)
+        public async Task<Result<PagedResponse<AccountResponse>>> GetAccountsAsync(Guid userId, int pageNumber, int pageSize, GetAccountsRequest request)
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize  < 1) pageSize  = 20;
             if (pageSize  > 100) pageSize = 100;
 
             var query = _context.TblAccounts
-                .Where(a => a.UserId == userId)
-                .OrderBy(a => a.Name);
+                .Where(a => a.UserId == userId);
+
+            if (request != null)
+            {
+                if (!string.IsNullOrWhiteSpace(request.Search))
+                {
+                    query = query.Where(a => a.Name.ToLower().Contains(request.Search.ToLower()));
+                }
+
+                if (request.Type.HasValue && request.Type.Value != AccountType.None)
+                {
+                    query = query.Where(a => a.AccountType == request.Type.Value);
+                }
+
+                query = request.SortBy switch
+                {
+                    "NameAsc" => query.OrderBy(a => a.Name),
+                    "NameDesc" => query.OrderByDescending(a => a.Name),
+                    "BalanceHigh" => query.OrderByDescending(a => a.Balance ?? 0m),
+                    "BalanceLow" => query.OrderBy(a => a.Balance ?? 0m),
+                    "DateDesc" => query.OrderByDescending(a => a.CreatedAt),
+                    "DateAsc" => query.OrderBy(a => a.CreatedAt),
+                    _ => query.OrderBy(a => a.Name)
+                };
+            }
+            else
+            {
+                query = query.OrderBy(a => a.Name);
+            }
 
             var totalCount = await query.CountAsync();
 
@@ -56,6 +83,11 @@ namespace ST_finance.Domain.Features.Accounts
             if (request.AccountType == AccountType.None)
             {
                 return Result.Failure<AccountResponse>(CustomErrors.Validation.InvalidInput("Account type must be Bank, EWallet, TransitCard, or Cash."));
+            }
+
+            if (request.Balance < 0)
+            {
+                return Result.Failure<AccountResponse>(CustomErrors.Validation.InvalidInput("Initial account balance cannot be negative."));
             }
 
             // 2. Validate unique account name per user
@@ -102,38 +134,58 @@ namespace ST_finance.Domain.Features.Accounts
                 return Result.Failure<AccountResponse>(CustomErrors.Account.NotFound);
             }
 
-            // 1. Name unique constraint check (if name is being modified)
-            if (!string.IsNullOrEmpty(request.Name) && !account.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase))
+            using var transactionScope = await _context.Database.BeginTransactionAsync();
+            try
             {
-                var nameExists = await _context.TblAccounts
-                    .AnyAsync(a => a.UserId == userId && a.Id != accountId && a.Name.ToLower() == request.Name.ToLower());
-
-                if (nameExists)
+                // 1. Name unique constraint check (if name is being modified)
+                if (!string.IsNullOrEmpty(request.Name) && !account.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase))
                 {
-                    return Result.Failure<AccountResponse>(CustomErrors.Account.DuplicateName);
+                    var nameExists = await _context.TblAccounts
+                        .AnyAsync(a => a.UserId == userId && a.Id != accountId && a.Name.ToLower() == request.Name.ToLower());
+
+                    if (nameExists)
+                    {
+                        await transactionScope.RollbackAsync();
+                        return Result.Failure<AccountResponse>(CustomErrors.Account.DuplicateName);
+                    }
+                    account.Name = request.Name;
                 }
-                account.Name = request.Name;
-            }
 
-            // 2. Map optional updates
-            if (!string.IsNullOrEmpty(request.Color))
+                // 2. Map optional updates
+                if (!string.IsNullOrEmpty(request.Color))
+                {
+                    account.Color = request.Color;
+                }
+
+                if (!string.IsNullOrEmpty(request.Icon))
+                {
+                    account.Icon = request.Icon;
+                }
+
+                if (request.Balance.HasValue)
+                {
+                    account.Balance = request.Balance.Value;
+                }
+
+                await _context.SaveChangesAsync();
+
+                var proposedNetBalance = await _context.TblAccounts
+                    .Where(a => a.UserId == userId)
+                    .SumAsync(a => a.Balance ?? 0m);
+                if (proposedNetBalance < 0)
+                {
+                    await transactionScope.RollbackAsync();
+                    return Result.Failure<AccountResponse>(CustomErrors.Transaction.InsufficientNetBalance);
+                }
+
+                await transactionScope.CommitAsync();
+                return Result.Success(MapToResponse(account));
+            }
+            catch
             {
-                account.Color = request.Color;
+                await transactionScope.RollbackAsync();
+                throw;
             }
-
-            if (!string.IsNullOrEmpty(request.Icon))
-            {
-                account.Icon = request.Icon;
-            }
-
-            if (request.Balance.HasValue)
-            {
-                account.Balance = request.Balance.Value;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Result.Success(MapToResponse(account));
         }
 
         public async Task<Result> DeleteAccountAsync(Guid userId, Guid accountId, bool force)
@@ -150,33 +202,53 @@ namespace ST_finance.Domain.Features.Accounts
 
             var hasTransactions = account.TblTransactionAccounts.Any() || account.TblTransactionTargetAccounts.Any();
 
-            if (hasTransactions)
+            using var transactionScope = await _context.Database.BeginTransactionAsync();
+            try
             {
-                if (!force)
+                if (hasTransactions)
                 {
-                    return Result.Failure(CustomErrors.Account.HasTransactions);
+                    if (!force)
+                    {
+                        await transactionScope.RollbackAsync();
+                        return Result.Failure(CustomErrors.Account.HasTransactions);
+                    }
+
+                    // Tweak properties to soft-delete the account and its transaction histories
+                    account.DeleteFlag = true;
+                    foreach (var tx in account.TblTransactionAccounts)
+                    {
+                        tx.DeleteFlag = true;
+                    }
+                    foreach (var tx in account.TblTransactionTargetAccounts)
+                    {
+                        tx.DeleteFlag = true;
+                    }
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    // Soft-delete the account
+                    account.DeleteFlag = true;
+                    await _context.SaveChangesAsync();
                 }
 
-                // Tweak properties to soft-delete the account and its transaction histories
-                account.DeleteFlag = true;
-                foreach (var tx in account.TblTransactionAccounts)
+                var proposedNetBalance = await _context.TblAccounts
+                    .Where(a => a.UserId == userId)
+                    .SumAsync(a => a.Balance ?? 0m);
+                if (proposedNetBalance < 0)
                 {
-                    tx.DeleteFlag = true;
+                    await transactionScope.RollbackAsync();
+                    return Result.Failure(CustomErrors.Transaction.InsufficientNetBalance);
                 }
-                foreach (var tx in account.TblTransactionTargetAccounts)
-                {
-                    tx.DeleteFlag = true;
-                }
-                await _context.SaveChangesAsync();
-            }
-            else
-            {
-                // Soft-delete the account
-                account.DeleteFlag = true;
-                await _context.SaveChangesAsync();
-            }
 
-            return Result.Success();
+                await transactionScope.CommitAsync();
+                return Result.Success();
+            }
+            catch
+            {
+                await transactionScope.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<Result> CreditAccountAsync(Guid userId, Guid accountId, decimal amount)

@@ -55,6 +55,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, []);
 
+  useEffect(() => {
+    const titleMap: Record<string, string> = {
+      "/dashboard": "Dashboard",
+      "/accounts": "Wallets & Accounts",
+      "/transactions": "Transactions Ledger",
+      "/recurring": "Recurring Schedules",
+      "/savings": "Savings Goals",
+      "/categories": "Categories Management",
+      "/tags": "Tags Management",
+      "/profile": "Profile Settings",
+    };
+    
+    const matchedPath = Object.keys(titleMap).find((path) => pathname.startsWith(path));
+    const pageTitle = matchedPath ? titleMap[matchedPath] : "";
+    document.title = pageTitle ? `${pageTitle} | ST-Finance` : "ST-Finance";
+  }, [pathname]);
+
   const toggleTheme = () => {
     if (isDarkMode) {
       document.documentElement.classList.remove("dark");

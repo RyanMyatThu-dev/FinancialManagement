@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chula Student Finance Manager",
+  title: "ST-Finance",
   description: "Futuristic budget tracker, rolling safe-to-spend quotas, and savings goals tracking.",
 };
 

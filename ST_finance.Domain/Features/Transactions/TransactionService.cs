@@ -115,6 +115,91 @@ namespace ST_finance.Domain.Features.Transactions
             return Result.Success(PagedResponse<TransactionResponse>.Create(responses, totalCount, pageNumber, pageSize));
         }
 
+        public async Task<Result<TransactionSummaryResponse>> GetTransactionSummaryAsync(
+            Guid userId,
+            Guid? categoryId = null,
+            Guid? tagId = null,
+            decimal? minAmount = null,
+            decimal? maxAmount = null,
+            string? search = null,
+            string? timeframe = null
+        )
+        {
+            var query = _context.TblTransactions
+                .Where(t => t.UserId == userId);
+
+            if (!string.IsNullOrWhiteSpace(timeframe))
+            {
+                var nowUtc = DateTime.UtcNow;
+                var currentBkk = nowUtc.AddHours(7);
+                DateTime startDate = DateTime.MinValue;
+                DateTime endDate = DateTime.MaxValue;
+
+                if (timeframe.Equals("Day", StringComparison.OrdinalIgnoreCase))
+                {
+                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    endDate = startDate.AddDays(1);
+                }
+                else if (timeframe.Equals("Week", StringComparison.OrdinalIgnoreCase))
+                {
+                    int diff = (7 + (currentBkk.DayOfWeek - DayOfWeek.Monday)) % 7;
+                    var startOfWeekBkk = currentBkk.AddDays(-1 * diff);
+                    startDate = DateTime.SpecifyKind(new DateTime(startOfWeekBkk.Year, startOfWeekBkk.Month, startOfWeekBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    endDate = startDate.AddDays(7);
+                }
+                else if (timeframe.Equals("Month", StringComparison.OrdinalIgnoreCase))
+                {
+                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    endDate = startDate.AddMonths(1);
+                }
+                else if (timeframe.Equals("Year", StringComparison.OrdinalIgnoreCase))
+                {
+                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    endDate = startDate.AddYears(1);
+                }
+
+                if (startDate != DateTime.MinValue)
+                {
+                    query = query.Where(t => t.Date >= startDate && t.Date < endDate);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(t => t.Description != null && t.Description.ToLower().Contains(search.ToLower()));
+            }
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(t => t.CategoryId == categoryId.Value);
+            }
+
+            if (tagId.HasValue)
+            {
+                query = query.Where(t => t.Tags.Any(tag => tag.Id == tagId.Value));
+            }
+
+            if (minAmount.HasValue)
+            {
+                query = query.Where(t => t.Amount >= minAmount.Value);
+            }
+
+            if (maxAmount.HasValue)
+            {
+                query = query.Where(t => t.Amount <= maxAmount.Value);
+            }
+
+            var summary = await query
+                .GroupBy(t => t.TransactionType)
+                .Select(g => new { Type = g.Key, Total = g.Sum(t => t.Amount) })
+                .ToListAsync();
+
+            var inflow = summary.FirstOrDefault(s => s.Type == "Income")?.Total ?? 0m;
+            var outflow = summary.FirstOrDefault(s => s.Type == "Expense")?.Total ?? 0m;
+
+            return Result.Success(new TransactionSummaryResponse(inflow, outflow));
+        }
+
         public async Task<Result<TransactionResponse>> CreateTransactionAsync(Guid userId, TransactionRequest request)
         {
             if (request == null)
@@ -180,6 +265,15 @@ namespace ST_finance.Domain.Features.Transactions
 
                 _context.TblTransactions.Add(transaction);
                 await _context.SaveChangesAsync();
+
+                var proposedNetBalance = await _context.TblAccounts
+                    .Where(a => a.UserId == userId)
+                    .SumAsync(a => a.Balance ?? 0m);
+                if (proposedNetBalance < 0)
+                {
+                    await transactionScope.RollbackAsync();
+                    return Result.Failure<TransactionResponse>(CustomErrors.Transaction.InsufficientNetBalance);
+                }
 
                 await transactionScope.CommitAsync();
 
@@ -270,6 +364,16 @@ namespace ST_finance.Domain.Features.Transactions
                 }
 
                 await _context.SaveChangesAsync();
+
+                var proposedNetBalance = await _context.TblAccounts
+                    .Where(a => a.UserId == userId)
+                    .SumAsync(a => a.Balance ?? 0m);
+                if (proposedNetBalance < 0)
+                {
+                    await transactionScope.RollbackAsync();
+                    return Result.Failure<TransactionResponse>(CustomErrors.Transaction.InsufficientNetBalance);
+                }
+
                 await transactionScope.CommitAsync();
 
                 return Result.Success(MapToResponse(existingTx));
@@ -306,6 +410,16 @@ namespace ST_finance.Domain.Features.Transactions
                 existingTx.DeleteFlag = true;
 
                 await _context.SaveChangesAsync();
+
+                var proposedNetBalance = await _context.TblAccounts
+                    .Where(a => a.UserId == userId)
+                    .SumAsync(a => a.Balance ?? 0m);
+                if (proposedNetBalance < 0)
+                {
+                    await transactionScope.RollbackAsync();
+                    return Result.Failure(CustomErrors.Transaction.InsufficientNetBalance);
+                }
+
                 await transactionScope.CommitAsync();
 
                 return Result.Success();

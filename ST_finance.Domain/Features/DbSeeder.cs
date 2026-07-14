@@ -9,734 +9,639 @@ using ST_finance.Shared.Enums;
 
 namespace ST_finance.Domain.Features
 {
+    /// <summary>
+    /// Seeds the database with one realistic student user (Alex Mercer) spanning 2 years.
+    /// Designed to test pagination across accounts (12), savings goals (20+), and transactions.
+    /// All balances are guaranteed non-negative throughout the entire history.
+    /// </summary>
     public static class DbSeeder
     {
         public static async Task SeedAsync(UserManager<TblUser> userManager, AppDbContext context)
         {
-            // 1. Clean up existing test users if they exist
-            var oldUsers = new[] { "ryan", "pim", "somchai", "kanya" };
+            // ── Clean up any previous seed users ─────────────────────────
+            var oldUsers = new[] { "ryan", "pim", "somchai", "kanya", "alex", "emma" };
             foreach (var username in oldUsers)
             {
-                var existingUser = await userManager.FindByNameAsync(username);
-                if (existingUser != null)
+                var existing = await userManager.FindByNameAsync(username);
+                if (existing != null)
                 {
-                    await DeleteUserDataAsync(context, existingUser.Id);
-                    await userManager.DeleteAsync(existingUser);
+                    await DeleteUserDataAsync(context, existing.Id);
+                    await userManager.DeleteAsync(existing);
                 }
             }
 
-            // 2. Create User 1: Somchai (Scholarship Student)
-            var somchai = new TblUser
+            // ── Create single demo user: Alex Mercer ─────────────────────
+            var alex = new TblUser
             {
-                Id = Guid.NewGuid(),
-                UserName = "somchai",
-                Email = "somchai.s@chula.ac.th",
-                FullName = "Somchai Somdee",
-                EmailConfirmed = true,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                DeleteFlag = false
+                Id               = Guid.NewGuid(),
+                UserName         = "alex",
+                Email            = "alex.mercer@studentmail.com",
+                FullName         = "Alex Mercer",
+                EmailConfirmed   = true,
+                SecurityStamp    = Guid.NewGuid().ToString(),
+                DeleteFlag       = false
             };
-            var result1 = await userManager.CreateAsync(somchai, "Password123!");
-            if (!result1.Succeeded)
+            var createResult = await userManager.CreateAsync(alex, "Password123!");
+            if (!createResult.Succeeded)
             {
-                throw new Exception($"Failed to seed Somchai user: {string.Join(", ", result1.Errors.Select(e => e.Description))}");
+                throw new Exception($"Failed to seed demo user: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
             }
 
-            // 3. Create User 2: Kanya (Standard Student)
-            var kanya = new TblUser
-            {
-                Id = Guid.NewGuid(),
-                UserName = "kanya",
-                Email = "kanya.w@chula.ac.th",
-                FullName = "Kanya Srisai",
-                EmailConfirmed = true,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                DeleteFlag = false
-            };
-            var result2 = await userManager.CreateAsync(kanya, "Password123!");
-            if (!result2.Succeeded)
-            {
-                throw new Exception($"Failed to seed Kanya user: {string.Join(", ", result2.Errors.Select(e => e.Description))}");
-            }
-
-            // 4. Seed user specific data
-            await SeedSomchaiDataAsync(context, somchai.Id);
-            await SeedKanyaDataAsync(context, kanya.Id);
+            await SeedAlexDataAsync(context, alex.Id);
         }
 
+        // ─────────────────────────────────────────────────────────────────
         private static async Task DeleteUserDataAsync(AppDbContext context, Guid userId)
         {
-            // Bypass query filters to ensure everything is deleted
-            var contributions = await context.TblSavingsContributions.IgnoreQueryFilters().Where(c => c.SavingsGoal.UserId == userId).ToListAsync();
+            var contributions = await context.TblSavingsContributions.IgnoreQueryFilters()
+                .Where(c => c.SavingsGoal.UserId == userId).ToListAsync();
             context.TblSavingsContributions.RemoveRange(contributions);
 
-            var goals = await context.TblSavingsGoals.IgnoreQueryFilters().Where(g => g.UserId == userId).ToListAsync();
+            var goals = await context.TblSavingsGoals.IgnoreQueryFilters()
+                .Where(g => g.UserId == userId).ToListAsync();
             context.TblSavingsGoals.RemoveRange(goals);
 
-            var budgets = await context.TblCategoryBudgets.IgnoreQueryFilters().Where(b => b.UserId == userId).ToListAsync();
+            var budgets = await context.TblCategoryBudgets.IgnoreQueryFilters()
+                .Where(b => b.UserId == userId).ToListAsync();
             context.TblCategoryBudgets.RemoveRange(budgets);
 
-            var schedules = await context.TblRecurringSchedules.IgnoreQueryFilters().Where(s => s.UserId == userId).ToListAsync();
+            var schedules = await context.TblRecurringSchedules.IgnoreQueryFilters()
+                .Where(s => s.UserId == userId).ToListAsync();
             context.TblRecurringSchedules.RemoveRange(schedules);
 
-            var logs = await context.TblDailyQuotaLogs.IgnoreQueryFilters().Where(l => l.UserId == userId).ToListAsync();
+            var logs = await context.TblDailyQuotaLogs.IgnoreQueryFilters()
+                .Where(l => l.UserId == userId).ToListAsync();
             context.TblDailyQuotaLogs.RemoveRange(logs);
 
-            var transactions = await context.TblTransactions.IgnoreQueryFilters().Where(t => t.UserId == userId).ToListAsync();
+            var transactions = await context.TblTransactions.IgnoreQueryFilters()
+                .Where(t => t.UserId == userId).ToListAsync();
             context.TblTransactions.RemoveRange(transactions);
 
-            var tags = await context.TblTags.IgnoreQueryFilters().Where(t => t.UserId == userId).ToListAsync();
+            var tags = await context.TblTags.IgnoreQueryFilters()
+                .Where(t => t.UserId == userId).ToListAsync();
             context.TblTags.RemoveRange(tags);
 
-            var categories = await context.TblCategories.IgnoreQueryFilters().Where(c => c.UserId == userId).ToListAsync();
+            var categories = await context.TblCategories.IgnoreQueryFilters()
+                .Where(c => c.UserId == userId).ToListAsync();
             context.TblCategories.RemoveRange(categories);
 
-            var accounts = await context.TblAccounts.IgnoreQueryFilters().Where(a => a.UserId == userId).ToListAsync();
+            var accounts = await context.TblAccounts.IgnoreQueryFilters()
+                .Where(a => a.UserId == userId).ToListAsync();
             context.TblAccounts.RemoveRange(accounts);
 
-            var profiles = await context.TblUserProfiles.IgnoreQueryFilters().Where(p => p.UserId == userId).ToListAsync();
+            var profiles = await context.TblUserProfiles.IgnoreQueryFilters()
+                .Where(p => p.UserId == userId).ToListAsync();
             context.TblUserProfiles.RemoveRange(profiles);
 
             await context.SaveChangesAsync();
         }
 
-        private static async Task SeedSomchaiDataAsync(AppDbContext context, Guid userId)
+        // ─────────────────────────────────────────────────────────────────
+        private static async Task SeedAlexDataAsync(AppDbContext context, Guid userId)
         {
             var now = DateTime.UtcNow;
+            var rnd = new Random(77); // Fixed seed → reproducible
 
-            // Profile settings
-            var profile = new TblUserProfile
+            // ── User Profile ─────────────────────────────────────────────
+            context.TblUserProfiles.Add(new TblUserProfile
             {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                MonthlyAllowanceAmount = 16000.00m,
-                AllowanceDayOfMonth = 25,
-                TargetMonthlySavings = 2000.00m,
-                Currency = "THB",
-                UpdatedAt = now
-            };
-            context.TblUserProfiles.Add(profile);
+                Id                    = Guid.NewGuid(),
+                UserId                = userId,
+                MonthlyAllowanceAmount = 20000m,
+                AllowanceDayOfMonth   = 25,
+                TargetMonthlySavings  = 4000m,
+                Currency              = "THB",
+                UpdatedAt             = now
+            });
 
-            // Accounts - starting balances at the beginning of the 1-year history
-            var scb = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "SCB Bank", AccountType = AccountType.Bank, Balance = 12000.00m, Color = "#3b82f6", Icon = "Wallet", CreatedAt = now, DeleteFlag = false };
-            var wallet = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "TrueMoney Wallet", AccountType = AccountType.EWallet, Balance = 1000.00m, Color = "#ef4444", Icon = "Smartphone", CreatedAt = now, DeleteFlag = false };
-            var rabbit = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Rabbit Card", AccountType = AccountType.TransitCard, Balance = 200.00m, Color = "#f59e0b", Icon = "CreditCard", CreatedAt = now, DeleteFlag = false };
-            var cash = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Cash Pocket", AccountType = AccountType.Cash, Balance = 500.00m, Color = "#10b981", Icon = "Coins", CreatedAt = now, DeleteFlag = false };
-            context.TblAccounts.AddRange(scb, wallet, rabbit, cash);
+            // ── 12 Accounts ─────────────────────────────────────────────
+            // Starting balances are deliberately high so 2 years of expenses never go negative.
+            var acMain    = MakeAccount(userId, "Main Checking",        AccountType.Bank,        120_000m, "#3b82f6", "Wallet",      now.AddMonths(-24));
+            var acSavBank = MakeAccount(userId, "Savings Account",      AccountType.Bank,         80_000m, "#0ea5e9", "PiggyBank",   now.AddMonths(-24));
+            var acWallet  = MakeAccount(userId, "Pay Wallet",           AccountType.EWallet,       8_000m, "#ef4444", "Smartphone",  now.AddMonths(-24));
+            var acGPay    = MakeAccount(userId, "GPay",                 AccountType.EWallet,       5_000m, "#f97316", "Nfc",         now.AddMonths(-22));
+            var acShop    = MakeAccount(userId, "Shopping E-Wallet",    AccountType.EWallet,       6_000m, "#ec4899", "ShoppingBag", now.AddMonths(-20));
+            var acTransit = MakeAccount(userId, "Metro Transit Card",   AccountType.TransitCard,   3_000m, "#10b981", "Train",       now.AddMonths(-24));
+            var acBus     = MakeAccount(userId, "City Bus Card",        AccountType.TransitCard,   1_500m, "#14b8a6", "Bus",         now.AddMonths(-18));
+            var acCash    = MakeAccount(userId, "Cash on Hand",         AccountType.Cash,          5_000m, "#f59e0b", "Coins",       now.AddMonths(-24));
+            var acCash2   = MakeAccount(userId, "Emergency Cash",       AccountType.Cash,         10_000m, "#84cc16", "Banknote",    now.AddMonths(-20));
+            var acStudLoan= MakeAccount(userId, "Student Loan Buffer",  AccountType.Bank,         50_000m, "#8b5cf6", "GraduationCap", now.AddMonths(-24));
+            var acFreelance= MakeAccount(userId, "Freelance Account",   AccountType.Bank,         15_000m, "#d946ef", "Briefcase",   now.AddMonths(-16));
+            var acInvest  = MakeAccount(userId, "Investment Savings",   AccountType.Bank,         25_000m, "#a78bfa", "TrendingUp",  now.AddMonths(-12));
 
-            // Categories
-            var catFood = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Food & Drinks", Type = "Expense", Icon = "Utensils", Color = "#ef4444", DeleteFlag = false };
-            var catRent = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Rent & Bills", Type = "Expense", Icon = "Home", Color = "#3b82f6", DeleteFlag = false };
-            var catTransit = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Transit", Type = "Expense", Icon = "Train", Color = "#10b981", DeleteFlag = false };
-            var catEducation = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Education", Type = "Expense", Icon = "BookOpen", Color = "#8b5cf6", DeleteFlag = false };
-            var catShopping = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Shopping", Type = "Expense", Icon = "ShoppingBag", Color = "#ec4899", DeleteFlag = false };
-            var catStipend = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Stipend", Type = "Income", Icon = "Award", Color = "#df1a83", DeleteFlag = false };
-            context.TblCategories.AddRange(catFood, catRent, catTransit, catEducation, catShopping, catStipend);
+            var accounts = new[] { acMain, acSavBank, acWallet, acGPay, acShop, acTransit, acBus, acCash, acCash2, acStudLoan, acFreelance, acInvest };
+            context.TblAccounts.AddRange(accounts);
 
-            // Tags
-            var tagCanteen = new TblTag { Id = Guid.NewGuid(), UserId = userId, Name = "Canteen", Color = "#ef4444", DeleteFlag = false };
-            var tagBts = new TblTag { Id = Guid.NewGuid(), UserId = userId, Name = "BTS", Color = "#10b981", DeleteFlag = false };
-            var tagSub = new TblTag { Id = Guid.NewGuid(), UserId = userId, Name = "Subscription", Color = "#3b82f6", DeleteFlag = false };
-            var tagUni = new TblTag { Id = Guid.NewGuid(), UserId = userId, Name = "University", Color = "#df1a83", DeleteFlag = false };
-            context.TblTags.AddRange(tagCanteen, tagBts, tagSub, tagUni);
+            // ── Categories ───────────────────────────────────────────────
+            var catFood    = MakeCat(userId, "Food & Drinks",    "Expense", "Utensils",    "#ef4444");
+            var catRent    = MakeCat(userId, "Rent & Utilities", "Expense", "Home",        "#3b82f6");
+            var catTransit = MakeCat(userId, "Transit",          "Expense", "Train",       "#10b981");
+            var catEdu     = MakeCat(userId, "Education",        "Expense", "BookOpen",    "#8b5cf6");
+            var catShop    = MakeCat(userId, "Shopping",         "Expense", "ShoppingBag", "#ec4899");
+            var catEntertain = MakeCat(userId, "Entertainment",  "Expense", "Film",        "#f97316");
+            var catHealth  = MakeCat(userId, "Health",           "Expense", "HeartPulse",  "#f43f5e");
+            var catIncome  = MakeCat(userId, "Scholarship",      "Income",  "Award",       "#22c55e");
+            var catFreelance= MakeCat(userId, "Freelance Income","Income",  "Briefcase",   "#a855f7");
+            context.TblCategories.AddRange(catFood, catRent, catTransit, catEdu, catShop, catEntertain, catHealth, catIncome, catFreelance);
 
-            // Savings Goals
-            var ipadGoal = new TblSavingsGoal
+            // ── Tags ─────────────────────────────────────────────────────
+            var tagCafe     = MakeTag(userId, "Cafe",          "#f59e0b");
+            var tagGrocery  = MakeTag(userId, "Grocery",       "#84cc16");
+            var tagTransit  = MakeTag(userId, "Transit",       "#10b981");
+            var tagSub      = MakeTag(userId, "Subscription",  "#3b82f6");
+            var tagUni      = MakeTag(userId, "University",    "#8b5cf6");
+            var tagMedical  = MakeTag(userId, "Medical",       "#f43f5e");
+            context.TblTags.AddRange(tagCafe, tagGrocery, tagTransit, tagSub, tagUni, tagMedical);
+
+            // ── Savings Goals ─────────────────────────────────────────────
+            // 15 COMPLETED goals (various durations ago) + 6 ACTIVE goals
+            var completedGoals = new (string Name, decimal Target, int StartMonthsAgo, int CompletedMonthsAgo)[]
             {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                GoalName = "M4 iPad Pro",
-                TargetAmount = 32000.00m,
-                TargetDate = now.AddMonths(6),
-                IsCompleted = false,
-                CreatedAt = now.AddMonths(-10),
-                DeleteFlag = false
+                ("Semester 1 Textbooks",     5_000m,  24, 21),
+                ("New Headphones",           3_500m,  22, 19),
+                ("Semester 2 Textbooks",     5_500m,  20, 17),
+                ("Birthday Trip",           12_000m,  20, 15),
+                ("Graphic Tablet",           8_000m,  18, 14),
+                ("Dorm Room Upgrade",        6_500m,  17, 13),
+                ("Semester 3 Textbooks",     5_000m,  16, 13),
+                ("Gaming Keyboard",          2_800m,  15, 12),
+                ("Gym Membership 1 Year",    5_400m,  14, 11),
+                ("Summer Internship Fund",  15_000m,  14, 10),
+                ("Mechanical Watch",         9_800m,  13,  9),
+                ("New Sneakers",             4_200m,  11,  8),
+                ("Semester 4 Textbooks",     5_000m,  10,  7),
+                ("Camera Lens",             18_000m,  10,  5),
+                ("Conference Registration",  7_500m,   7,  3),
             };
-            context.TblSavingsGoals.Add(ipadGoal);
 
-            // Seed 1 year of historical transactions (past 12 months)
-            var rnd = new Random(42); // Seed for reproducible transactions
+            var activeGoals = new (string Name, decimal Target, int StartMonthsAgo, int? TargetMonthsAhead)[]
+            {
+                ("New Laptop",              35_000m,  22, 4),
+                ("Emergency Fund 6 Months", 60_000m,  18, null),
+                ("Summer Study Abroad",     45_000m,  12, 8),
+                ("Graduation Gift to Self", 20_000m,   8, 10),
+                ("Investment Seed Capital", 50_000m,   6, null),
+                ("Research Conference",     10_000m,   3, 3),
+            };
+
+            // Create completed goal entities + contributions
+            var goalContributions = new List<TblSavingsContribution>();
+
+            foreach (var (Name, Target, StartMonthsAgo, CompletedMonthsAgo) in completedGoals)
+            {
+                var created     = now.AddMonths(-StartMonthsAgo);
+                var completedAt = now.AddMonths(-CompletedMonthsAgo)
+                                     .AddDays(rnd.Next(-10, 0));   // completed a few days before month cutoff
+                var targetDate  = completedAt.AddDays(rnd.Next(3, 25));
+
+                var goal = new TblSavingsGoal
+                {
+                    Id          = Guid.NewGuid(),
+                    UserId      = userId,
+                    GoalName    = Name,
+                    TargetAmount= Target,
+                    TargetDate  = targetDate,
+                    IsCompleted = true,
+                    CompletedAt = completedAt,
+                    CreatedAt   = created,
+                    DeleteFlag  = false
+                };
+                context.TblSavingsGoals.Add(goal);
+
+                // Distribute contributions evenly over the lifetime
+                var lifetimeMonths = StartMonthsAgo - CompletedMonthsAgo;
+                if (lifetimeMonths < 1) lifetimeMonths = 1;
+                var perMonth = Math.Round(Target / lifetimeMonths, 2);
+
+                for (int cm = 0; cm < lifetimeMonths; cm++)
+                {
+                    var contribDate = created.AddMonths(cm).AddDays(rnd.Next(1, 5));
+                    goalContributions.Add(new TblSavingsContribution
+                    {
+                        Id           = Guid.NewGuid(),
+                        SavingsGoalId= goal.Id,
+                        Amount       = perMonth,
+                        Date         = contribDate,
+                        Note         = "Regular saving contribution"
+                    });
+                }
+            }
+
+            // Create active goal entities + partial contributions
+            var activeGoalRunningTotals = new Dictionary<Guid, decimal>();
+            foreach (var (Name, Target, StartMonthsAgo, TargetMonthsAhead) in activeGoals)
+            {
+                var created    = now.AddMonths(-StartMonthsAgo);
+                var targetDate = TargetMonthsAhead.HasValue ? (DateTime?)now.AddMonths(TargetMonthsAhead.Value) : null;
+
+                // Save roughly 40-70% of target as "current amount"
+                var savedFraction = 0.40m + (decimal)rnd.Next(0, 30) / 100m;
+                var totalSaved    = Math.Round(Target * savedFraction, 2);
+
+                var goal = new TblSavingsGoal
+                {
+                    Id          = Guid.NewGuid(),
+                    UserId      = userId,
+                    GoalName    = Name,
+                    TargetAmount= Target,
+                    TargetDate  = targetDate,
+                    IsCompleted = false,
+                    CompletedAt = null,
+                    CreatedAt   = created,
+                    DeleteFlag  = false
+                };
+                context.TblSavingsGoals.Add(goal);
+                activeGoalRunningTotals[goal.Id] = totalSaved;
+
+                // Spread contributions monthly
+                var lifetimeMonths = StartMonthsAgo;
+                if (lifetimeMonths < 1) lifetimeMonths = 1;
+                var perMonth = Math.Round(totalSaved / lifetimeMonths, 2);
+
+                for (int cm = 0; cm < lifetimeMonths; cm++)
+                {
+                    var contribDate = created.AddMonths(cm).AddDays(rnd.Next(1, 5));
+                    if (contribDate > now) break;
+                    goalContributions.Add(new TblSavingsContribution
+                    {
+                        Id            = Guid.NewGuid(),
+                        SavingsGoalId = goal.Id,
+                        Amount        = perMonth,
+                        Date          = contribDate,
+                        Note          = "Monthly savings allocation"
+                    });
+                }
+            }
+
+            context.TblSavingsContributions.AddRange(goalContributions);
+
+            // ── 2-Year Transaction History ────────────────────────────────
+            // Strategy: track running balances per account to prevent negatives.
+            // Income arrives first each month, expenses follow.
+            var balances = accounts.ToDictionary(a => a.Id, a => a.Balance ?? 0m);
             var transactions = new List<TblTransaction>();
-            var contributions = new List<TblSavingsContribution>();
 
-            for (int m = -11; m <= 0; m++)
+            // Helper to add expense (only if balance allows, else skip/reduce)
+            TblTransaction? TryAddExpense(Guid accId, Guid catId, decimal amount, DateTime date, string desc, TblTag? tag = null)
             {
-                var monthDate = now.AddMonths(m);
-                var daysInMonth = DateTime.DaysInMonth(monthDate.Year, monthDate.Month);
-
-                // 1. Stipend Income on the 25th
-                var stipendDate = new DateTime(monthDate.Year, monthDate.Month, 25, 10, 0, 0, DateTimeKind.Utc);
-                if (stipendDate <= now)
+                if (balances[accId] < amount) return null; // guard: would go negative
+                balances[accId] -= amount;
+                var tx = new TblTransaction
                 {
-                    transactions.Add(new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = scb.Id,
-                        CategoryId = catStipend.Id,
-                        Amount = 16000.00m,
-                        TransactionType = "Income",
-                        Date = stipendDate,
-                        Description = "Monthly Scholarship Stipend",
-                        CreatedAt = stipendDate,
-                        DeleteFlag = false
-                    });
+                    Id              = Guid.NewGuid(),
+                    UserId          = userId,
+                    AccountId       = accId,
+                    CategoryId      = catId,
+                    Amount          = amount,
+                    TransactionType = "Expense",
+                    Date            = date,
+                    Description     = desc,
+                    CreatedAt       = date,
+                    DeleteFlag      = false
+                };
+                if (tag != null) tx.Tags.Add(tag);
+                return tx;
+            }
+
+            void AddIncome(Guid accId, Guid catId, decimal amount, DateTime date, string desc)
+            {
+                balances[accId] += amount;
+                transactions.Add(new TblTransaction
+                {
+                    Id              = Guid.NewGuid(),
+                    UserId          = userId,
+                    AccountId       = accId,
+                    CategoryId      = catId,
+                    Amount          = amount,
+                    TransactionType = "Income",
+                    Date            = date,
+                    Description     = desc,
+                    CreatedAt       = date,
+                    DeleteFlag      = false
+                });
+            }
+
+            void AddTransfer(Guid fromId, Guid toId, decimal amount, DateTime date, string desc)
+            {
+                if (balances[fromId] < amount) return; // guard
+                balances[fromId] -= amount;
+                balances[toId]   += amount;
+                transactions.Add(new TblTransaction
+                {
+                    Id              = Guid.NewGuid(),
+                    UserId          = userId,
+                    AccountId       = fromId,
+                    TargetAccountId = toId,
+                    Amount          = amount,
+                    TransactionType = "Transfer",
+                    Date            = date,
+                    Description     = desc,
+                    CreatedAt       = date,
+                    DeleteFlag      = false
+                });
+            }
+
+            for (int m = -23; m <= 0; m++)
+            {
+                var monthBase = now.AddMonths(m);
+                var y = monthBase.Year;
+                var mo = monthBase.Month;
+                var daysInMonth = DateTime.DaysInMonth(y, mo);
+                var monthStart = new DateTime(y, mo, 1, 0, 0, 0, DateTimeKind.Utc);
+
+                // ── Income flows (first few days of month, before expenses) ──
+
+                // Scholarship stipend on the 25th of prior month → credited 1st
+                var stipend = 20_000m;
+                AddIncome(acMain.Id, catIncome.Id, stipend, monthStart.AddHours(8), "Monthly Scholarship Stipend");
+
+                // Freelance income (Alex does part-time web gigs from month -16 onwards)
+                if (m >= -16 && m % 2 == 0) // bi-monthly freelance
+                {
+                    var freelanceAmt = 5_000m + rnd.Next(0, 8000);
+                    AddIncome(acFreelance.Id, catFreelance.Id, (decimal)freelanceAmt, monthStart.AddDays(3).AddHours(14), "Web Development Project Payment");
                 }
 
-                // 2. Rent on the 1st
-                var rentDate = new DateTime(monthDate.Year, monthDate.Month, 1, 9, 0, 0, DateTimeKind.Utc);
-                if (rentDate <= now)
+                // Investment savings deposit (from month -12 onwards, on 5th)
+                if (m >= -12)
                 {
-                    transactions.Add(new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = scb.Id,
-                        CategoryId = catRent.Id,
-                        Amount = 5000.00m,
-                        TransactionType = "Expense",
-                        Date = rentDate,
-                        Description = "Monthly Room Rent",
-                        CreatedAt = rentDate,
-                        DeleteFlag = false
-                    });
+                    AddTransfer(acMain.Id, acInvest.Id, 3_000m, monthStart.AddDays(4).AddHours(10), "Monthly Investment Contribution");
                 }
 
-                // 3. BTS Card Topup on the 1st (Transfer from SCB to Rabbit Card)
-                var btsDate = new DateTime(monthDate.Year, monthDate.Month, 1, 8, 30, 0, DateTimeKind.Utc);
-                if (btsDate <= now)
+                // ── Monthly Fixed Expenses ────────────────────────────────
+
+                // Rent / utilities
+                var rentTx = TryAddExpense(acMain.Id, catRent.Id, 6_500m,
+                    monthStart.AddDays(1).AddHours(9), "Monthly Dorm Rent & Utilities");
+                if (rentTx != null) transactions.Add(rentTx);
+
+                // Phone plan
+                var phoneTx = TryAddExpense(acMain.Id, catRent.Id, 399m,
+                    monthStart.AddDays(2).AddHours(10), "Mobile Data Plan");
+                if (phoneTx != null) { phoneTx.Tags.Add(tagSub); transactions.Add(phoneTx); }
+
+                // Streaming subscription (wallet)
+                var streamTx = TryAddExpense(acWallet.Id, catEntertain.Id, 149m,
+                    monthStart.AddDays(2).AddHours(11), "Streaming Service Subscription");
+                if (streamTx != null) { streamTx.Tags.Add(tagSub); transactions.Add(streamTx); }
+
+                // University tuition every 6 months (Semester fee)
+                if (mo == 1 || mo == 7)
                 {
-                    var txBts = new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = scb.Id,
-                        TargetAccountId = rabbit.Id,
-                        CategoryId = catTransit.Id,
-                        Amount = 800.00m,
-                        TransactionType = "Transfer",
-                        Date = btsDate,
-                        Description = "BTS Transit Pass Refill",
-                        CreatedAt = btsDate,
-                        DeleteFlag = false
-                    };
-                    txBts.Tags.Add(tagBts);
-                    transactions.Add(txBts);
+                    var tuitionTx = TryAddExpense(acStudLoan.Id, catEdu.Id, 18_000m,
+                        monthStart.AddDays(5).AddHours(9), "Semester Tuition Fee");
+                    if (tuitionTx != null) { tuitionTx.Tags.Add(tagUni); transactions.Add(tuitionTx); }
                 }
 
-                // 3b. ATM Cash Withdrawal on the 26th (Transfer from SCB to Cash)
-                var atmDate = new DateTime(monthDate.Year, monthDate.Month, 26, 9, 0, 0, DateTimeKind.Utc);
-                if (atmDate <= now)
+                // ── Monthly Topups / Transfers ────────────────────────────
+                // Transit card refill
+                AddTransfer(acMain.Id, acTransit.Id, 1_200m, monthStart.AddDays(1).AddHours(7), "Metro Card Monthly Refill");
+
+                // Bus card refill (from month -18)
+                if (m >= -18)
                 {
-                    transactions.Add(new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = scb.Id,
-                        TargetAccountId = cash.Id,
-                        Amount = 3000.00m,
-                        TransactionType = "Transfer",
-                        Date = atmDate,
-                        Description = "ATM Cash Withdrawal",
-                        CreatedAt = atmDate,
-                        DeleteFlag = false
-                    });
+                    AddTransfer(acMain.Id, acBus.Id, 600m, monthStart.AddDays(1).AddHours(7).AddMinutes(30), "City Bus Card Refill");
                 }
 
-                // 3c. TrueMoney Wallet Topup on the 26th (Transfer from SCB to Wallet)
-                var walletTopupDate = new DateTime(monthDate.Year, monthDate.Month, 26, 10, 0, 0, DateTimeKind.Utc);
-                if (walletTopupDate <= now)
+                // Wallet topup
+                AddTransfer(acMain.Id, acWallet.Id, 3_000m, monthStart.AddDays(1).AddHours(8), "Pay Wallet Monthly Topup");
+
+                // GPay topup (from month -22)
+                if (m >= -22)
                 {
-                    transactions.Add(new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = scb.Id,
-                        TargetAccountId = wallet.Id,
-                        Amount = 2000.00m,
-                        TransactionType = "Transfer",
-                        Date = walletTopupDate,
-                        Description = "Transfer to TrueMoney Wallet",
-                        CreatedAt = walletTopupDate,
-                        DeleteFlag = false
-                    });
+                    AddTransfer(acMain.Id, acGPay.Id, 1_500m, monthStart.AddDays(1).AddHours(8).AddMinutes(30), "GPay Monthly Topup");
                 }
 
-                // 4. Mobile Plan on the 10th
-                var phoneDate = new DateTime(monthDate.Year, monthDate.Month, 10, 14, 0, 0, DateTimeKind.Utc);
-                if (phoneDate <= now)
+                // Shopping wallet topup (from month -20)
+                if (m >= -20)
                 {
-                    var txPhone = new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = scb.Id,
-                        CategoryId = catRent.Id,
-                        Amount = 450.00m,
-                        TransactionType = "Expense",
-                        Date = phoneDate,
-                        Description = "AIS Monthly Phone Package",
-                        CreatedAt = phoneDate,
-                        DeleteFlag = false
-                    };
-                    txPhone.Tags.Add(tagSub);
-                    transactions.Add(txPhone);
+                    AddTransfer(acMain.Id, acShop.Id, 2_000m, monthStart.AddDays(1).AddHours(9), "Shopping Wallet Topup");
                 }
 
-                // 5. Goal Contribution on the 26th
-                var goalDate = new DateTime(monthDate.Year, monthDate.Month, 26, 11, 0, 0, DateTimeKind.Utc);
-                if (goalDate <= now)
-                {
-                    contributions.Add(new TblSavingsContribution
-                    {
-                        Id = Guid.NewGuid(),
-                        SavingsGoalId = ipadGoal.Id,
-                        Amount = 2000.00m,
-                        Date = goalDate,
-                        Note = "Monthly savings allocation"
-                    });
-                }
+                // Cash withdrawal (ATM)
+                AddTransfer(acMain.Id, acCash.Id, 2_500m, monthStart.AddDays(1).AddHours(10), "ATM Cash Withdrawal");
 
-                // 6. Daily Food/Coffee/Transit expenses
+                // Savings bank transfer on payday
+                AddTransfer(acMain.Id, acSavBank.Id, 4_000m, monthStart.AddDays(1).AddHours(11), "Monthly Savings Transfer");
+
+                // ── Daily Variable Expenses ───────────────────────────────
                 for (int d = 1; d <= daysInMonth; d++)
                 {
-                    var currentDay = new DateTime(monthDate.Year, monthDate.Month, d, 12, 0, 0, DateTimeKind.Utc);
-                    if (currentDay > now) break;
+                    var dayUtc = new DateTime(y, mo, d, 12, 0, 0, DateTimeKind.Utc);
+                    if (dayUtc > now) break;
 
-                    // Lunch at Chula canteens
-                    var lunchCost = rnd.Next(50, 110);
-                    var txLunch = new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = rnd.Next(0, 2) == 0 ? cash.Id : wallet.Id,
-                        CategoryId = catFood.Id,
-                        Amount = lunchCost,
-                        TransactionType = "Expense",
-                        Date = currentDay,
-                        Description = "Chula Canteen Lunch",
-                        CreatedAt = currentDay,
-                        DeleteFlag = false
-                    };
-                    txLunch.Tags.Add(tagCanteen);
-                    transactions.Add(txLunch);
+                    // Breakfast (cash or wallet, alternating)
+                    var breakfastCost = (decimal)rnd.Next(50, 90);
+                    var breakfastAcc  = d % 3 == 0 ? acGPay.Id : (d % 2 == 0 ? acWallet.Id : acCash.Id);
+                    var bfTx = TryAddExpense(breakfastAcc, catFood.Id, breakfastCost,
+                        dayUtc.AddHours(-4), "Breakfast");
+                    if (bfTx != null) { bfTx.Tags.Add(tagCafe); transactions.Add(bfTx); }
 
-                    // Dinner (SCB or Cash)
-                    var dinnerCost = rnd.Next(80, 160);
-                    transactions.Add(new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = rnd.Next(0, 2) == 0 ? cash.Id : scb.Id,
-                        CategoryId = catFood.Id,
-                        Amount = dinnerCost,
-                        TransactionType = "Expense",
-                        Date = currentDay.AddHours(6), // 18:00
-                        Description = "Dinner",
-                        CreatedAt = currentDay.AddHours(6),
-                        DeleteFlag = false
-                    });
+                    // Lunch (campus cafeteria or nearby restaurant)
+                    var lunchCost = (decimal)rnd.Next(80, 150);
+                    var lunchAcc  = d % 2 == 0 ? acCash.Id : acWallet.Id;
+                    var lunchTx = TryAddExpense(lunchAcc, catFood.Id, lunchCost,
+                        dayUtc, "Lunch at Campus Cafeteria");
+                    if (lunchTx != null) transactions.Add(lunchTx);
 
-                    // BTS Trips (Every other day)
-                    if (d % 2 == 0)
+                    // Dinner (most days)
+                    if (d % 7 != 0) // skip one day a week (ate at home for free)
                     {
-                        var tripCost = rnd.Next(35, 50);
-                        var txTrip = new TblTransaction
+                        var dinnerCost = (decimal)rnd.Next(100, 200);
+                        var dinnerAcc  = d % 3 == 0 ? acCash.Id : acGPay.Id;
+                        var dinnerTx = TryAddExpense(dinnerAcc, catFood.Id, dinnerCost,
+                            dayUtc.AddHours(6), "Dinner");
+                        if (dinnerTx != null) transactions.Add(dinnerTx);
+                    }
+
+                    // Coffee / snack (every other day)
+                    if (d % 2 == 1)
+                    {
+                        var coffeeCost = (decimal)rnd.Next(60, 100);
+                        var coffeeTx = TryAddExpense(acWallet.Id, catFood.Id, coffeeCost,
+                            dayUtc.AddHours(-2), "Coffee & Snack");
+                        if (coffeeTx != null) { coffeeTx.Tags.Add(tagCafe); transactions.Add(coffeeTx); }
+                    }
+
+                    // Metro transit (weekdays)
+                    var dayOfWeek = dayUtc.DayOfWeek;
+                    if (dayOfWeek != DayOfWeek.Saturday && dayOfWeek != DayOfWeek.Sunday)
+                    {
+                        var metroAmt = (decimal)rnd.Next(44, 70);
+                        var metroTx = TryAddExpense(acTransit.Id, catTransit.Id, metroAmt,
+                            dayUtc.AddHours(-4).AddMinutes(30), "Metro Commute");
+                        if (metroTx != null) { metroTx.Tags.Add(tagTransit); transactions.Add(metroTx); }
+
+                        // Bus on some weekdays
+                        if (d % 3 == 0 && m >= -18)
                         {
-                            Id = Guid.NewGuid(),
-                            UserId = userId,
-                            AccountId = rabbit.Id,
-                            CategoryId = catTransit.Id,
-                            Amount = tripCost,
-                            TransactionType = "Expense",
-                            Date = currentDay.AddHours(-4), // 08:00
-                            Description = "BTS Skytrain Commute",
-                            CreatedAt = currentDay.AddHours(-4),
-                            DeleteFlag = false
-                        };
-                        txTrip.Tags.Add(tagBts);
-                        transactions.Add(txTrip);
+                            var busTx = TryAddExpense(acBus.Id, catTransit.Id, (decimal)rnd.Next(20, 35),
+                                dayUtc.AddHours(-3), "Bus to Uni");
+                            if (busTx != null) { busTx.Tags.Add(tagTransit); transactions.Add(busTx); }
+                        }
+                    }
+
+                    // Weekend entertainment (Fridays or Saturdays)
+                    if (dayOfWeek == DayOfWeek.Friday || dayOfWeek == DayOfWeek.Saturday)
+                    {
+                        var entCost = (decimal)rnd.Next(150, 500);
+                        var entAcc  = dayOfWeek == DayOfWeek.Friday ? acWallet.Id : acShop.Id;
+                        var entTx = TryAddExpense(entAcc, catEntertain.Id, entCost,
+                            dayUtc.AddHours(5), "Weekend Entertainment");
+                        if (entTx != null) transactions.Add(entTx);
+                    }
+
+                    // Monthly grocery run (every ~7 days)
+                    if (d % 7 == 3)
+                    {
+                        var groceryCost = (decimal)rnd.Next(600, 1200);
+                        var groceryTx = TryAddExpense(acShop.Id, catShop.Id, groceryCost,
+                            dayUtc.AddHours(3), "Grocery Run");
+                        if (groceryTx != null) { groceryTx.Tags.Add(tagGrocery); transactions.Add(groceryTx); }
+                    }
+
+                    // Occasional health expense (~once a month)
+                    if (d == 12)
+                    {
+                        var healthCost = (decimal)rnd.Next(200, 800);
+                        var healthTx = TryAddExpense(acCash2.Id, catHealth.Id, healthCost,
+                            dayUtc.AddHours(2), "Pharmacy / Clinic Visit");
+                        if (healthTx != null) { healthTx.Tags.Add(tagMedical); transactions.Add(healthTx); }
+                    }
+
+                    // University supplies (twice a semester)
+                    if ((d == 8 || d == 20) && (mo == 1 || mo == 2 || mo == 7 || mo == 8))
+                    {
+                        var supTx = TryAddExpense(acSavBank.Id, catEdu.Id, (decimal)rnd.Next(800, 2500),
+                            dayUtc.AddHours(1), "University Supplies & Materials");
+                        if (supTx != null) { supTx.Tags.Add(tagUni); transactions.Add(supTx); }
                     }
                 }
 
-                // 7. Monthly Category Budgets
+                // ── Monthly Category Budgets ──────────────────────────────
                 context.TblCategoryBudgets.AddRange(
-                    new TblCategoryBudget { Id = Guid.NewGuid(), UserId = userId, CategoryId = catFood.Id, LimitAmount = 6000.00m, Month = monthDate.Month, Year = monthDate.Year, CreatedAt = monthDate, DeleteFlag = false },
-                    new TblCategoryBudget { Id = Guid.NewGuid(), UserId = userId, CategoryId = catTransit.Id, LimitAmount = 1500.00m, Month = monthDate.Month, Year = monthDate.Year, CreatedAt = monthDate, DeleteFlag = false }
+                    MakeBudget(userId, catFood.Id,      8_000m, mo, y, monthBase),
+                    MakeBudget(userId, catRent.Id,      7_000m, mo, y, monthBase),
+                    MakeBudget(userId, catTransit.Id,   2_000m, mo, y, monthBase),
+                    MakeBudget(userId, catShop.Id,      3_000m, mo, y, monthBase),
+                    MakeBudget(userId, catEntertain.Id, 2_500m, mo, y, monthBase),
+                    MakeBudget(userId, catHealth.Id,    1_000m, mo, y, monthBase)
                 );
             }
 
             context.TblTransactions.AddRange(transactions);
-            context.TblSavingsContributions.AddRange(contributions);
 
-            // Active schedules
+            // ── Recurring Schedules ───────────────────────────────────────
             context.TblRecurringSchedules.AddRange(
-                new TblRecurringSchedule
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    AccountId = scb.Id,
-                    Name = "Rent Payment",
-                    Amount = 5000.00m,
-                    TransactionType = "Expense",
-                    Frequency = "Monthly",
-                    StartDate = now,
-                    NextOccurrenceDate = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1),
-                    DeleteFlag = false
-                },
-                new TblRecurringSchedule
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    AccountId = scb.Id,
-                    Name = "Monthly Stipend",
-                    Amount = 16000.00m,
-                    TransactionType = "Income",
-                    Frequency = "Monthly",
-                    StartDate = now,
-                    NextOccurrenceDate = new DateTime(now.Year, now.Month, 25, 0, 0, 0, DateTimeKind.Utc),
-                    DeleteFlag = false
-                }
+                MakeSchedule(userId, acMain.Id,    "Monthly Scholarship Stipend",  20_000m, "Income",   "Monthly", now, 25),
+                MakeSchedule(userId, acMain.Id,    "Monthly Dorm Rent & Utilities",  6_500m, "Expense",  "Monthly", now, 1),
+                MakeSchedule(userId, acMain.Id,    "Mobile Data Plan",               399m, "Expense",   "Monthly", now, 2),
+                MakeSchedule(userId, acMain.Id,    "Savings Transfer",             4_000m, "Transfer",  "Monthly", now, 1),
+                MakeSchedule(userId, acStudLoan.Id,"Tuition Fee (Biannual)",      18_000m, "Expense",   "BiAnnual", now, 1),
+                MakeSchedule(userId, acFreelance.Id,"Web Dev Freelance Retainer",  6_500m, "Income",    "BiMonthly", now, 3)
             );
 
-            // Seed 30 days of historical daily quota logs (past 30 days, ending yesterday)
+            // ── 60-Day Daily Quota Logs (past 60 days, ending yesterday) ─
             var quotaLogs = new List<TblDailyQuotaLog>();
-            for (int d = -30; d < 0; d++)
+            for (int d = -60; d < 0; d++)
             {
                 var logDate = now.AddDays(d);
-                var targetQuota = 600m + (decimal)rnd.Next(-100, 100);
-
                 var dateStart = DateTime.SpecifyKind(logDate.Date, DateTimeKind.Utc);
-                var dateEnd = dateStart.AddDays(1);
+                var dateEnd   = dateStart.AddDays(1);
+
                 var actualSpent = transactions
-                    .Where(t => t.TransactionType == "Expense" && t.Date >= dateStart && t.Date < dateEnd)
+                    .Where(t => t.TransactionType == "Expense"
+                             && t.Date >= dateStart
+                             && t.Date < dateEnd)
                     .Sum(t => t.Amount);
 
-                if (actualSpent == 0)
-                {
-                    actualSpent = rnd.Next(100, 450);
-                }
+                if (actualSpent == 0m)
+                    actualSpent = (decimal)rnd.Next(200, 650);
 
                 quotaLogs.Add(new TblDailyQuotaLog
                 {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    Date = DateOnly.FromDateTime(logDate),
-                    TargetQuota = Math.Round(targetQuota, 2),
-                    ActualSpent = actualSpent,
-                    CreatedAt = logDate
+                    Id          = Guid.NewGuid(),
+                    UserId      = userId,
+                    Date        = DateOnly.FromDateTime(logDate),
+                    TargetQuota = Math.Round(700m + (decimal)rnd.Next(-150, 150), 2),
+                    ActualSpent = Math.Round(actualSpent, 2),
+                    CreatedAt   = logDate
                 });
             }
             context.TblDailyQuotaLogs.AddRange(quotaLogs);
 
-            // Calculate final balances dynamically to make transactions and balances mathematically consistent
-            foreach (var tx in transactions)
+            // ── Sync in-memory balance back to account entities ───────────
+            foreach (var acc in accounts)
             {
-                if (tx.TransactionType == "Income")
-                {
-                    var acc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
-                    if (acc != null) acc.Balance = (acc.Balance ?? 0m) + tx.Amount;
-                }
-                else if (tx.TransactionType == "Expense")
-                {
-                    var acc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
-                    if (acc != null) acc.Balance = (acc.Balance ?? 0m) - tx.Amount;
-                }
-                else if (tx.TransactionType == "Transfer")
-                {
-                    var sourceAcc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
-                    if (sourceAcc != null) sourceAcc.Balance = (sourceAcc.Balance ?? 0m) - tx.Amount;
-
-                    var targetAcc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.TargetAccountId);
-                    if (targetAcc != null) targetAcc.Balance = (targetAcc.Balance ?? 0m) + tx.Amount;
-                }
+                acc.Balance = Math.Max(0m, balances[acc.Id]); // clamp to 0 as absolute safety net
             }
 
             await context.SaveChangesAsync();
         }
 
-        private static async Task SeedKanyaDataAsync(AppDbContext context, Guid userId)
-        {
-            var now = DateTime.UtcNow;
-
-            // Profile settings
-            var profile = new TblUserProfile
+        // ── Factory helpers ───────────────────────────────────────────────
+        private static TblAccount MakeAccount(Guid userId, string name, AccountType type, decimal startBalance, string color, string icon, DateTime created) =>
+            new TblAccount
             {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                MonthlyAllowanceAmount = 12000.00m,
-                AllowanceDayOfMonth = 1,
-                TargetMonthlySavings = 1500.00m,
-                Currency = "THB",
-                UpdatedAt = now
+                Id          = Guid.NewGuid(),
+                UserId      = userId,
+                Name        = name,
+                AccountType = type,
+                Balance     = startBalance,
+                Color       = color,
+                Icon        = icon,
+                CreatedAt   = created,
+                DeleteFlag  = false
             };
-            context.TblUserProfiles.Add(profile);
 
-            // Accounts - starting balances at the beginning of the 1-year history
-            var kbank = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Kasikorn Bank", AccountType = AccountType.Bank, Balance = 8000.00m, Color = "#10b981", Icon = "Wallet", CreatedAt = now, DeleteFlag = false };
-            var rabbit = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Rabbit Card", AccountType = AccountType.TransitCard, Balance = 150.00m, Color = "#f59e0b", Icon = "CreditCard", CreatedAt = now, DeleteFlag = false };
-            var cash = new TblAccount { Id = Guid.NewGuid(), UserId = userId, Name = "Cash Pocket", AccountType = AccountType.Cash, Balance = 300.00m, Color = "#6b7280", Icon = "Coins", CreatedAt = now, DeleteFlag = false };
-            context.TblAccounts.AddRange(kbank, rabbit, cash);
-
-            // Categories
-            var catFood = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Food & Coffee", Type = "Expense", Icon = "Coffee", Color = "#f97316", DeleteFlag = false };
-            var catDorm = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Dormitory", Type = "Expense", Icon = "Home", Color = "#06b6d4", DeleteFlag = false };
-            var catTransit = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Transit", Type = "Expense", Icon = "Train", Color = "#10b981", DeleteFlag = false };
-            var catFun = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Entertainment", Type = "Expense", Icon = "Film", Color = "#ec4899", DeleteFlag = false };
-            var catAllowance = new TblCategory { Id = Guid.NewGuid(), UserId = userId, Name = "Allowance", Type = "Income", Icon = "Gift", Color = "#10b981", DeleteFlag = false };
-            context.TblCategories.AddRange(catFood, catDorm, catTransit, catFun, catAllowance);
-
-            // Tags
-            var tagBts = new TblTag { Id = Guid.NewGuid(), UserId = userId, Name = "BTS", Color = "#10b981", DeleteFlag = false };
-            var tagSub = new TblTag { Id = Guid.NewGuid(), UserId = userId, Name = "Subscription", Color = "#ef4444", DeleteFlag = false };
-            context.TblTags.AddRange(tagBts, tagSub);
-
-            // Savings Goals
-            var travelGoal = new TblSavingsGoal
+        private static TblCategory MakeCat(Guid userId, string name, string type, string icon, string color) =>
+            new TblCategory
             {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                GoalName = "Travel to Japan",
-                TargetAmount = 25000.00m,
-                TargetDate = now.AddMonths(12),
-                IsCompleted = false,
-                CreatedAt = now.AddMonths(-10),
+                Id         = Guid.NewGuid(),
+                UserId     = userId,
+                Name       = name,
+                Type       = type,
+                Icon       = icon,
+                Color      = color,
                 DeleteFlag = false
             };
-            context.TblSavingsGoals.Add(travelGoal);
 
-            // Seed 1 year of historical transactions (past 12 months)
-            var rnd = new Random(24);
-            var transactions = new List<TblTransaction>();
-            var contributions = new List<TblSavingsContribution>();
-
-            for (int m = -11; m <= 0; m++)
+        private static TblTag MakeTag(Guid userId, string name, string color) =>
+            new TblTag
             {
-                var monthDate = now.AddMonths(m);
-                var daysInMonth = DateTime.DaysInMonth(monthDate.Year, monthDate.Month);
+                Id         = Guid.NewGuid(),
+                UserId     = userId,
+                Name       = name,
+                Color      = color,
+                DeleteFlag = false
+            };
 
-                // 1. Allowance from parents on the 1st
-                var allowanceDate = new DateTime(monthDate.Year, monthDate.Month, 1, 9, 30, 0, DateTimeKind.Utc);
-                if (allowanceDate <= now)
-                {
-                    transactions.Add(new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = kbank.Id,
-                        CategoryId = catAllowance.Id,
-                        Amount = 12000.00m,
-                        TransactionType = "Income",
-                        Date = allowanceDate,
-                        Description = "Monthly Parental Allowance",
-                        CreatedAt = allowanceDate,
-                        DeleteFlag = false
-                    });
-                }
-
-                // 2. Dormitory Share on the 1st
-                var dormDate = new DateTime(monthDate.Year, monthDate.Month, 1, 10, 0, 0, DateTimeKind.Utc);
-                if (dormDate <= now)
-                {
-                    transactions.Add(new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = kbank.Id,
-                        CategoryId = catDorm.Id,
-                        Amount = 4000.00m,
-                        TransactionType = "Expense",
-                        Date = dormDate,
-                        Description = "Dorm Room Share Rent",
-                        CreatedAt = dormDate,
-                        DeleteFlag = false
-                    });
-                }
-
-                // 3. BTS Card Topup on the 1st (Transfer from KBank to Rabbit Card)
-                var btsDate = new DateTime(monthDate.Year, monthDate.Month, 1, 11, 0, 0, DateTimeKind.Utc);
-                if (btsDate <= now)
-                {
-                    var txBts = new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = kbank.Id,
-                        TargetAccountId = rabbit.Id,
-                        CategoryId = catTransit.Id,
-                        Amount = 700.00m,
-                        TransactionType = "Transfer",
-                        Date = btsDate,
-                        Description = "BTS Topup",
-                        CreatedAt = btsDate,
-                        DeleteFlag = false
-                    };
-                    txBts.Tags.Add(tagBts);
-                    transactions.Add(txBts);
-                }
-
-                // 3b. ATM Cash Withdrawal on the 2nd (Transfer from KBank to Cash)
-                var atmDate = new DateTime(monthDate.Year, monthDate.Month, 2, 9, 0, 0, DateTimeKind.Utc);
-                if (atmDate <= now)
-                {
-                    transactions.Add(new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = kbank.Id,
-                        TargetAccountId = cash.Id,
-                        Amount = 3000.00m,
-                        TransactionType = "Transfer",
-                        Date = atmDate,
-                        Description = "ATM Cash Withdrawal",
-                        CreatedAt = atmDate,
-                        DeleteFlag = false
-                    });
-                }
-
-                // 4. Spotify on the 15th
-                var spotifyDate = new DateTime(monthDate.Year, monthDate.Month, 15, 12, 0, 0, DateTimeKind.Utc);
-                if (spotifyDate <= now)
-                {
-                    var txSpotify = new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = kbank.Id,
-                        CategoryId = catFun.Id,
-                        Amount = 139.00m,
-                        TransactionType = "Expense",
-                        Date = spotifyDate,
-                        Description = "Spotify Premium Account",
-                        CreatedAt = spotifyDate,
-                        DeleteFlag = false
-                    };
-                    txSpotify.Tags.Add(tagSub);
-                    transactions.Add(txSpotify);
-                }
-
-                // 5. Goal Contribution on the 2nd
-                var goalDate = new DateTime(monthDate.Year, monthDate.Month, 2, 11, 0, 0, DateTimeKind.Utc);
-                if (goalDate <= now)
-                {
-                    contributions.Add(new TblSavingsContribution
-                    {
-                        Id = Guid.NewGuid(),
-                        SavingsGoalId = travelGoal.Id,
-                        Amount = 1500.00m,
-                        Date = goalDate,
-                        Note = "Monthly Japan trip savings"
-                    });
-                }
-
-                // 6. Daily Food/Transit expenses
-                for (int d = 1; d <= daysInMonth; d++)
-                {
-                    var currentDay = new DateTime(monthDate.Year, monthDate.Month, d, 13, 0, 0, DateTimeKind.Utc);
-                    if (currentDay > now) break;
-
-                    // Daily Food
-                    var foodCost = rnd.Next(120, 220);
-                    transactions.Add(new TblTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        AccountId = rnd.Next(0, 2) == 0 ? cash.Id : kbank.Id,
-                        CategoryId = catFood.Id,
-                        Amount = foodCost,
-                        TransactionType = "Expense",
-                        Date = currentDay,
-                        Description = "Food & Coffee",
-                        CreatedAt = currentDay,
-                        DeleteFlag = false
-                    });
-
-                    // BTS Trips (Every other day)
-                    if (d % 2 == 0)
-                    {
-                        var tripCost = rnd.Next(40, 50);
-                        var txTrip = new TblTransaction
-                        {
-                            Id = Guid.NewGuid(),
-                            UserId = userId,
-                            AccountId = rabbit.Id,
-                            CategoryId = catTransit.Id,
-                            Amount = tripCost,
-                            TransactionType = "Expense",
-                            Date = currentDay.AddHours(-4),
-                            Description = "BTS Skytrain Ride",
-                            CreatedAt = currentDay.AddHours(-4),
-                            DeleteFlag = false
-                        };
-                        txTrip.Tags.Add(tagBts);
-                        transactions.Add(txTrip);
-                    }
-                }
-
-                // 7. Budgets
-                context.TblCategoryBudgets.AddRange(
-                    new TblCategoryBudget { Id = Guid.NewGuid(), UserId = userId, CategoryId = catFood.Id, LimitAmount = 5500.00m, Month = monthDate.Month, Year = monthDate.Year, CreatedAt = monthDate, DeleteFlag = false },
-                    new TblCategoryBudget { Id = Guid.NewGuid(), UserId = userId, CategoryId = catTransit.Id, LimitAmount = 1200.00m, Month = monthDate.Month, Year = monthDate.Year, CreatedAt = monthDate, DeleteFlag = false }
-                );
-            }
-
-            context.TblTransactions.AddRange(transactions);
-            context.TblSavingsContributions.AddRange(contributions);
-
-            // Seed 30 days of historical daily quota logs (past 30 days, ending yesterday)
-            var quotaLogs = new List<TblDailyQuotaLog>();
-            for (int d = -30; d < 0; d++)
+        private static TblCategoryBudget MakeBudget(Guid userId, Guid catId, decimal limit, int month, int year, DateTime created) =>
+            new TblCategoryBudget
             {
-                var logDate = now.AddDays(d);
-                var targetQuota = 400m + (decimal)rnd.Next(-80, 80);
+                Id          = Guid.NewGuid(),
+                UserId      = userId,
+                CategoryId  = catId,
+                LimitAmount = limit,
+                Month       = month,
+                Year        = year,
+                CreatedAt   = created,
+                DeleteFlag  = false
+            };
 
-                var dateStart = DateTime.SpecifyKind(logDate.Date, DateTimeKind.Utc);
-                var dateEnd = dateStart.AddDays(1);
-                var actualSpent = transactions
-                    .Where(t => t.TransactionType == "Expense" && t.Date >= dateStart && t.Date < dateEnd)
-                    .Sum(t => t.Amount);
-
-                if (actualSpent == 0)
-                {
-                    actualSpent = rnd.Next(80, 350);
-                }
-
-                quotaLogs.Add(new TblDailyQuotaLog
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    Date = DateOnly.FromDateTime(logDate),
-                    TargetQuota = Math.Round(targetQuota, 2),
-                    ActualSpent = actualSpent,
-                    CreatedAt = logDate
-                });
-            }
-            context.TblDailyQuotaLogs.AddRange(quotaLogs);
-
-            // Calculate final balances dynamically to make transactions and balances mathematically consistent
-            foreach (var tx in transactions)
+        private static TblRecurringSchedule MakeSchedule(Guid userId, Guid accId, string name, decimal amount, string txType, string freq, DateTime now, int dayOfMonth) =>
+            new TblRecurringSchedule
             {
-                if (tx.TransactionType == "Income")
-                {
-                    var acc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
-                    if (acc != null) acc.Balance = (acc.Balance ?? 0m) + tx.Amount;
-                }
-                else if (tx.TransactionType == "Expense")
-                {
-                    var acc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
-                    if (acc != null) acc.Balance = (acc.Balance ?? 0m) - tx.Amount;
-                }
-                else if (tx.TransactionType == "Transfer")
-                {
-                    var sourceAcc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.AccountId);
-                    if (sourceAcc != null) sourceAcc.Balance = (sourceAcc.Balance ?? 0m) - tx.Amount;
-
-                    var targetAcc = context.TblAccounts.Local.FirstOrDefault(a => a.Id == tx.TargetAccountId);
-                    if (targetAcc != null) targetAcc.Balance = (targetAcc.Balance ?? 0m) + tx.Amount;
-                }
-            }
-
-            await context.SaveChangesAsync();
-        }
+                Id                  = Guid.NewGuid(),
+                UserId              = userId,
+                AccountId           = accId,
+                Name                = name,
+                Amount              = amount,
+                TransactionType     = txType,
+                Frequency           = freq,
+                StartDate           = now.AddMonths(-24),
+                NextOccurrenceDate  = new DateTime(now.Year, now.Month, dayOfMonth, 0, 0, 0, DateTimeKind.Utc).AddMonths(1),
+                DeleteFlag          = false
+            };
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ST_finance.Database.Data;
@@ -18,6 +18,8 @@ public partial class TblSavingsGoal
     public bool? IsCompleted { get; set; }
 
     public DateTime? CreatedAt { get; set; }
+
+    public DateTime? CompletedAt { get; set; }
 
     public bool DeleteFlag { get; set; }
 

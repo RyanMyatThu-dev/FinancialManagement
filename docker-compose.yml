@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: chula_financial_db
+      POSTGRES_DB: ST_Finance
     ports:
       - "5432:5432"
     volumes:
@@ -22,7 +22,7 @@ services:
     ports:
       - "5000:8080"
     environment:
-      - ConnectionStrings__DbConnection=Host=db;Port=5432;Database=chula_financial_db;Username=postgres;Password=postgres;
+      - ConnectionStrings__DbConnection=Host=db;Port=5432;Database=ST_Finance;Username=postgres;Password=postgres;
       - ASPNETCORE_ENVIRONMENT=Development
     depends_on:
       - db

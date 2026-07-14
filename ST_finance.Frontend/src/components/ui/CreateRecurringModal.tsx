@@ -72,7 +72,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
 
   // 1. Fetch Accounts
   const { data: accountsData } = useQuery<{ items: Account[] }>({
-    queryKey: ["accounts-all"],
+    queryKey: ["accounts", "all"],
     queryFn: async () => {
       const res = await apiClient.get("/api/accounts?pageSize=100");
       return res.data.value || { items: [] };

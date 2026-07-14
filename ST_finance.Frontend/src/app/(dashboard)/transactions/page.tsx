@@ -145,10 +145,29 @@ export default function TransactionsPage() {
     },
   });
 
+  // 4. Fetch Summary Metrics (unpaginated total for the current filters)
+  const { data: summaryData } = useQuery<{ inflow: number; outflow: number }>({
+    queryKey: ["transactions", "summary", timeframe, search, categoryId, tagId, minAmount, maxAmount],
+    queryFn: async () => {
+      let url = `/api/transactions/summary?timeframe=${timeframe}`;
+      if (search)     url += `&search=${encodeURIComponent(search)}`;
+      if (categoryId) url += `&categoryId=${categoryId}`;
+      if (tagId)      url += `&tagId=${tagId}`;
+      if (minAmount)  url += `&minAmount=${minAmount}`;
+      if (maxAmount)  url += `&maxAmount=${maxAmount}`;
+
+      const res = await apiClient.get(url);
+      if (res.data.isSuccess && res.data.value) {
+        return res.data.value;
+      }
+      return { inflow: 0, outflow: 0 };
+    },
+  });
+
   const transactions = data?.items ?? [];
 
-  const totalIncome  = transactions.filter((t) => t.transactionType === "Income" ).reduce((s, t) => s + t.amount, 0);
-  const totalExpense = transactions.filter((t) => t.transactionType === "Expense").reduce((s, t) => s + t.amount, 0);
+  const totalIncome  = summaryData?.inflow ?? 0;
+  const totalExpense = summaryData?.outflow ?? 0;
 
   const formatAmount = (amount: number) =>
     new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
@@ -460,7 +479,7 @@ export default function TransactionsPage() {
         )}
 
         {/* Pagination inside table card */}
-        {meta && (
+        {meta && meta.totalPages > 1 && (
           <div className="border-t border-[hsl(var(--border))] px-5 py-4">
             <Pagination meta={meta} onPageChange={setPage} />
           </div>

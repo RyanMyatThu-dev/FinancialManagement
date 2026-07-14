@@ -24,6 +24,10 @@ export default function RegisterPage() {
   const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
+    document.title = "Register | ST-Finance";
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated) router.push("/dashboard");
   }, [isAuthenticated, router]);
 
