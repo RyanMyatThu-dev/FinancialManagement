@@ -1,0 +1,49 @@
+name: Deploy Web API to AWS Lambda (Staging)
+
+on:
+  push:
+    branches:
+      - main  # Triggers deployment whenever you push to main
+
+permissions:
+  id-token: write # Required for requesting the JWT OIDC token from AWS
+  contents: read  # Required to checkout repository content
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout the repository code
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 2. Setup .NET 8.0 SDK
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    # 3. Restore dependencies & Run Unit Tests
+    - name: Restore & Test
+      run: |
+        dotnet restore
+        dotnet test --no-restore --verbosity normal
+
+    # 4. Install AWS Lambda Global CLI Tooling
+    - name: Install AWS Lambda Tools
+      run: dotnet tool install -g Amazon.Lambda.Tools
+
+    # 5. Configure AWS Credentials using Secure OIDC (No permanent keys)
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ap-southeast-1  # Target deployment region
+        audience: sts.amazonaws.com
+
+    # 6. Deploy Serverless Stack (Uses the CloudFormation template)
+    - name: Deploy API to Lambda
+      run: |
+        cd ST_finance.Api
+        dotnet lambda deploy-serverless --s3-bucket ${{ secrets.AWS_DEPLOYMENT_S3_BUCKET }}
