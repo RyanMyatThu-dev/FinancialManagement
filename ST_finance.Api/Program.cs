@@ -27,11 +27,10 @@ builder.Services.AddCors(options =>
     });
 
     // Staging / Production: allow Vercel frontend domain
-    // TODO: Replace the placeholder with your actual Vercel deployment URL before deploying.
     options.AddPolicy("AllowVercel", policy =>
     {
         policy.WithOrigins(
-                "https://st-finance-frontend.vercel.app",       // TODO: Replace with your Vercel URL
+                "https://st-finance.vercel.app",
                 "https://*.vercel.app"                          // Covers Vercel preview deployment URLs
               )
               .AllowAnyHeader()
