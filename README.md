@@ -1,37 +1,82 @@
 # Financial Manager & Budget Tracker
 
-A tailored, premium financial management, data visualizer, and budget tracker application designed specifically for Students. 
-
-This app is optimized to manage with a set monthly allowance amount, with student-centric features like a **Dynamic Safe-to-Spend Quota** and a **Canteen Meal Index** (calculating your daily budget in units of ~50 Baht canteen meals).
+A tailored, premium financial management, data visualizer, and budget tracker application designed specifically for students. This application features a **Dynamic Safe-to-Spend Quota** and a **Canteen Meal Index** (converting budgets to ~50 Baht canteen meal units) to help students manage their allowance.
 
 ---
 
-## 🚀 Key Features
+## 🌐 1. Cloud Architecture & Hosting
 
-*   **Monthly Allowance**: Countdown to the next disbursement day (the 25th of the month).
-*   **Fixed Deductions Baseline**: Subtracts fixed costs (like dorm rent and utility bills) immediately to isolate your actual disposable budget.
-*   **Dynamic Rolling Daily Limit**: Automatically recalculates how much you can spend today. If you overspend, tomorrow's limit shrinks; if you save, tomorrow's limit grows.
-*   **Canteen Meal Index**: Translates monetary amounts into canteen meals (50 THB each) so you always know your budget in food terms.
-*   **Multi-Account Ledger**: Track SCB Bank, TrueMoney E-wallet, Rabbit Card transit card, and Cash balances with seamless transfer logs.
-*   **Advanced Tagging**: Add tags like `#canteen`, `#commute`, and `#exam-prep` for custom reports.
-*   **Virtual Savings Goals**: Earmark savings for textbooks, study gear (like an iPad), or emergency reserves.
+This application is built on a modern, cost-efficient, and auto-scaling serverless cloud stack:
+
+```mermaid
+graph TD
+    Client[Next.js Client on Vercel] -->|HTTPS 443| APIGW[API Gateway HTTP API v2]
+    APIGW -->|Proxy Integration| Lambda[AWS Lambda Serverless Web API]
+    Lambda -->|Port 6543 ADO.NET| Supabase[(Supabase PostgreSQL DB)]
+    EventBridge[Amazon EventBridge Scheduler] -->|Hourly / Daily Direct Invoke| Lambda
+```
+
+### 💻 Frontend (Vercel)
+* **Hosting**: Hosted on **Vercel** ([https://st-finance.vercel.app/](https://st-finance.vercel.app/)).
+* **Configuration**: Set the following environment variable in the Vercel Settings to connect to the backend:
+  * `NEXT_PUBLIC_API_URL`: The HTTPS Invoke URL from API Gateway.
+
+### ⚡ Backend API (AWS Lambda)
+* **Hosting**: Deployed as an ASP.NET Core 8.0 serverless function on **AWS Lambda** (behind API Gateway).
+* **Configuration**: Set the following Environment Variables in the AWS Lambda Console:
+  * `ASPNETCORE_ENVIRONMENT`: `Staging`
+  * `ConnectionStrings__DbConnection`: Supabase ADO.NET connection string (`Host=...;Port=6543;Database=postgres;...`).
+  * `JwtSettings__SecretKey`: Your 32+ character JWT signing key.
+  * `Gmail__Username` / `Gmail__Password` / `Gmail__FromEmail`: SMTP credentials for OTP emails.
+  * `SchedulerApiKey`: Secret API key to secure the recurring jobs.
+
+### ⏰ Cron & Recurring Job Scheduling (EventBridge)
+Because AWS Lambda is stateless and shuts down when inactive, background job runners (like Hangfire) are disabled in the cloud. Instead, **Amazon EventBridge Scheduler** is configured to trigger endpoints directly on a schedule:
+1. **Process Recurring (Hourly)**: Sends a direct Lambda invoke payload triggering `POST /api/jobs/process-recurring`.
+2. **Log Daily Quotas (Daily 00:00 BKK)**: Trigger payload invoking `POST /api/jobs/log-daily-quotas`.
+* *Security*: Requests include the header `x-scheduler-api-key` which must match the `SchedulerApiKey` environment variable.
+
+### 🚀 CI/CD Pipeline (GitHub Actions)
+Pushes to the `main` branch trigger a deployment pipeline (`.github/workflows/deploy.yml`):
+* **Security**: Authenticates with AWS via secure **OpenID Connect (OIDC)** (no permanent credentials stored).
+* **Required GitHub Secrets**:
+  * `AWS_ROLE_TO_ASSUME`: Role ARN of your deployer IAM role.
+  * `AWS_DEPLOYMENT_S3_BUCKET`: Private S3 bucket (`st-finance-deployments-ryan-2026`) used to stage build archives.
 
 ---
 
-## 🛠️ Technology Stack
+## 💻 2. Quick Local Development
 
-*   **Frontend**: Next.js (App Router, TypeScript) + Tailwind CSS + Shadcn UI + Recharts
-*   **Backend**: ASP.NET Core 8.0 Web API (C#)
-*   **Database**: PostgreSQL
-*   **Architecture**: N-Layered Clean Architecture (Domain, Application, Infrastructure, Api) using CQRS with MediatR.
+For local testing, the project runs on Kestrel and local PostgreSQL.
+
+### Prerequisites
+* [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+* [Node.js (v18+) & npm](https://nodejs.org/)
+
+### 🚀 Commands to Run
+
+```bash
+# 1. Start the local database (mounts init.sql automatically)
+docker compose up -d db
+
+# 2. Run the Backend API (runs auto-migrations and seeds demo data on empty start)
+dotnet run --project ST_finance.Api/ST_finance.Api.csproj
+
+# 3. Start the Frontend UI
+cd ST_finance.Frontend
+npm install
+npm run dev
+```
+* Local API Docs: `http://localhost:5213/swagger` (Scalar: `/scalar/v1`)
+* Local Frontend: `http://localhost:3000`
 
 ---
 
-## 📂 Project Structure
+## 📂 3. Project Structure
 
 ```text
 FinancialManagement/
-├── README.md               # Main project introduction
+├── README.md               # Main project introduction & cloud manual
 ├── docs/                   # Obsidian vault documentation MOC
 │   ├── 00-Index.md
 │   ├── Goals-and-Scope.md
@@ -40,59 +85,11 @@ FinancialManagement/
 │   ├── Use-Cases.md
 │   ├── Environments.md
 │   └── AWS-Lambda-Deployment-Guide.md
-├── ST_finance.slnx                  # Solution File
-├── ST_finance.Database/             # Database DbContext, entities mapping, migrations
-├── ST_finance.Domain/               # Core business logic, services, validators
-├── ST_finance.Api/                  # Web API Controllers & HTTP configuration
-└── ST_finance.Frontend/             # Next.js Frontend Application
+├── ST_finance.slnx         # Solution file
+├── ST_finance.Database/    # EF Core db context and schema configurations
+├── ST_finance.Domain/      # Business logic controllers and services (contains JobsController)
+├── ST_finance.Api/         # Main bootstrapping host and AWS Serverless templates
+└── ST_finance.Frontend/    # Next.js client-side application
 ```
 
-For detailed guides, open the files in the `docs/` folder (fully optimized as an **Obsidian Vault**).
-
----
-
-## 💻 Getting Started (Local Development Setup)
-
-### Prerequisites
-*   [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-*   [Node.js (v18+) & npm](https://nodejs.org/)
-*   [PostgreSQL Database](https://www.postgresql.org/) (or Docker for containerized setup)
-
-### 1. Database Setup (Via Docker Compose)
-You can launch a local PostgreSQL container pre-configured with the schema SQL by running:
-```bash
-docker compose up -d db
-```
-This starts the database on port `5432` with database name `st_financial_db` and executes the initialization script in `docker/init.sql` to generate all 12 tables instantly.
-
-### 🔄 Automatic Startup Migrations & Seeding
-When the backend API boots up, it automatically checks the database:
-1. **Migrations**: It runs all pending EF Core Migrations to ensure the database schema is up-to-date.
-2. **Guarded Seeding**: It checks if there are any users in the database. If the database is completely empty, it automatically triggers `DbSeeder.SeedAsync()` to populate the database with 2 realistic, person-specific demo student accounts (`somchai` and `kanya`) containing 1 year of historical transactions, monthly budgets, saving goals, and daily quota logs.
-   * **Note**: Seeding is strictly guarded and **will not run** if any users exist in the database. This prevents duplicate seed data or overriding user-registered accounts.
-
-To run the entire stack (both Database and .NET Web API) inside containers:
-```bash
-docker compose up --build
-```
-
-### 2. Backend Configuration (For Local Host Execution)
-If running the API directly on your host machine (outside Docker):
-1.  Ensure your local PostgreSQL instance is running (via Docker or local service).
-2.  Navigate to `ST_finance.Api/appsettings.json`.
-3.  Ensure the `ConnectionStrings:DefaultConnection` matches your PostgreSQL details:
-    `Host=localhost;Port=5432;Database=st_financial_db;Username=postgres;Password=postgres;`
-4.  Run the API:
-    ```bash
-    dotnet run --project ST_finance.Api/ST_finance.Api.csproj
-    ```
-5.  Open `http://localhost:5000/swagger` to inspect the API endpoints.
-
-### 3. Frontend Setup (Coming Soon)
-1.  Navigate to the `ST_finance.Frontend/` directory.
-2.  Install dependencies and start the development server:
-    ```bash
-    npm install
-    npm run dev
-    ```
-3.  Open `http://localhost:3000` to view the dashboard.
+*For deeper engineering guides, see the notes inside the `docs/` folder (fully compatible with Obsidian).*
