@@ -331,4 +331,9 @@ A containerized PostgreSQL setup is configured for instant schema deployment. It
   - Password: `chula_secure_pwd_2026`
 
 ---
+
+## 🌐 Staging & Production Hosting
+For details on cloud databases and environment deployment (such as our active staging setup on **Supabase**), see [[Environments]].
+
+---
 **Next Step**: Review typical transaction flows and calculations in [[Use-Cases]].

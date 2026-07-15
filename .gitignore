@@ -58,6 +58,10 @@ dist/
 .env.production.local
 *.env.local
 
+## ASP.NET Core local secrets (never commit dev/staging credentials)
+appsettings.Development.json
+appsettings.Staging.json
+
 ## Test coverage
 coverage/
 .nyc_output/

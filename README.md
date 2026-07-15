@@ -37,7 +37,9 @@ FinancialManagement/
 │   ├── Goals-and-Scope.md
 │   ├── Architecture-Design.md
 │   ├── Database-Schema.md
-│   └── Use-Cases.md
+│   ├── Use-Cases.md
+│   ├── Environments.md
+│   └── AWS-Lambda-Deployment-Guide.md
 ├── ST_finance.slnx                  # Solution File
 ├── ST_finance.Database/             # Database DbContext, entities mapping, migrations
 ├── ST_finance.Domain/               # Core business logic, services, validators

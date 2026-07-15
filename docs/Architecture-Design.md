@@ -4,10 +4,10 @@ This document details the high-level system design and software architecture of 
 
 ## 🏛️ System Overview
 
-The system uses a decoupled Client-Server architecture:
-1.  **Frontend (Next.js)**: A single-page application (SPA) built with React and Next.js, styled using Tailwind CSS and components from Shadcn UI. Deployed on Vercel.
-2.  **Backend (ASP.NET Core Web API)**: A RESTful API built on .NET 8.0 using Clean Architecture. Deployed on a container-compatible platform.
-3.  **Database (PostgreSQL)**: A relational database storing users, profiles, accounts, transactions, recurring rules, budgets, and savings tracking.
+The system uses a decoupled Client-Server architecture (see [[Environments]] for detailed configuration of staging and production environments):
+1.  **Frontend (Next.js)**: A single-page application (SPA) built with React and Next.js, styled using Tailwind CSS and components from Shadcn UI. Hosted on Vercel.
+2.  **Backend (ASP.NET Core Web API)**: A RESTful API built on .NET 8.0 using Clean Architecture. Hosted on AWS Lambda (Serverless via API Gateway HTTP API) for staging.
+3.  **Database (PostgreSQL)**: A relational database storing users, profiles, accounts, transactions, recurring rules, budgets, and savings tracking. Hosted on Supabase for staging.
 
 ```mermaid
 graph TD

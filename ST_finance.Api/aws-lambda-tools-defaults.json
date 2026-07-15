@@ -1,0 +1,13 @@
+{
+  "Information": [
+    "This file defines default values for the AWS Serverless Project.",
+    "For details, run 'dotnet lambda deploy-serverless --help' in the terminal."
+  ],
+  "profile": "default",
+  "region": "ap-southeast-1",
+  "configuration": "Release",
+  "framework": "net8.0",
+  "template": "serverless.template",
+  "stack-name": "st-finance-staging-stack",
+  "s3-bucket": ""
+}

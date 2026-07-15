@@ -29,5 +29,11 @@ Welcome to the documentation vault for the Student Financial Management and Budg
 6. **[[design|Design System]]**
    - CSS variables, typography stacks, component guidelines, and spacing rules for the frontend.
 
+7. **[[Environments]]**
+   - Details of hosting providers, staging, and future production deployment strategies.
+
+8. **[[AWS-Lambda-Deployment-Guide]]**
+   - Comprehensive step-by-step guide to hosting the ASP.NET Core Web API on AWS Lambda Serverless.
+
 ---
 *Created: July 2026 for Chulalongkorn University Scholarship Financial Tracker Project.*
