@@ -12,7 +12,7 @@ This application is built on a modern, cost-efficient, and auto-scaling serverle
 graph TD
     Client[Next.js Client on Vercel] -->|HTTPS 443| APIGW[API Gateway HTTP API v2]
     APIGW -->|Proxy Integration| Lambda[AWS Lambda Serverless Web API]
-    Lambda -->|Port 6543 ADO.NET| Supabase[(Supabase PostgreSQL DB)]
+    Lambda -->|EF Core Connection| Supabase[(Supabase PostgreSQL DB)]
     EventBridge[Amazon EventBridge Scheduler] -->|Hourly / Daily Direct Invoke| Lambda
 ```
 
@@ -25,7 +25,7 @@ graph TD
 * **Hosting**: Deployed as an ASP.NET Core 8.0 serverless function on **AWS Lambda** (behind API Gateway).
 * **Configuration**: Set the following Environment Variables in the AWS Lambda Console:
   * `ASPNETCORE_ENVIRONMENT`: `Staging`
-  * `ConnectionStrings__DbConnection`: Supabase ADO.NET connection string (`Host=...;Port=6543;Database=postgres;...`).
+  * `ConnectionStrings__DbConnection`: Supabase connection string (`Host=...;Port=5432;Database=postgres;...`).
   * `JwtSettings__SecretKey`: Your 32+ character JWT signing key.
   * `Gmail__Username` / `Gmail__Password` / `Gmail__FromEmail`: SMTP credentials for OTP emails.
   * `SchedulerApiKey`: Secret API key to secure the recurring jobs.
