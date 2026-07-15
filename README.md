@@ -9,11 +9,55 @@ A tailored, premium financial management, data visualizer, and budget tracker ap
 This application is built on a modern, cost-efficient, and auto-scaling serverless cloud stack:
 
 ```mermaid
-graph TD
-    Client[Next.js Client on Vercel] -->|HTTPS 443| APIGW[API Gateway HTTP API v2]
-    APIGW -->|Proxy Integration| Lambda[AWS Lambda Serverless Web API]
-    Lambda -->|EF Core Connection| Supabase[(Supabase PostgreSQL DB)]
-    EventBridge[Amazon EventBridge Scheduler] -->|Hourly / Daily Direct Invoke| Lambda
+flowchart TB
+    %% Environments & Subgraphs
+    subgraph GitHubEnv ["GitHub Environment"]
+        Runner["GitHub Actions Runner"]
+    end
+
+    subgraph VercelEnv ["Vercel Environment"]
+        VercelApp["Next.js Frontend<br>(st-finance.vercel.app)"]
+    end
+
+    subgraph AWSEnv ["AWS Cloud (ap-southeast-1)"]
+        subgraph IAMSecurity ["IAM & OIDC Security"]
+            OIDC["OIDC Identity Provider<br>(githubusercontent.com)"]
+            DeployerRole["github-actions-lambda-deployer<br>(IAM Role)"]
+            ExecRole["st-finance-lambda-execution-role<br>(IAM Role)"]
+        end
+
+        subgraph ServerlessRuntime ["Serverless Runtime"]
+            APIGW["API Gateway (HTTP API v2)"]
+            Lambda["AWS Lambda Function<br>(ASP.NET Core Web API)"]
+            EventBridge["Amazon EventBridge (Scheduler)"]
+        end
+
+        subgraph StagingStorage ["Staging Storage"]
+            S3["S3 Staging Bucket<br>(st-finance-deployments-ryan-2026)"]
+        end
+    end
+
+    subgraph SupabaseEnv ["Supabase Database Cloud"]
+        SupabaseDB[("PostgreSQL Database")]
+    end
+
+    %% Flows
+    %% 1. Runtime Flow (Solid Lines)
+    VercelApp ====|"1. HTTPS Request"| APIGW
+    APIGW ====|"2. Proxy Request"| Lambda
+    Lambda ====|"3. EF Core Query (Port 5432)"| SupabaseDB
+    EventBridge ====|"Direct Invoke (JSON payload)"| Lambda
+
+    %% 2. CI/CD & Deploy Flow (Dashed Lines)
+    Runner -.->|"1. Authenticate with OIDC JWT"| OIDC
+    OIDC -.->|"2. Temporary STS Credentials"| DeployerRole
+    DeployerRole -.->|"3. Push Build ZIP"| S3
+    DeployerRole -.->|"4. Deploy Code via CloudFormation"| Lambda
+    Lambda -.->|"Assume Role"| ExecRole
+
+    %% Styling Link Styles
+    linkStyle 0,1,2,3 stroke:#4CAF50,stroke-width:2px; %% Green for Runtime Flow
+    linkStyle 4,5,6,7,8 stroke:#2196F3,stroke-width:2px,stroke-dasharray: 5; %% Blue for DevOps Flow
 ```
 
 ### 💻 Frontend (Vercel)
