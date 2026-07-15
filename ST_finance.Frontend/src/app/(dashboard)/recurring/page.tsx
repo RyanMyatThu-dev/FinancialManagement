@@ -67,7 +67,7 @@ export default function RecurringPage() {
   });
 
   const { data: accountsList } = useQuery<any[]>({
-    queryKey: ["accounts-lookup"],
+    queryKey: ["accounts", "lookup"],
     queryFn: async () => {
       const res = await apiClient.get("/api/accounts?pageSize=100");
       return res.data.value?.items || [];

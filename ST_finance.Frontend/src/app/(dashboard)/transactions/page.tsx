@@ -171,7 +171,7 @@ export default function TransactionsPage() {
 
   // Fetch Accounts list to map Account IDs to Names
   const { data: accountsList } = useQuery<any[]>({
-    queryKey: ["accounts-lookup"],
+    queryKey: ["accounts", "lookup"],
     queryFn: async () => {
       const res = await apiClient.get("/api/accounts?pageSize=100");
       return res.data.value?.items || [];
