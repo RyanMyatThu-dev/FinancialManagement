@@ -31,14 +31,19 @@ const LIGHTBOX_IMAGES = [
     description: "Your financial central command. Monitor your balance, view dynamic daily safe-to-spend quotas, and track recent transactions at a glance."
   },
   {
-    src: "/features/Dashboard-Mobile.png",
+    src: "/features/Dashboard-Mobile-v2.png",
     title: "ST-Finance Dashboard - Mobile View",
     description: "Optimized for on-the-go tracking. Check your rolling daily allowance limit and record transactions right at the checkout counter."
   },
   {
     src: "/features/Transactions-Desktop.png",
-    title: "Transactions History",
+    title: "Transactions History - Desktop View",
     description: "Detailed chronological ledger of all income, expenses, and internal account transfers with powerful filtering options."
+  },
+  {
+    src: "/features/Transactions-Mobile.png",
+    title: "Transactions History - Mobile View",
+    description: "Review, filter, and track transactions easily on the go with our fully optimized mobile ledger view."
   },
   {
     src: "/features/Desktop-Savings-Goals.png",
@@ -57,8 +62,13 @@ const LIGHTBOX_IMAGES = [
   },
   {
     src: "/features/Multiple-Accounts-Desktop.png",
-    title: "Multi-Accounts Management",
+    title: "Multi-Accounts Management - Desktop View",
     description: "Consolidate checking, savings, student cards, and cash. Track combined net balance in real-time."
+  },
+  {
+    src: "/features/Accounts-Mobile-v2.png",
+    title: "Multi-Accounts Management - Mobile View",
+    description: "Check your wallets and balances instantly on mobile. Switch between different accounts and log transfers with one tap."
   },
   {
     src: "/features/Recuring-schedules-desktop.png",
@@ -236,7 +246,7 @@ export default function LandingPage() {
               {/* Back Card (Transactions page peeking out) */}
               <div 
                 onClick={() => openLightbox("/features/Transactions-Desktop.png")}
-                className="absolute -left-6 -top-6 w-[55%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-2xl opacity-45 hover:opacity-100 transition-all duration-300 transform -rotate-3 translate-x-2 hover:scale-[1.02] cursor-zoom-in z-10 group/txs"
+                className="absolute -left-6 -top-6 w-[58%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-2xl opacity-45 hover:opacity-100 transition-all duration-300 transform -rotate-3 translate-x-2 hover:scale-[1.02] cursor-zoom-in z-10 group/txs"
               >
                 <div className="bg-zinc-900/90 h-6 border-b border-zinc-800" />
                 <div className="relative w-full h-[calc(100%-1.5rem)] bg-zinc-950">
@@ -251,7 +261,7 @@ export default function LandingPage() {
               {/* Main Desktop Browser Frame */}
               <div 
                 onClick={() => openLightbox("/features/dashboard-desktop.png")}
-                className="relative w-[85%] aspect-[16/10] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] z-20 transform transition-all duration-500 hover:scale-[1.01] cursor-zoom-in group/main"
+                className="relative w-[90%] aspect-[16/10] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] z-20 transform transition-all duration-500 hover:scale-[1.01] cursor-zoom-in group/main"
               >
                 {/* Browser Chrome Header */}
                 <div className="bg-zinc-900 h-8 flex items-center px-4 gap-2 border-b border-zinc-800 select-none">
@@ -276,16 +286,16 @@ export default function LandingPage() {
 
               {/* Overlapping Mobile Phone View */}
               <div 
-                onClick={() => openLightbox("/features/Dashboard-Mobile.png")}
-                className="absolute -right-4 -bottom-6 w-[22%] min-w-[140px] aspect-[9/18.2] rounded-[2rem] overflow-hidden border-4 border-zinc-700 bg-zinc-950 shadow-[0_30px_70px_-10px_rgba(0,0,0,0.9)] z-30 transform rotate-2 hover:rotate-0 hover:scale-[1.03] transition-all duration-305 cursor-zoom-in group/phone"
+                onClick={() => openLightbox("/features/Dashboard-Mobile-v2.png")}
+                className="absolute -right-6 -bottom-8 w-[25%] min-w-[160px] aspect-[9/18.2] rounded-[2rem] overflow-hidden border-4 border-zinc-700 bg-zinc-950 shadow-[0_30px_70px_-10px_rgba(0,0,0,0.9)] z-30 transform rotate-2 hover:rotate-0 hover:scale-[1.03] transition-all duration-305 cursor-zoom-in group/phone"
               >
                 {/* Phone Speaker Notch */}
                 <div className="absolute top-0 inset-x-0 h-4 bg-zinc-950 z-40 flex items-center justify-center">
                   <div className="w-12 h-2.5 bg-zinc-900 rounded-b-lg" />
                 </div>
                 {/* Phone Content */}
-                <div className="relative w-full aspect-[1264/1868] mt-4">
-                  <Image src="/features/Dashboard-Mobile.png" alt="ST-Finance Dashboard - Mobile View" fill className="object-cover object-top" quality={90} />
+                <div className="relative w-full aspect-[778/1670] mt-4">
+                  <Image src="/features/Dashboard-Mobile-v2.png" alt="ST-Finance Dashboard - Mobile View" fill className="object-cover object-top" quality={90} />
                   <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/phone:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1 text-zinc-50 z-30">
                     <ZoomIn className="h-4 w-4 text-[hsl(var(--primary))]" />
                     <span className="text-[10px] font-bold font-sans">Enlarge</span>
@@ -391,7 +401,7 @@ export default function LandingPage() {
                     {/* Desktop Browser mockup */}
                     <div 
                       onClick={() => openLightbox("/features/dashboard-desktop.png")}
-                      className="relative w-[90%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl hover:scale-[1.01] transition-transform duration-300 cursor-zoom-in group/desktop1"
+                      className="relative w-[95%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl hover:scale-[1.01] transition-transform duration-300 cursor-zoom-in group/desktop1"
                     >
                       <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800">
                         <div className="h-2 w-2 rounded-full bg-red-500/60" />
@@ -409,11 +419,11 @@ export default function LandingPage() {
 
                     {/* Mobile Mockup overlapping */}
                     <div 
-                      onClick={() => openLightbox("/features/Dashboard-Mobile.png")}
-                      className="absolute -left-2 bottom-2 w-[24%] min-w-[110px] aspect-[9/18.2] rounded-[1.5rem] overflow-hidden border-2 border-zinc-700 bg-zinc-950 shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-30 transform -rotate-2 hover:rotate-0 hover:scale-[1.03] transition-all duration-300 cursor-zoom-in group/mobile1"
+                      onClick={() => openLightbox("/features/Dashboard-Mobile-v2.png")}
+                      className="absolute -left-4 -bottom-4 w-[28%] min-w-[130px] aspect-[9/18.2] rounded-[1.5rem] overflow-hidden border-2 border-zinc-700 bg-zinc-950 shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-30 transform -rotate-2 hover:rotate-0 hover:scale-[1.03] transition-all duration-300 cursor-zoom-in group/mobile1"
                     >
-                      <div className="relative w-full aspect-[1264/1868] mt-3">
-                        <Image src="/features/Dashboard-Mobile.png" alt="Daily Quota - Mobile" fill className="object-cover object-top" quality={80} />
+                      <div className="relative w-full aspect-[778/1670] mt-3">
+                        <Image src="/features/Dashboard-Mobile-v2.png" alt="Daily Quota - Mobile" fill className="object-cover object-top" quality={80} />
                         <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/mobile1:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1 text-zinc-50 z-30">
                           <ZoomIn className="h-4 w-4 text-[hsl(var(--primary))]" />
                           <span className="text-[10px] font-bold font-sans">Enlarge</span>
@@ -436,7 +446,7 @@ export default function LandingPage() {
                     {/* Back Browser Card (Completed Goals) */}
                     <div 
                       onClick={() => openLightbox("/features/Completed-Goals-Desktop.png")}
-                      className="absolute -left-4 -top-4 w-[85%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-xl opacity-50 hover:opacity-100 transition-all duration-300 transform -rotate-1 scale-95 z-10 hover:scale-[0.97] cursor-zoom-in group/completed"
+                      className="absolute -left-6 -top-6 w-[90%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800/80 shadow-xl opacity-50 hover:opacity-100 transition-all duration-300 transform -rotate-1 scale-95 z-10 hover:scale-[0.97] cursor-zoom-in group/completed"
                     >
                       <div className="bg-zinc-900 h-6 flex items-center px-3 border-b border-zinc-800">
                         <div className="h-2 w-2 rounded-full bg-red-500/40" />
@@ -454,7 +464,7 @@ export default function LandingPage() {
                     {/* Front Browser Card (Active Goals) */}
                     <div 
                       onClick={() => openLightbox("/features/Desktop-Savings-Goals.png")}
-                      className="relative w-[90%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl z-20 hover:scale-[1.01] transition-transform duration-300 cursor-zoom-in group/active"
+                      className="relative w-[95%] aspect-[16/10] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl z-20 hover:scale-[1.01] transition-transform duration-300 cursor-zoom-in group/active"
                     >
                       <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800">
                         <div className="h-2 w-2 rounded-full bg-red-500/60" />
@@ -580,11 +590,12 @@ export default function LandingPage() {
                   </p>
                 </div>
                 
-                {/* Browser Mockup */}
-                <div className="relative aspect-[16/9] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 overflow-hidden flex items-center justify-center group">
+                {/* Overlapping Mockup */}
+                <div className="relative aspect-[16/9] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 overflow-visible flex items-center justify-center group">
+                  {/* Desktop Browser mockup */}
                   <div 
                     onClick={() => openLightbox("/features/Multiple-Accounts-Desktop.png")}
-                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl transition-all duration-300 group-hover:scale-[1.01] cursor-zoom-in group/accounts"
+                    className="relative w-[95%] aspect-[16/9] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl transition-all duration-300 group-hover:scale-[1.01] cursor-zoom-in group/accounts"
                   >
                     {/* Browser Chrome Header */}
                     <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800 select-none">
@@ -603,6 +614,20 @@ export default function LandingPage() {
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/accounts:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1.5 text-zinc-100 z-30">
                         <ZoomIn className="h-5 w-5 text-[hsl(var(--primary))]" />
                         <span className="text-xs font-bold font-sans">Click to Enlarge</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mobile Mockup overlapping */}
+                  <div 
+                    onClick={(e) => { e.stopPropagation(); openLightbox("/features/Accounts-Mobile-v2.png"); }}
+                    className="absolute -left-4 -bottom-4 w-[28%] min-w-[110px] aspect-[9/18.2] rounded-[1.2rem] overflow-hidden border-2 border-zinc-700 bg-zinc-950 shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-30 transform -rotate-2 hover:rotate-0 hover:scale-[1.03] transition-all duration-300 cursor-zoom-in group/mobile-accounts"
+                  >
+                    <div className="relative w-full aspect-[780/1688] mt-2.5">
+                      <Image src="/features/Accounts-Mobile-v2.png" alt="Accounts - Mobile" fill className="object-cover object-top" quality={80} />
+                      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/mobile-accounts:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1 text-zinc-50 z-30">
+                        <ZoomIn className="h-4 w-4 text-[hsl(var(--primary))]" />
+                        <span className="text-[10px] font-bold font-sans">Enlarge</span>
                       </div>
                     </div>
                   </div>
@@ -625,7 +650,7 @@ export default function LandingPage() {
                 <div className="relative aspect-[16/9] w-full rounded-2xl border border-zinc-900/50 bg-zinc-950/20 p-4 overflow-hidden flex items-center justify-center group">
                   <div 
                     onClick={() => openLightbox("/features/Recuring-schedules-desktop.png")}
-                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl transition-all duration-300 group-hover:scale-[1.01] cursor-zoom-in group/recurring"
+                    className="relative w-[95%] aspect-[16/9] rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-2xl transition-all duration-300 group-hover:scale-[1.01] cursor-zoom-in group/recurring"
                   >
                     {/* Browser Chrome Header */}
                     <div className="bg-zinc-900 h-6 flex items-center px-3 gap-1.5 border-b border-zinc-800 select-none">
@@ -643,7 +668,7 @@ export default function LandingPage() {
                       <Image src="/features/Recuring-schedules-desktop.png" alt="Recurring Schedules Management" fill className="object-cover object-top" quality={90} />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/recurring:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-1.5 text-zinc-100 z-30">
                         <ZoomIn className="h-5 w-5 text-[hsl(var(--primary))]" />
-                        <span className="text-xs font-bold font-sans">Click to Enlarge</span>
+                        <span className="text-[10px] font-bold font-sans">Click to Enlarge</span>
                       </div>
                     </div>
                   </div>

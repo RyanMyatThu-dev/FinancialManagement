@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
@@ -19,6 +20,9 @@ import {
   DollarSign,
   Tag,
   FolderOpen,
+  Calendar,
+  Wallet,
+  Clock,
 } from "lucide-react";
 
 interface Transaction {
@@ -29,6 +33,9 @@ interface Transaction {
   categoryId?:     string;
   date:            string;
   accountId:       string;
+  targetAccountId?: string;
+  createdAt:       string;
+  tagNames?:       string[];
 }
 
 interface PagedTransactionResponse {
@@ -55,6 +62,9 @@ interface TagType {
 const PAGE_SIZE = 20;
 
 export default function TransactionsPage() {
+  const searchParams = useSearchParams();
+  const urlAccountId = searchParams.get("accountId") || "";
+
   const { user } = useAuth();
   const [timeframe, setTimeframe] = useState<Timeframe>("Month");
   const [page,      setPage]      = useState(1);
@@ -65,22 +75,46 @@ export default function TransactionsPage() {
   const [tagId,           setTagId]           = useState("");
   const [minAmount,       setMinAmount]       = useState("");
   const [maxAmount,       setMaxAmount]       = useState("");
+  const [accountIdFilter, setAccountIdFilter] = useState(urlAccountId);
+  const [sourceAccountId, setSourceAccountId] = useState("");
+  const [targetAccountId, setTargetAccountId] = useState("");
+  const [startDate,       setStartDate]       = useState("");
+  const [endDate,         setEndDate]         = useState("");
+  const [transactionType, setTransactionType] = useState("");
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   // Temporary draft input states (updated on keystrokes/selections, applied on Search click)
-  const [tempSearch,      setTempSearch]      = useState("");
-  const [tempCategoryId,  setTempCategoryId]  = useState("");
-  const [tempTagId,       setTempTagId]       = useState("");
-  const [tempMinAmount,   setTempMinAmount]   = useState("");
-  const [tempMaxAmount,   setTempMaxAmount]   = useState("");
+  const [tempSearch,          setTempSearch]          = useState("");
+  const [tempCategoryId,      setTempCategoryId]      = useState("");
+  const [tempTagId,           setTempTagId]           = useState("");
+  const [tempMinAmount,       setTempMinAmount]       = useState("");
+  const [tempMaxAmount,       setTempMaxAmount]       = useState("");
+  const [tempSourceAccountId, setTempSourceAccountId] = useState("");
+  const [tempTargetAccountId, setTempTargetAccountId] = useState("");
+  const [tempStartDate,       setTempStartDate]       = useState("");
+  const [tempEndDate,         setTempEndDate]         = useState("");
+  const [tempTransactionType, setTempTransactionType] = useState("");
 
   const [showFilters,     setShowFilters]     = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const currency = user?.currency || "THB";
 
+  // Sync urlAccountId when search params update
+  useEffect(() => {
+    setAccountIdFilter(urlAccountId);
+    setPage(1);
+  }, [urlAccountId]);
+
   // Reset to page 1 whenever timeframe changes
   const handleTimeframe = (tf: Timeframe) => {
     setTimeframe(tf);
+    if (tf !== "Custom") {
+      setStartDate("");
+      setEndDate("");
+      setTempStartDate("");
+      setTempEndDate("");
+    }
     setPage(1);
   };
 
@@ -91,6 +125,20 @@ export default function TransactionsPage() {
     setTagId(tempTagId);
     setMinAmount(tempMinAmount);
     setMaxAmount(tempMaxAmount);
+    setSourceAccountId(tempSourceAccountId);
+    setTargetAccountId(tempTargetAccountId);
+    setTransactionType(tempTransactionType);
+
+    const hasCustomDates = tempStartDate || tempEndDate;
+    if (hasCustomDates) {
+      setTimeframe("Custom");
+      setStartDate(tempStartDate);
+      setEndDate(tempEndDate);
+    } else {
+      setStartDate("");
+      setEndDate("");
+    }
+
     setPage(1);
   };
 
@@ -100,27 +148,57 @@ export default function TransactionsPage() {
     setTempTagId("");
     setTempMinAmount("");
     setTempMaxAmount("");
+    setTempSourceAccountId("");
+    setTempTargetAccountId("");
+    setTempStartDate("");
+    setTempEndDate("");
+    setTempTransactionType("");
 
     setSearch("");
     setCategoryId("");
     setTagId("");
     setMinAmount("");
     setMaxAmount("");
+    setAccountIdFilter("");
+    setSourceAccountId("");
+    setTargetAccountId("");
+    setStartDate("");
+    setEndDate("");
+    setTransactionType("");
+    setTimeframe("Month");
     setPage(1);
   };
 
+  // Fetch Accounts list to map Account IDs to Names
+  const { data: accountsList } = useQuery<any[]>({
+    queryKey: ["accounts-lookup"],
+    queryFn: async () => {
+      const res = await apiClient.get("/api/accounts?pageSize=100");
+      return res.data.value?.items || [];
+    },
+  });
+
   // 1. Fetch Transactions (with server-side filters & description search)
   const { data, isLoading, error } = useQuery<PagedTransactionResponse>({
-    queryKey: ["transactions", timeframe, page, search, categoryId, tagId, minAmount, maxAmount],
+    queryKey: ["transactions", timeframe, page, search, categoryId, tagId, minAmount, maxAmount, accountIdFilter, sourceAccountId, targetAccountId, startDate, endDate, transactionType],
     queryFn: async () => {
-      let url = `/api/transactions?pageNumber=${page}&pageSize=${PAGE_SIZE}&timeframe=${timeframe}`;
-      if (search)     url += `&search=${encodeURIComponent(search)}`;
-      if (categoryId) url += `&categoryId=${categoryId}`;
-      if (tagId)      url += `&tagId=${tagId}`;
-      if (minAmount)  url += `&minAmount=${minAmount}`;
-      if (maxAmount)  url += `&maxAmount=${maxAmount}`;
-
-      const res = await apiClient.get(url);
+      const payload = {
+        pageNumber: page,
+        pageSize: PAGE_SIZE,
+        categoryId: categoryId || null,
+        tagId: tagId || null,
+        minAmount: minAmount ? parseFloat(minAmount) : null,
+        maxAmount: maxAmount ? parseFloat(maxAmount) : null,
+        search: search || null,
+        timeframe: timeframe || null,
+        accountId: accountIdFilter || null,
+        sourceAccountId: sourceAccountId || null,
+        targetAccountId: targetAccountId || null,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        transactionType: transactionType || null,
+      };
+      const res = await apiClient.post("/api/transactions/search", payload);
       if (res.data.isSuccess && res.data.value) return res.data.value;
       throw new Error(res.data.error?.message || "Failed to fetch transactions");
     },
@@ -147,16 +225,23 @@ export default function TransactionsPage() {
 
   // 4. Fetch Summary Metrics (unpaginated total for the current filters)
   const { data: summaryData } = useQuery<{ inflow: number; outflow: number }>({
-    queryKey: ["transactions", "summary", timeframe, search, categoryId, tagId, minAmount, maxAmount],
+    queryKey: ["transactions", "summary", timeframe, search, categoryId, tagId, minAmount, maxAmount, accountIdFilter, sourceAccountId, targetAccountId, startDate, endDate, transactionType],
     queryFn: async () => {
-      let url = `/api/transactions/summary?timeframe=${timeframe}`;
-      if (search)     url += `&search=${encodeURIComponent(search)}`;
-      if (categoryId) url += `&categoryId=${categoryId}`;
-      if (tagId)      url += `&tagId=${tagId}`;
-      if (minAmount)  url += `&minAmount=${minAmount}`;
-      if (maxAmount)  url += `&maxAmount=${maxAmount}`;
-
-      const res = await apiClient.get(url);
+      const payload = {
+        categoryId: categoryId || null,
+        tagId: tagId || null,
+        minAmount: minAmount ? parseFloat(minAmount) : null,
+        maxAmount: maxAmount ? parseFloat(maxAmount) : null,
+        search: search || null,
+        timeframe: timeframe || null,
+        accountId: accountIdFilter || null,
+        sourceAccountId: sourceAccountId || null,
+        targetAccountId: targetAccountId || null,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        transactionType: transactionType || null,
+      };
+      const res = await apiClient.post("/api/transactions/summary-search", payload);
       if (res.data.isSuccess && res.data.value) {
         return res.data.value;
       }
@@ -188,7 +273,7 @@ export default function TransactionsPage() {
       }
     : null;
 
-  const hasActiveFilters = categoryId || tagId || minAmount || maxAmount || search;
+  const hasActiveFilters = categoryId || tagId || minAmount || maxAmount || search || accountIdFilter || sourceAccountId || targetAccountId || startDate || endDate || transactionType || timeframe === "Custom";
 
   return (
     <div className="space-y-6">
@@ -284,7 +369,7 @@ export default function TransactionsPage() {
 
         {/* Collapsible Advanced Filters Panel */}
         {showFilters && (
-          <div className="border-t border-[hsl(var(--border))] pt-3 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+          <div className="border-t border-[hsl(var(--border))] pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end">
             {/* Category Filter */}
             <div>
               <label htmlFor="filter-category" className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -325,6 +410,64 @@ export default function TransactionsPage() {
               </select>
             </div>
 
+            {/* Transaction Type Filter */}
+            <div>
+              <label htmlFor="filter-tx-type" className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                <ArrowDownLeft className="h-3 w-3" /> Transaction Type
+              </label>
+              <select
+                id="filter-tx-type"
+                value={tempTransactionType}
+                onChange={(e) => setTempTransactionType(e.target.value)}
+                className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+              >
+                <option value="">All Types</option>
+                <option value="Income">Income (+IN)</option>
+                <option value="Expense">Expense (-OUT)</option>
+                <option value="Transfer">Transfer (TR)</option>
+              </select>
+            </div>
+
+            {/* Source Account Filter */}
+            <div>
+              <label htmlFor="filter-source-account" className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                <Wallet className="h-3 w-3" /> Source Account
+              </label>
+              <select
+                id="filter-source-account"
+                value={tempSourceAccountId}
+                onChange={(e) => setTempSourceAccountId(e.target.value)}
+                className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+              >
+                <option value="">All Accounts</option>
+                {accountsList?.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Target Account Filter */}
+            <div>
+              <label htmlFor="filter-target-account" className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                <Wallet className="h-3 w-3" /> Target Account
+              </label>
+              <select
+                id="filter-target-account"
+                value={tempTargetAccountId}
+                onChange={(e) => setTempTargetAccountId(e.target.value)}
+                className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+              >
+                <option value="">All Accounts</option>
+                {accountsList?.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Price Ranged: Min Amount */}
             <div>
               <label htmlFor="filter-min-amount" className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -340,41 +483,96 @@ export default function TransactionsPage() {
               />
             </div>
 
-            {/* Price Ranged: Max Amount & Action Buttons */}
-            <div className="flex gap-2 items-center">
-              <div className="flex-1">
-                <label htmlFor="filter-max-amount" className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                  <DollarSign className="h-3 w-3" /> Max Price
-                </label>
-                <input
-                  id="filter-max-amount"
-                  type="number"
-                  placeholder="Max amount"
-                  value={tempMaxAmount}
-                  onChange={(e) => setTempMaxAmount(e.target.value)}
-                  className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
-                />
-              </div>
+            {/* Price Ranged: Max Amount */}
+            <div>
+              <label htmlFor="filter-max-amount" className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                <DollarSign className="h-3 w-3" /> Max Price
+              </label>
+              <input
+                id="filter-max-amount"
+                type="number"
+                placeholder="Max amount"
+                value={tempMaxAmount}
+                onChange={(e) => setTempMaxAmount(e.target.value)}
+                className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+              />
+            </div>
+
+            {/* Date Ranged: Start Date */}
+            <div>
+              <label htmlFor="filter-start-date" className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                <Calendar className="h-3 w-3" /> Start Date
+              </label>
+              <input
+                id="filter-start-date"
+                type="date"
+                value={tempStartDate}
+                onChange={(e) => setTempStartDate(e.target.value)}
+                className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+              />
+            </div>
+
+            {/* Date Ranged: End Date */}
+            <div>
+              <label htmlFor="filter-end-date" className="flex items-center gap-1 text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                <Calendar className="h-3 w-3" /> End Date
+              </label>
+              <input
+                id="filter-end-date"
+                type="date"
+                value={tempEndDate}
+                onChange={(e) => setTempEndDate(e.target.value)}
+                className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+              />
+            </div>
+
+            {/* Action Buttons Row */}
+            <div className="col-span-1 sm:col-span-3 flex justify-end gap-2 pt-2 border-t border-[hsl(var(--border))/0.4]">
               <button
                 type="submit"
-                className="ds-btn-primary px-3.5 py-1.5 h-[32px] text-[10px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1 shrink-0"
+                className="ds-btn-primary px-5 py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
               >
-                Apply
+                Apply Filters
               </button>
               {hasActiveFilters && (
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="ds-btn-outline px-2.5 py-1.5 h-[32px] text-[10px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1 text-[hsl(var(--destructive))] border-[hsl(var(--destructive)/0.25)] hover:bg-[hsl(var(--destructive)/0.05)] shrink-0"
+                  className="ds-btn-outline px-4 py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 text-[hsl(var(--destructive))] border-[hsl(var(--destructive)/0.25)] hover:bg-[hsl(var(--destructive)/0.05)]"
                   title="Reset Filters"
                 >
-                  <X className="h-3.5 w-3.5" /> Clear
+                  <X className="h-4 w-4" /> Clear All
                 </button>
               )}
             </div>
           </div>
         )}
       </form>
+
+      {/* Active Account Filter Badge */}
+      {accountIdFilter && (
+        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-[hsl(var(--primary)/0.18)] bg-[hsl(var(--primary)/0.06)] text-xs font-sans text-[hsl(var(--primary))] shadow-sm">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4 shrink-0" />
+            <span>
+              Showing transaction history for account:{" "}
+              <strong>
+                {accountsList?.find((a) => a.id === accountIdFilter)?.name || "Loading..."}
+              </strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setAccountIdFilter("");
+              setPage(1);
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[hsl(var(--primary)/0.25)] hover:bg-[hsl(var(--primary)/0.1)] transition-colors text-[10px] font-mono uppercase font-bold"
+          >
+            <X className="h-3 w-3" /> Clear Filter
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <div className="sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none overflow-hidden">
@@ -416,9 +614,10 @@ export default function TransactionsPage() {
         {transactions.map((tx, idx) => (
           <div
             key={tx.id ?? `tx-${idx}`}
-            className={`ds-table-row grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-3.5 items-center ${
+            className={`ds-table-row grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-3.5 items-center cursor-pointer ${
               idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
             }`}
+            onClick={() => setSelectedTransaction(tx)}
           >
             {/* Number index */}
             <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
@@ -487,6 +686,178 @@ export default function TransactionsPage() {
       </div>
 
       {showCreateModal && <CreateTransactionModal onClose={() => setShowCreateModal(false)} />}
+      {selectedTransaction && (
+        <TransactionDetailsModal
+          transaction={selectedTransaction}
+          accounts={accountsList || []}
+          categories={categories || []}
+          onClose={() => setSelectedTransaction(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Transaction Details Modal */
+function TransactionDetailsModal({
+  transaction,
+  accounts,
+  categories,
+  onClose,
+}: {
+  transaction: Transaction;
+  accounts: any[];
+  categories: Category[];
+  onClose: () => void;
+}) {
+  const getAccountName = (id: string) => {
+    return accounts.find((a) => a.id === id)?.name || "Unknown Wallet";
+  };
+
+  const getCategoryName = (id?: string) => {
+    if (!id) return "Uncategorized";
+    return categories.find((c) => c.id === id)?.name || "Unknown Category";
+  };
+
+  const isIncome = transaction.transactionType === "Income";
+  const isTransfer = transaction.transactionType === "Transfer";
+
+  const amountColor = isIncome
+    ? "text-[hsl(var(--primary))]"
+    : isTransfer
+    ? "text-[hsl(var(--muted-foreground))]"
+    : "text-[hsl(var(--destructive))]";
+
+  const sign = isIncome ? "+" : isTransfer ? "↔" : "−";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="ds-card w-full max-w-md p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 ds-btn-icon h-7 w-7"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-2">
+            {isIncome ? (
+              <span className="ds-badge ds-badge-success">+ INFLOW</span>
+            ) : isTransfer ? (
+              <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]">↔ TRANSFER</span>
+            ) : (
+              <span className="ds-badge ds-badge-danger">− OUTFLOW</span>
+            )}
+          </div>
+          <h2 className="text-xl font-bold tracking-tight">Transaction Details</h2>
+        </div>
+
+        <div className="space-y-4 font-sans text-xs">
+          {/* Amount block */}
+          <div className="bg-[hsl(var(--secondary)/0.5)] border border-[hsl(var(--border))] rounded-xl p-4 flex flex-col justify-center items-center">
+            <span className="text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1 font-mono">
+              Amount
+            </span>
+            <p className={`font-mono text-2xl font-black ${amountColor}`}>
+              {sign} {transaction.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} THB
+            </p>
+          </div>
+
+          {/* Description Block */}
+          {transaction.description && (
+            <div className="border border-[hsl(var(--border))] rounded-xl p-4">
+              <span className="block text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                Description / Notes
+              </span>
+              <p className="text-sm text-[hsl(var(--foreground))] whitespace-pre-wrap break-words leading-relaxed font-sans">
+                {transaction.description}
+              </p>
+            </div>
+          )}
+
+          {/* Details list */}
+          <div className="border border-[hsl(var(--border))] rounded-xl p-4 space-y-3 font-mono text-[hsl(var(--muted-foreground))]">
+            <div className="flex justify-between items-center">
+              <span>Source Account:</span>
+              <span className="text-[hsl(var(--foreground))] font-semibold">
+                {getAccountName(transaction.accountId)}
+              </span>
+            </div>
+
+            {isTransfer && transaction.targetAccountId && (
+              <div className="flex justify-between items-center">
+                <span>Target Account:</span>
+                <span className="text-[hsl(var(--foreground))] font-semibold">
+                  {getAccountName(transaction.targetAccountId)}
+                </span>
+              </div>
+            )}
+
+            {!isTransfer && (
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1">
+                  <FolderOpen className="h-3.5 w-3.5" />
+                  Category:
+                </span>
+                <span className="text-[hsl(var(--foreground))] font-semibold">
+                  {getCategoryName(transaction.categoryId)}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Transaction Date:
+              </span>
+              <span className="text-[hsl(var(--foreground))] font-semibold">
+                {new Date(transaction.date).toLocaleDateString(undefined, {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                Logged Timestamp:
+              </span>
+              <span className="text-[hsl(var(--foreground))] font-semibold">
+                {new Date(transaction.createdAt).toLocaleDateString(undefined, {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+          </div>
+
+          {/* Tags List */}
+          {transaction.tagNames && transaction.tagNames.length > 0 && (
+            <div className="border border-[hsl(var(--border))] rounded-xl p-4">
+              <span className="block text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
+                Tags
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {transaction.tagNames.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] text-[10px] font-bold text-[hsl(var(--muted-foreground))]"
+                  >
+                    <Tag className="h-2.5 w-2.5" />
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

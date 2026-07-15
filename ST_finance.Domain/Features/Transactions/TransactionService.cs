@@ -30,7 +30,13 @@ namespace ST_finance.Domain.Features.Transactions
             decimal? minAmount = null,
             decimal? maxAmount = null,
             string? search = null,
-            string? timeframe = null
+            string? timeframe = null,
+            Guid? accountId = null,
+            Guid? sourceAccountId = null,
+            Guid? targetAccountId = null,
+            string? startDate = null,
+            string? endDate = null,
+            string? transactionType = null
         )
         {
             if (pageNumber < 1) pageNumber = 1;
@@ -41,39 +47,75 @@ namespace ST_finance.Domain.Features.Transactions
                 .Include(t => t.Tags)
                 .Where(t => t.UserId == userId);
 
-            if (!string.IsNullOrWhiteSpace(timeframe))
+            if (accountId.HasValue)
+            {
+                query = query.Where(t => t.AccountId == accountId.Value || t.TargetAccountId == accountId.Value);
+            }
+
+            if (sourceAccountId.HasValue)
+            {
+                query = query.Where(t => t.AccountId == sourceAccountId.Value);
+            }
+
+            if (targetAccountId.HasValue)
+            {
+                query = query.Where(t => t.TargetAccountId == targetAccountId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(startDate) && DateTime.TryParse(startDate, out var parsedStart))
+            {
+                // Align to local BKK timezone (UTC+7) start of day, then convert to UTC
+                var bkkStart = new DateTime(parsedStart.Year, parsedStart.Month, parsedStart.Day, 0, 0, 0, DateTimeKind.Utc);
+                var utcStart = bkkStart.AddHours(-7);
+                query = query.Where(t => t.Date >= utcStart);
+            }
+
+            if (!string.IsNullOrWhiteSpace(endDate) && DateTime.TryParse(endDate, out var parsedEnd))
+            {
+                // Align to local BKK timezone (UTC+7) end of day, then convert to UTC
+                var bkkEnd = new DateTime(parsedEnd.Year, parsedEnd.Month, parsedEnd.Day, 23, 59, 59, DateTimeKind.Utc).AddMilliseconds(999);
+                var utcEnd = bkkEnd.AddHours(-7);
+                query = query.Where(t => t.Date <= utcEnd);
+            }
+
+            if (!string.IsNullOrWhiteSpace(transactionType))
+            {
+                query = query.Where(t => t.TransactionType == transactionType);
+            }
+
+            if (!string.IsNullOrWhiteSpace(timeframe) && !timeframe.Equals("Custom", StringComparison.OrdinalIgnoreCase))
             {
                 var nowUtc = DateTime.UtcNow;
                 var currentBkk = nowUtc.AddHours(7);
-                DateTime startDate = DateTime.MinValue;
-                DateTime endDate = DateTime.MaxValue;
+                DateTime tfStartDate = DateTime.MinValue;
+                DateTime tfEndDate = DateTime.MaxValue;
 
                 if (timeframe.Equals("Day", StringComparison.OrdinalIgnoreCase))
                 {
-                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    endDate = startDate.AddDays(1);
+                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfEndDate = tfStartDate.AddDays(1);
                 }
                 else if (timeframe.Equals("Week", StringComparison.OrdinalIgnoreCase))
                 {
                     int diff = (7 + (currentBkk.DayOfWeek - DayOfWeek.Monday)) % 7;
                     var startOfWeekBkk = currentBkk.AddDays(-1 * diff);
-                    startDate = DateTime.SpecifyKind(new DateTime(startOfWeekBkk.Year, startOfWeekBkk.Month, startOfWeekBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    endDate = startDate.AddDays(7);
+                    tfStartDate = DateTime.SpecifyKind(new DateTime(startOfWeekBkk.Year, startOfWeekBkk.Month, startOfWeekBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfEndDate = tfStartDate.AddDays(7);
                 }
                 else if (timeframe.Equals("Month", StringComparison.OrdinalIgnoreCase))
                 {
-                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    endDate = startDate.AddMonths(1);
+                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfEndDate = tfStartDate.AddMonths(1);
                 }
                 else if (timeframe.Equals("Year", StringComparison.OrdinalIgnoreCase))
                 {
-                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    endDate = startDate.AddYears(1);
+                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfEndDate = tfStartDate.AddYears(1);
                 }
 
-                if (startDate != DateTime.MinValue)
+                if (tfStartDate != DateTime.MinValue)
                 {
-                    query = query.Where(t => t.Date >= startDate && t.Date < endDate);
+                    query = query.Where(t => t.Date >= tfStartDate && t.Date < tfEndDate);
                 }
             }
 
@@ -122,45 +164,87 @@ namespace ST_finance.Domain.Features.Transactions
             decimal? minAmount = null,
             decimal? maxAmount = null,
             string? search = null,
-            string? timeframe = null
+            string? timeframe = null,
+            Guid? accountId = null,
+            Guid? sourceAccountId = null,
+            Guid? targetAccountId = null,
+            string? startDate = null,
+            string? endDate = null,
+            string? transactionType = null
         )
         {
             var query = _context.TblTransactions
                 .Where(t => t.UserId == userId);
 
-            if (!string.IsNullOrWhiteSpace(timeframe))
+            if (accountId.HasValue)
+            {
+                query = query.Where(t => t.AccountId == accountId.Value || t.TargetAccountId == accountId.Value);
+            }
+
+            if (sourceAccountId.HasValue)
+            {
+                query = query.Where(t => t.AccountId == sourceAccountId.Value);
+            }
+
+            if (targetAccountId.HasValue)
+            {
+                query = query.Where(t => t.TargetAccountId == targetAccountId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(startDate) && DateTime.TryParse(startDate, out var parsedStart))
+            {
+                // Align to local BKK timezone (UTC+7) start of day, then convert to UTC
+                var bkkStart = new DateTime(parsedStart.Year, parsedStart.Month, parsedStart.Day, 0, 0, 0, DateTimeKind.Utc);
+                var utcStart = bkkStart.AddHours(-7);
+                query = query.Where(t => t.Date >= utcStart);
+            }
+
+            if (!string.IsNullOrWhiteSpace(endDate) && DateTime.TryParse(endDate, out var parsedEnd))
+            {
+                // Align to local BKK timezone (UTC+7) end of day, then convert to UTC
+                var bkkEnd = new DateTime(parsedEnd.Year, parsedEnd.Month, parsedEnd.Day, 23, 59, 59, DateTimeKind.Utc).AddMilliseconds(999);
+                var utcEnd = bkkEnd.AddHours(-7);
+                query = query.Where(t => t.Date <= utcEnd);
+            }
+
+            if (!string.IsNullOrWhiteSpace(transactionType))
+            {
+                query = query.Where(t => t.TransactionType == transactionType);
+            }
+
+            if (!string.IsNullOrWhiteSpace(timeframe) && !timeframe.Equals("Custom", StringComparison.OrdinalIgnoreCase))
             {
                 var nowUtc = DateTime.UtcNow;
                 var currentBkk = nowUtc.AddHours(7);
-                DateTime startDate = DateTime.MinValue;
-                DateTime endDate = DateTime.MaxValue;
+                DateTime tfStartDate = DateTime.MinValue;
+                DateTime tfEndDate = DateTime.MaxValue;
 
                 if (timeframe.Equals("Day", StringComparison.OrdinalIgnoreCase))
                 {
-                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    endDate = startDate.AddDays(1);
+                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfEndDate = tfStartDate.AddDays(1);
                 }
                 else if (timeframe.Equals("Week", StringComparison.OrdinalIgnoreCase))
                 {
                     int diff = (7 + (currentBkk.DayOfWeek - DayOfWeek.Monday)) % 7;
                     var startOfWeekBkk = currentBkk.AddDays(-1 * diff);
-                    startDate = DateTime.SpecifyKind(new DateTime(startOfWeekBkk.Year, startOfWeekBkk.Month, startOfWeekBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    endDate = startDate.AddDays(7);
+                    tfStartDate = DateTime.SpecifyKind(new DateTime(startOfWeekBkk.Year, startOfWeekBkk.Month, startOfWeekBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfEndDate = tfStartDate.AddDays(7);
                 }
                 else if (timeframe.Equals("Month", StringComparison.OrdinalIgnoreCase))
                 {
-                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    endDate = startDate.AddMonths(1);
+                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfEndDate = tfStartDate.AddMonths(1);
                 }
                 else if (timeframe.Equals("Year", StringComparison.OrdinalIgnoreCase))
                 {
-                    startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    endDate = startDate.AddYears(1);
+                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfEndDate = tfStartDate.AddYears(1);
                 }
 
-                if (startDate != DateTime.MinValue)
+                if (tfStartDate != DateTime.MinValue)
                 {
-                    query = query.Where(t => t.Date >= startDate && t.Date < endDate);
+                    query = query.Where(t => t.Date >= tfStartDate && t.Date < tfEndDate);
                 }
             }
 
@@ -637,6 +721,60 @@ namespace ST_finance.Domain.Features.Transactions
                 .ToListAsync();
 
             return Result.Success(PagedResponse<TagResponse>.Create(items, totalCount, pageNumber, pageSize));
+        }
+
+        public async Task<Result<PagedResponse<TransactionResponse>>> SearchTransactionsAsync(Guid userId, TransactionSearchRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure<PagedResponse<TransactionResponse>>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            Console.WriteLine($"SearchTransactionsAsync: AccountId={request.AccountId}, Source={request.SourceAccountId}, Target={request.TargetAccountId}, Start={request.StartDate}, End={request.EndDate}, Timeframe={request.Timeframe}, Type={request.TransactionType}");
+
+            return await GetTransactionsAsync(
+                userId,
+                request.PageNumber,
+                request.PageSize,
+                request.CategoryId,
+                request.TagId,
+                request.MinAmount,
+                request.MaxAmount,
+                request.Search,
+                request.Timeframe,
+                request.AccountId,
+                request.SourceAccountId,
+                request.TargetAccountId,
+                request.StartDate,
+                request.EndDate,
+                request.TransactionType
+            );
+        }
+
+        public async Task<Result<TransactionSummaryResponse>> GetTransactionSummarySearchAsync(Guid userId, TransactionSearchRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure<TransactionSummaryResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            Console.WriteLine($"GetTransactionSummarySearchAsync: AccountId={request.AccountId}, Source={request.SourceAccountId}, Target={request.TargetAccountId}, Start={request.StartDate}, End={request.EndDate}, Timeframe={request.Timeframe}, Type={request.TransactionType}");
+
+            return await GetTransactionSummaryAsync(
+                userId,
+                request.CategoryId,
+                request.TagId,
+                request.MinAmount,
+                request.MaxAmount,
+                request.Search,
+                request.Timeframe,
+                request.AccountId,
+                request.SourceAccountId,
+                request.TargetAccountId,
+                request.StartDate,
+                request.EndDate,
+                request.TransactionType
+            );
         }
     }
 }

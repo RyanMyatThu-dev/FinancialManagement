@@ -5,32 +5,48 @@
    Dark-mode first, neon volt green accent, rounded cards
    ======================================================== */
 
-/* ---- Light Mode (Minimal Fallback) ---- */
+/* ---- Light Mode — Full Design System ---- */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
+  /* Core Base */
+  --background: 220 20% 97%;          /* Warm off-white, not pure white */
+  --foreground: 240 10% 8%;           /* Near-black for maximum readability */
+
+  /* Surface Containers */
+  --card: 0 0% 100%;                  /* Pure white cards for lift */
+  --card-foreground: 240 10% 8%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
+  --popover-foreground: 240 10% 8%;
+
+  /* Primary — Neon Volt Green (same identity as dark mode) */
+  --primary: 142 76% 36%;             /* Darkened green for legibility on white */
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary Elements */
+  --secondary: 220 14% 93%;           /* Visible light gray, distinct from bg */
+  --secondary-foreground: 240 10% 12%;
+
+  /* Muted */
+  --muted: 220 14% 93%;
+  --muted-foreground: 220 9% 43%;     /* Strong mid-tone for legibility */
+
+  /* Accent */
+  --accent: 220 14% 93%;
+  --accent-foreground: 240 10% 12%;
+
+  /* Semantic — Red */
+  --destructive: 0 84% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Structural */
+  --border: 220 13% 86%;              /* Visible borders */
+  --input: 220 13% 86%;
+  --ring: 142 76% 36%;                /* Green focus ring matching primary */
   --radius: 10px;
+
   /* Extended tokens */
-  --chula-pink: 340 82% 52%;
-  --safe-to-spend: 180 100% 50%;
-  --warning: 45 93% 47%;
+  --chula-pink: 340 82% 45%;          /* Slightly darkened for white bg */
+  --safe-to-spend: 174 100% 29%;      /* Darkened teal — readable on white */
+  --warning: 38 92% 40%;              /* Darkened amber — readable on white */
 }
 
 /* ---- Dark Mode — Core System ---- */
@@ -93,9 +109,22 @@ body {
   color: hsl(var(--card-foreground));
 }
 
+/* Light mode: cards need shadow for depth since bg is near-white */
+:root .ds-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.dark .ds-card {
+  box-shadow: none;
+}
+
 .ds-card-interactive:hover {
   border-color: hsl(var(--primary) / 0.4);
   box-shadow: 0 0 15px hsl(var(--primary) / 0.06);
+}
+
+/* Light mode interactive hover gets elevated shadow */
+:root .ds-card-interactive:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 15px hsl(var(--primary) / 0.06);
 }
 
 /* ---- Inputs ---- */

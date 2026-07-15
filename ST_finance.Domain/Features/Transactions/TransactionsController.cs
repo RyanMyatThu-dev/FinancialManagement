@@ -29,11 +29,17 @@ namespace ST_finance.Domain.Features.Transactions
             [FromQuery] decimal? minAmount = null,
             [FromQuery] decimal? maxAmount = null,
             [FromQuery] string? search     = null,
-            [FromQuery] string? timeframe  = null)
+            [FromQuery] string? timeframe  = null,
+            [FromQuery] Guid? accountId    = null,
+            [FromQuery] Guid? sourceAccountId = null,
+            [FromQuery] Guid? targetAccountId = null,
+            [FromQuery] string? startDate     = null,
+            [FromQuery] string? endDate       = null,
+            [FromQuery] string? transactionType = null)
         {
             var userId = GetUserId();
             var result = await _transactionService.GetTransactionsAsync(
-                userId, pageNumber, pageSize, categoryId, tagId, minAmount, maxAmount, search, timeframe
+                userId, pageNumber, pageSize, categoryId, tagId, minAmount, maxAmount, search, timeframe, accountId, sourceAccountId, targetAccountId, startDate, endDate, transactionType
             );
             return HandleResult(result);
         }
@@ -45,12 +51,46 @@ namespace ST_finance.Domain.Features.Transactions
             [FromQuery] decimal? minAmount = null,
             [FromQuery] decimal? maxAmount = null,
             [FromQuery] string? search     = null,
-            [FromQuery] string? timeframe  = null)
+            [FromQuery] string? timeframe  = null,
+            [FromQuery] Guid? accountId    = null,
+            [FromQuery] Guid? sourceAccountId = null,
+            [FromQuery] Guid? targetAccountId = null,
+            [FromQuery] string? startDate     = null,
+            [FromQuery] string? endDate       = null,
+            [FromQuery] string? transactionType = null)
         {
             var userId = GetUserId();
             var result = await _transactionService.GetTransactionSummaryAsync(
-                userId, categoryId, tagId, minAmount, maxAmount, search, timeframe
+                userId, categoryId, tagId, minAmount, maxAmount, search, timeframe, accountId, sourceAccountId, targetAccountId, startDate, endDate, transactionType
             );
+            return HandleResult(result);
+        }
+
+        [HttpPost("search")]
+        public async Task<IActionResult> SearchTransactions([FromBody] TransactionSearchRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure<PagedResponse<TransactionResponse>>(CustomErrors.Validation.InvalidInput(errors)));
+            }
+
+            var userId = GetUserId();
+            var result = await _transactionService.SearchTransactionsAsync(userId, request);
+            return HandleResult(result);
+        }
+
+        [HttpPost("summary-search")]
+        public async Task<IActionResult> GetTransactionSummarySearch([FromBody] TransactionSearchRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure<TransactionSummaryResponse>(CustomErrors.Validation.InvalidInput(errors)));
+            }
+
+            var userId = GetUserId();
+            var result = await _transactionService.GetTransactionSummarySearchAsync(userId, request);
             return HandleResult(result);
         }
 

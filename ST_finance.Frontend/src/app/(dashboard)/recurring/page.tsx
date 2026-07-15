@@ -6,7 +6,7 @@ import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
-import { Clock, Repeat, AlertTriangle, Loader2, Calendar, ArrowUpRight, ArrowDownLeft, Plus, X } from "lucide-react";
+import { Clock, Repeat, AlertTriangle, Loader2, Calendar, ArrowUpRight, ArrowDownLeft, Plus, X, FolderOpen, Wallet } from "lucide-react";
 import { CreateRecurringModal } from "@/components/ui/CreateRecurringModal";
 import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
 
@@ -17,6 +17,13 @@ interface RecurringSchedule {
   transactionType:  string;
   frequency:        string;
   nextOccurrenceDate: string;
+  accountId:        string;
+  targetAccountId?: string;
+  categoryId?:      string;
+  startDate:        string;
+  endDate?:         string;
+  lastTriggeredAt?: string;
+  createdAt:        string;
   category?:        string;
 }
 
@@ -44,6 +51,7 @@ export default function RecurringPage() {
   const currency  = user?.currency || "THB";
   const [page,            setPage]            = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<RecurringSchedule | null>(null);
   const [deleteConfirmId,   setDeleteConfirmId]   = useState<string | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState<string>("");
   const qc = useQueryClient();
@@ -56,6 +64,14 @@ export default function RecurringPage() {
       throw new Error(res.data.error?.message || "Failed to fetch schedules");
     },
     placeholderData: (prev) => prev,
+  });
+
+  const { data: accountsList } = useQuery<any[]>({
+    queryKey: ["accounts-lookup"],
+    queryFn: async () => {
+      const res = await apiClient.get("/api/accounts?pageSize=100");
+      return res.data.value?.items || [];
+    },
   });
 
   const schedules = data?.items ?? [];
@@ -146,7 +162,11 @@ export default function RecurringPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {schedules.map((schedule, idx) => (
-              <div key={schedule.id ?? `sched-${idx}`} className="ds-card ds-card-interactive p-5 flex flex-col gap-4">
+              <div
+                key={schedule.id ?? `sched-${idx}`}
+                className="ds-card ds-card-interactive p-5 flex flex-col gap-4 cursor-pointer"
+                onClick={() => setSelectedSchedule(schedule)}
+              >
                 {/* Top row */}
                 <div className="flex items-center justify-between">
                   <div
@@ -204,7 +224,8 @@ export default function RecurringPage() {
                   </div>
                   <button
                     id={`delete-recurring-btn-${schedule.id}`}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setDeleteConfirmId(schedule.id);
                       setDeleteConfirmName(schedule.name);
                     }}
@@ -251,6 +272,13 @@ export default function RecurringPage() {
       {showCreateModal && (
         <CreateRecurringModal onClose={() => setShowCreateModal(false)} />
       )}
+      {selectedSchedule && (
+        <RecurringDetailsModal
+          schedule={selectedSchedule}
+          accounts={accountsList || []}
+          onClose={() => setSelectedSchedule(null)}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       <CustomConfirmModal
@@ -268,6 +296,166 @@ export default function RecurringPage() {
         onCancel={() => setDeleteConfirmId(null)}
         isDestructive
       />
+    </div>
+  );
+}
+
+/** Recurring Schedule Details Modal */
+function RecurringDetailsModal({
+  schedule,
+  accounts,
+  onClose,
+}: {
+  schedule: RecurringSchedule;
+  accounts: any[];
+  onClose: () => void;
+}) {
+  const getAccountName = (id: string) => {
+    return accounts.find((a) => a.id === id)?.name || "Unknown Wallet";
+  };
+
+  const isIncome = schedule.transactionType === "Income";
+  const isTransfer = schedule.transactionType === "Transfer";
+
+  const amountColor = isIncome
+    ? "text-[hsl(var(--primary))]"
+    : isTransfer
+    ? "text-[hsl(var(--muted-foreground))]"
+    : "text-[hsl(var(--destructive))]";
+
+  const sign = isIncome ? "+" : isTransfer ? "↔" : "−";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="ds-card w-full max-w-md p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 ds-btn-icon h-7 w-7"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-2">
+            {isIncome ? (
+              <span className="ds-badge ds-badge-success">+ AUTOMATED INCOME</span>
+            ) : isTransfer ? (
+              <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]">↔ AUTOMATED TRANSFER</span>
+            ) : (
+              <span className="ds-badge ds-badge-danger">− AUTOMATED EXPENSE</span>
+            )}
+          </div>
+          <h2 className="text-xl font-bold tracking-tight">{schedule.name}</h2>
+          <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1 font-mono">
+            Cycle Frequency: <span className="text-[hsl(var(--foreground))] font-bold">{schedule.frequency}</span>
+          </p>
+        </div>
+
+        <div className="space-y-4 font-sans text-xs">
+          {/* Amount block */}
+          <div className="bg-[hsl(var(--secondary)/0.5)] border border-[hsl(var(--border))] rounded-xl p-4 flex flex-col justify-center items-center">
+            <span className="text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1 font-mono">
+              Cycle Value Amount
+            </span>
+            <p className={`font-mono text-2xl font-black ${amountColor}`}>
+              {sign} {schedule.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} THB
+            </p>
+          </div>
+
+          {/* Details list */}
+          <div className="border border-[hsl(var(--border))] rounded-xl p-4 space-y-3 font-mono text-[hsl(var(--muted-foreground))]">
+            <div className="flex justify-between items-center">
+              <span>Source Account:</span>
+              <span className="text-[hsl(var(--foreground))] font-semibold">
+                {getAccountName(schedule.accountId)}
+              </span>
+            </div>
+
+            {isTransfer && schedule.targetAccountId && (
+              <div className="flex justify-between items-center">
+                <span>Target Account:</span>
+                <span className="text-[hsl(var(--foreground))] font-semibold">
+                  {getAccountName(schedule.targetAccountId)}
+                </span>
+              </div>
+            )}
+
+            {schedule.category && (
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1">
+                  <FolderOpen className="h-3.5 w-3.5" />
+                  Category:
+                </span>
+                <span className="text-[hsl(var(--foreground))] font-semibold">
+                  {schedule.category}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Schedule Start:
+              </span>
+              <span className="text-[hsl(var(--foreground))] font-semibold">
+                {new Date(schedule.startDate).toLocaleDateString(undefined, {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
+
+            {schedule.endDate && (
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Schedule End:
+                </span>
+                <span className="text-[hsl(var(--foreground))] font-semibold">
+                  {new Date(schedule.endDate).toLocaleDateString(undefined, {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            )}
+
+            {schedule.lastTriggeredAt && (
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  Last Triggered:
+                </span>
+                <span className="text-[hsl(var(--foreground))] font-semibold">
+                  {new Date(schedule.lastTriggeredAt).toLocaleDateString(undefined, {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center border-t border-[hsl(var(--border))] pt-2.5">
+              <span className="flex items-center gap-1 text-[hsl(var(--foreground))] font-bold">
+                <Clock className="h-3.5 w-3.5" />
+                Next Occurrence:
+              </span>
+              <span className="text-[hsl(var(--primary))] font-bold">
+                {new Date(schedule.nextOccurrenceDate).toLocaleDateString(undefined, {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

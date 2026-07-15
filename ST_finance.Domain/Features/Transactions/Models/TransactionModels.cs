@@ -33,6 +33,24 @@ namespace ST_finance.Domain.Features.Transactions.Models
         public List<string> TagNames { get; set; } = new List<string>();
     }
 
+    public class TransactionSearchRequest
+    {
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public Guid? CategoryId { get; set; }
+        public Guid? TagId { get; set; }
+        public decimal? MinAmount { get; set; }
+        public decimal? MaxAmount { get; set; }
+        public string? Search { get; set; }
+        public string? Timeframe { get; set; }
+        public Guid? AccountId { get; set; }
+        public Guid? SourceAccountId { get; set; }
+        public Guid? TargetAccountId { get; set; }
+        public string? StartDate { get; set; }
+        public string? EndDate { get; set; }
+        public string? TransactionType { get; set; }
+    }
+
     public record TransactionSummaryResponse(
         decimal Inflow,
         decimal Outflow

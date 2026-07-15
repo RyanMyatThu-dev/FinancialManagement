@@ -92,14 +92,14 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ST_finance.Database.Data.AppDbContext>();
         
-        // 1. Run migrations if there are pending migrations
+        
         var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
         if (pendingMigrations.Any())
         {
             await context.Database.MigrateAsync();
         }
 
-        // 2. Seed database if the generic demo user 'alex' does not exist
+        
         var userManager = services.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<ST_finance.Database.Data.TblUser>>();
         var hasDemoUser = await context.Users.AnyAsync(u => u.UserName == "alex");
         if (!hasDemoUser)

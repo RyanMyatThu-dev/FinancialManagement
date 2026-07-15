@@ -2,20 +2,19 @@
 
 import { useState } from "react";
 
-export type Timeframe = "Day" | "Week" | "Month" | "Year";
+export type Timeframe = "Day" | "Week" | "Month" | "Year" | "Custom";
 
 interface TimeframeFilterProps {
   value?: Timeframe;
   onChange?: (tf: Timeframe) => void;
 }
 
-const OPTIONS: Timeframe[] = ["Day", "Week", "Month", "Year"];
+const OPTIONS: Timeframe[] = ["Day", "Week", "Month", "Year", "Custom"];
 
 export function TimeframeFilter({ value = "Month", onChange }: TimeframeFilterProps) {
-  const [active, setActive] = useState<Timeframe>(value);
+  const active = value;
 
   const handleClick = (tf: Timeframe) => {
-    setActive(tf);
     onChange?.(tf);
   };
 
