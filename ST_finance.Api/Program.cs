@@ -29,10 +29,12 @@ builder.Services.AddCors(options =>
     // Staging / Production: allow Vercel frontend domain
     options.AddPolicy("AllowVercel", policy =>
     {
-        policy.WithOrigins(
-                "https://st-finance.vercel.app",
-                "https://*.vercel.app"                          // Covers Vercel preview deployment URLs
-              )
+        policy.SetIsOriginAllowed(origin =>
+              {
+                  // Check if the origin matches our main domain or any Vercel preview domain
+                  var uri = new Uri(origin);
+                  return uri.Host == "st-finance.vercel.app" || uri.Host.EndsWith(".vercel.app");
+              })
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
