@@ -56,8 +56,8 @@ flowchart TB
     Lambda -.->|"Assume Role"| ExecRole
 
     %% Styling Link Styles
-    linkStyle 0,1,2,3 stroke:#4CAF50,stroke-width:2px; %% Green for Runtime Flow
-    linkStyle 4,5,6,7,8 stroke:#2196F3,stroke-width:2px,stroke-dasharray: 5; %% Blue for DevOps Flow
+    linkStyle 0,1,2,3 stroke:#4CAF50,stroke-width:2px;
+    linkStyle 4,5,6,7,8 stroke:#2196F3,stroke-width:2px,stroke-dasharray:5;
 ```
 
 ### 💻 Frontend (Vercel)
