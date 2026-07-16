@@ -64,6 +64,8 @@ namespace ST_finance.Domain.Features.RecurringSchedules
                 "Daily" => current.AddDays(1),
                 "Weekly" => current.AddDays(7),
                 "Monthly" => current.AddMonths(1),
+                "BiMonthly" => current.AddMonths(2),
+                "BiAnnual" => current.AddMonths(6),
                 "Yearly" => current.AddYears(1),
                 _ => current.AddDays(1)
             };

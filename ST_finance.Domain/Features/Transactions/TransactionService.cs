@@ -350,6 +350,9 @@ namespace ST_finance.Domain.Features.Transactions
                 _context.TblTransactions.Add(transaction);
                 await _context.SaveChangesAsync();
 
+                await UpdateDailyQuotaLogForDateAsync(userId, transaction.Date);
+                await _context.SaveChangesAsync();
+
                 var proposedNetBalance = await _context.TblAccounts
                     .Where(a => a.UserId == userId)
                     .SumAsync(a => a.Balance ?? 0m);
@@ -424,6 +427,9 @@ namespace ST_finance.Domain.Features.Transactions
                     return Result.Failure<TransactionResponse>(applyResult.Error);
                 }
 
+                // Capture the old date for quota recalculation
+                var oldDate = existingTx.Date;
+
                 // Update properties
                 existingTx.AccountId = request.AccountId;
                 existingTx.TargetAccountId = request.TargetAccountId;
@@ -447,6 +453,13 @@ namespace ST_finance.Domain.Features.Transactions
                     }
                 }
 
+                await _context.SaveChangesAsync();
+
+                await UpdateDailyQuotaLogForDateAsync(userId, oldDate);
+                if (oldDate.Date != request.Date.Date)
+                {
+                    await UpdateDailyQuotaLogForDateAsync(userId, request.Date);
+                }
                 await _context.SaveChangesAsync();
 
                 var proposedNetBalance = await _context.TblAccounts
@@ -493,6 +506,9 @@ namespace ST_finance.Domain.Features.Transactions
                 // Soft-delete the transaction
                 existingTx.DeleteFlag = true;
 
+                await _context.SaveChangesAsync();
+
+                await UpdateDailyQuotaLogForDateAsync(userId, existingTx.Date);
                 await _context.SaveChangesAsync();
 
                 var proposedNetBalance = await _context.TblAccounts
@@ -775,6 +791,31 @@ namespace ST_finance.Domain.Features.Transactions
                 request.EndDate,
                 request.TransactionType
             );
+        }
+
+        private async Task UpdateDailyQuotaLogForDateAsync(Guid userId, DateTime transactionDateUtc)
+        {
+            var localDate = DateOnly.FromDateTime(transactionDateUtc.AddHours(7));
+
+            var existingLog = await _context.TblDailyQuotaLogs
+                .FirstOrDefaultAsync(l => l.UserId == userId && l.Date == localDate);
+
+            if (existingLog != null)
+            {
+                var startOfDateBkk = DateTime.SpecifyKind(
+                    new DateTime(localDate.Year, localDate.Month, localDate.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7),
+                    DateTimeKind.Utc);
+                var endOfDateBkk = startOfDateBkk.AddDays(1);
+
+                var actualSpent = await _context.TblTransactions
+                    .Where(t => t.UserId == userId 
+                             && t.TransactionType == "Expense" 
+                             && t.Date >= startOfDateBkk 
+                             && t.Date < endOfDateBkk)
+                    .SumAsync(t => t.Amount);
+
+                existingLog.ActualSpent = actualSpent;
+            }
         }
     }
 }

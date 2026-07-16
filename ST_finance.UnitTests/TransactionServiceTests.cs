@@ -176,5 +176,131 @@ namespace ST_finance.UnitTests
             Assert.NotNull(tx);
             Assert.True(tx.DeleteFlag);
         }
+
+        [Fact]
+        public async Task CreatePastTransaction_ShouldUpdateDailyQuotaLog()
+        {
+            var pastDate = DateTime.UtcNow.AddDays(-2);
+            var localDate = DateOnly.FromDateTime(pastDate.AddHours(7));
+
+            // Seed a daily quota log for that past date
+            var quotaLog = new TblDailyQuotaLog
+            {
+                Id = Guid.NewGuid(),
+                UserId = _userId,
+                Date = localDate,
+                TargetQuota = 500m,
+                ActualSpent = 0m,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.TblDailyQuotaLogs.Add(quotaLog);
+            await _context.SaveChangesAsync();
+
+            var request = new TransactionRequest
+            {
+                AccountId = _accountId,
+                CategoryId = _categoryId,
+                Amount = 150m,
+                TransactionType = "Expense",
+                Description = "Past Lunch",
+                Date = pastDate
+            };
+
+            var result = await _service.CreateTransactionAsync(_userId, request);
+            Assert.True(result.IsSuccess);
+
+            // Verify quota log was updated
+            var updatedLog = await _context.TblDailyQuotaLogs.FindAsync(quotaLog.Id);
+            Assert.NotNull(updatedLog);
+            Assert.Equal(150m, updatedLog.ActualSpent);
+        }
+
+        [Fact]
+        public async Task UpdatePastTransaction_ShouldUpdateDailyQuotaLogForBothOldAndNewDates()
+        {
+            var oldDate = DateTime.UtcNow.AddDays(-3);
+            var newDate = DateTime.UtcNow.AddDays(-2);
+
+            var oldLocalDate = DateOnly.FromDateTime(oldDate.AddHours(7));
+            var newLocalDate = DateOnly.FromDateTime(newDate.AddHours(7));
+
+            // Seed daily quota logs for both dates
+            var oldLog = new TblDailyQuotaLog { Id = Guid.NewGuid(), UserId = _userId, Date = oldLocalDate, TargetQuota = 500m, ActualSpent = 150m, CreatedAt = DateTime.UtcNow };
+            var newLog = new TblDailyQuotaLog { Id = Guid.NewGuid(), UserId = _userId, Date = newLocalDate, TargetQuota = 500m, ActualSpent = 0m, CreatedAt = DateTime.UtcNow };
+            _context.TblDailyQuotaLogs.AddRange(oldLog, newLog);
+
+            // Seed transaction on old date
+            var tx = new TblTransaction
+            {
+                Id = Guid.NewGuid(),
+                UserId = _userId,
+                AccountId = _accountId,
+                CategoryId = _categoryId,
+                TransactionType = "Expense",
+                Amount = 150m,
+                Description = "Past Expense",
+                Date = oldDate,
+                DeleteFlag = false
+            };
+            _context.TblTransactions.Add(tx);
+            await _context.SaveChangesAsync();
+
+            // Update transaction to new date and new amount
+            var request = new TransactionRequest
+            {
+                AccountId = _accountId,
+                CategoryId = _categoryId,
+                Amount = 250m,
+                TransactionType = "Expense",
+                Description = "Updated Past Expense",
+                Date = newDate
+            };
+
+            var result = await _service.UpdateTransactionAsync(_userId, tx.Id, request);
+            Assert.True(result.IsSuccess);
+
+            // Verify old log actual spent became 0
+            var updatedOldLog = await _context.TblDailyQuotaLogs.FindAsync(oldLog.Id);
+            Assert.Equal(0m, updatedOldLog!.ActualSpent);
+
+            // Verify new log actual spent became 250
+            var updatedNewLog = await _context.TblDailyQuotaLogs.FindAsync(newLog.Id);
+            Assert.Equal(250m, updatedNewLog!.ActualSpent);
+        }
+
+        [Fact]
+        public async Task DeletePastTransaction_ShouldUpdateDailyQuotaLog()
+        {
+            var pastDate = DateTime.UtcNow.AddDays(-2);
+            var localDate = DateOnly.FromDateTime(pastDate.AddHours(7));
+
+            // Seed daily quota log and transaction
+            var quotaLog = new TblDailyQuotaLog { Id = Guid.NewGuid(), UserId = _userId, Date = localDate, TargetQuota = 500m, ActualSpent = 150m, CreatedAt = DateTime.UtcNow };
+            _context.TblDailyQuotaLogs.Add(quotaLog);
+
+            var tx = new TblTransaction
+            {
+                Id = Guid.NewGuid(),
+                UserId = _userId,
+                AccountId = _accountId,
+                CategoryId = _categoryId,
+                TransactionType = "Expense",
+                Amount = 150m,
+                Description = "Expense to delete",
+                Date = pastDate,
+                DeleteFlag = false
+            };
+            _context.TblTransactions.Add(tx);
+            await _context.SaveChangesAsync();
+
+            // Delete transaction
+            var result = await _service.DeleteTransactionAsync(_userId, tx.Id);
+            Assert.True(result.IsSuccess);
+
+            // Verify quota log was updated to 0
+            var updatedLog = await _context.TblDailyQuotaLogs.FindAsync(quotaLog.Id);
+            Assert.NotNull(updatedLog);
+            Assert.Equal(0m, updatedLog.ActualSpent);
+        }
     }
 }

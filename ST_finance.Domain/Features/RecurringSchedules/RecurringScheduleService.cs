@@ -85,6 +85,17 @@ namespace ST_finance.Domain.Features.RecurringSchedules
                 }
             }
 
+            // Align StartDate and EndDate to BKK timezone (UTC+7) start/end of day, then convert to UTC
+            var bkkStart = new DateTime(request.StartDate.Year, request.StartDate.Month, request.StartDate.Day, 0, 0, 0, DateTimeKind.Utc);
+            var utcStart = bkkStart.AddHours(-7);
+
+            DateTime? utcEnd = null;
+            if (request.EndDate.HasValue)
+            {
+                var bkkEnd = new DateTime(request.EndDate.Value.Year, request.EndDate.Value.Month, request.EndDate.Value.Day, 23, 59, 59, DateTimeKind.Utc).AddMilliseconds(999);
+                utcEnd = bkkEnd.AddHours(-7);
+            }
+
             var schedule = new TblRecurringSchedule
             {
                 Id = Guid.NewGuid(),
@@ -96,9 +107,9 @@ namespace ST_finance.Domain.Features.RecurringSchedules
                 Amount = request.Amount,
                 TransactionType = request.TransactionType,
                 Frequency = request.Frequency,
-                StartDate = request.StartDate,
-                EndDate = request.EndDate,
-                NextOccurrenceDate = request.StartDate, // Initial occurrence is start date
+                StartDate = utcStart,
+                EndDate = utcEnd,
+                NextOccurrenceDate = utcStart, // Initial occurrence is start date
                 LastTriggeredAt = null,
                 DeleteFlag = false
             };
