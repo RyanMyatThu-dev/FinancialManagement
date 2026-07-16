@@ -6,7 +6,7 @@ import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
-import { Clock, Repeat, AlertTriangle, Loader2, Calendar, ArrowUpRight, ArrowDownLeft, Plus, X, FolderOpen, Wallet } from "lucide-react";
+import { Clock, Repeat, AlertTriangle, Loader2, Calendar, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Plus, X, FolderOpen, Wallet } from "lucide-react";
 import { CreateRecurringModal } from "@/components/ui/CreateRecurringModal";
 import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
 
@@ -173,11 +173,15 @@ export default function RecurringPage() {
                     className={`h-10 w-10 rounded-xl border flex items-center justify-center ${
                       schedule.transactionType === "Income"
                         ? "text-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.1)] border-[hsl(var(--primary)/0.25)]"
+                        : schedule.transactionType === "Transfer"
+                        ? "text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] border-[hsl(var(--border))]"
                         : "text-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/0.1)] border-[hsl(var(--destructive)/0.25)]"
                     }`}
                   >
                     {schedule.transactionType === "Income" ? (
                       <ArrowDownLeft className="h-5 w-5" />
+                    ) : schedule.transactionType === "Transfer" ? (
+                      <ArrowLeftRight className="h-5 w-5" />
                     ) : (
                       <ArrowUpRight className="h-5 w-5" />
                     )}

@@ -141,6 +141,12 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
       return;
     }
 
+    const selectedAccount = accounts.find((a) => a.id === accountId);
+    if (transactionType !== "Income" && selectedAccount && selectedAccount.balance < parsedAmount) {
+      setError(`Insufficient balance. Selected account has ฿${selectedAccount.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}, but the schedule amount is ฿${parsedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}.`);
+      return;
+    }
+
     if (transactionType === "Transfer" && !targetAccountId) {
       setError("Please select a target account for transfers.");
       return;
@@ -462,6 +468,13 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
               />
             </div>
           </div>
+
+          {startDate === new Date().toISOString().split("T")[0] && (
+            <div className="ds-alert-warning flex items-start gap-2.5 p-3 text-xs font-mono leading-relaxed">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>Warning: Since you set the start date to today, this recurring schedule will run immediately on the next hourly execution.</span>
+            </div>
+          )}
 
           <button
             id="create-recurring-submit"
