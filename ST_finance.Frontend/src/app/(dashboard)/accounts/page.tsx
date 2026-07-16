@@ -486,6 +486,8 @@ function AccountDetailsModal({
   account: Account;
   onClose: () => void;
 }) {
+  const { user } = useAuth();
+  const currency = user?.currency || "THB";
   const router = useRouter();
   const typeLabel = getAccountTypeLabel(account.accountType);
   const typeStr = String(account.accountType);
@@ -517,7 +519,7 @@ function AccountDetailsModal({
               <span className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1 font-mono">
                 Current Balance
               </span>
-              <CurrencyDisplay amount={account.balance} currency={account.currency || "THB"} size="md" />
+              <CurrencyDisplay amount={account.balance} currency={currency} size="md" />
             </div>
           </div>
 

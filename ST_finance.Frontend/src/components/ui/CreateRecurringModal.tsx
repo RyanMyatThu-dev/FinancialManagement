@@ -51,13 +51,8 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
 
   // Category Mutation
   const createCategoryMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiClient.post("/api/transactions/categories", {
-        name: newCategoryName,
-        type: transactionType,
-        icon: newCategoryIcon,
-        color: newCategoryColor,
-      });
+    mutationFn: async (body: { name: string; type: string; icon: string; color: string }) => {
+      const res = await apiClient.post("/api/transactions/categories", body);
       if (res.data.isSuccess && res.data.value) return res.data.value;
       throw new Error(res.data.error?.message || "Failed to create category");
     },
@@ -400,7 +395,12 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
                           type="button"
                           onClick={() => {
                             if (!newCategoryName.trim()) return;
-                            createCategoryMutation.mutate();
+                            createCategoryMutation.mutate({
+                              name: newCategoryName.trim(),
+                              type: transactionType,
+                              icon: newCategoryIcon,
+                              color: newCategoryColor,
+                            });
                           }}
                           disabled={createCategoryMutation.isPending}
                           className="px-2 py-1 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] text-[10px] font-bold rounded"
