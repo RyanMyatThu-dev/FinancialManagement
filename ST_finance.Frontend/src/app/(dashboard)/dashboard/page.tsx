@@ -295,10 +295,24 @@ export default function DashboardHome() {
               color={quotaUsedPercent > 80 ? "destructive" : quotaUsedPercent > 60 ? "warning" : "primary"}
             />
 
+            {/* Quota Formula Explanation Footer */}
+            <div className="bg-[hsl(var(--secondary)/0.2)] p-3 rounded-lg border border-[hsl(var(--border))] text-[10px] font-mono leading-normal text-[hsl(var(--muted-foreground))] flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-[hsl(var(--primary))] shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-bold text-[hsl(var(--foreground))] block">📐 Safe-to-Spend Quota Formula</span>
+                <p>
+                  Quota = (Disposable Pool - Upcoming Bills - Active Goal Needs) / Days Remaining
+                </p>
+                <p className="text-[9px] opacity-75">
+                  Protects your upcoming bills and active savings goals automatically over the remaining days in your reset cycle.
+                </p>
+              </div>
+            </div>
+
             <div className="border-t border-[hsl(var(--border))] pt-4 grid grid-cols-3 gap-4 text-[11px] text-[hsl(var(--muted-foreground))] font-mono">
               <div>
                 <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Reset Cycle</p>
-                <p className="font-bold text-[hsl(var(--foreground))] flex items-center gap-1.5 truncate max-w-[200px]" title={summary?.resetDayText || "—"}>
+                <p className="font-bold text-[hsl(var(--foreground))] flex items-center gap-1.5 truncate max-w-[280px] md:max-w-[350px]" title={summary?.resetDayText || "—"}>
                   <Calendar className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                   {summary?.resetDayText || "—"}
                 </p>

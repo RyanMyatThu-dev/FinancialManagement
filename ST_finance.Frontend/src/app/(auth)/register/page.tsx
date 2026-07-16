@@ -25,6 +25,7 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [currency, setCurrency] = useState("THB");
 
   useEffect(() => {
     document.title = "Register | ST-Finance";
@@ -124,7 +125,7 @@ export default function RegisterPage() {
     }
 
     setIsSubmitting(true);
-    const result = await register(username, email, password, fullName, otpCode);
+    const result = await register(username, email, password, fullName, otpCode, currency);
     setIsSubmitting(false);
 
     if (result.success) {
@@ -412,6 +413,28 @@ export default function RegisterPage() {
                       )}
                     </button>
                   </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="register-currency"
+                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                  >
+                    Preferred Currency
+                  </label>
+                  <select
+                    id="register-currency"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="ds-input w-full px-3 py-2.5 text-sm"
+                  >
+                    <option value="THB">THB (฿)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="SGD">SGD (S$)</option>
+                    <option value="MMK">MMK (K)</option>
+                  </select>
                 </div>
 
                 <button

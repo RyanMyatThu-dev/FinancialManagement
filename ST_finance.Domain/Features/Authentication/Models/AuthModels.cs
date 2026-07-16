@@ -8,7 +8,8 @@ public record RegisterRequest(
     [Required][MinLength(6)] string Password,
     [Required] string Username,
     [Required] string FullName,
-    [Required] string OtpCode
+    [Required] string OtpCode,
+    string? Currency = "THB"
 );
 
 public record RegisterSendOtpRequest(

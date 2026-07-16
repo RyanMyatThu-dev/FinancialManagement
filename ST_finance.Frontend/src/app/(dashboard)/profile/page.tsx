@@ -25,7 +25,6 @@ export default function ProfilePage() {
   const [usernameLoading, setUsernameLoading] = useState(false);
 
   // Budget Settings State
-  const [targetSavings, setTargetSavings] = useState(user?.targetMonthlySavings?.toString() || "2000");
   const [currency, setCurrency] = useState(user?.currency || "THB");
   const [enableQuotaPacing, setEnableQuotaPacing] = useState(user?.enableQuotaPacing ?? true);
   const [budgetLoading, setBudgetLoading] = useState(false);
@@ -34,7 +33,6 @@ export default function ProfilePage() {
   // Sync state with user data
   useEffect(() => {
     if (user) {
-      setTargetSavings(user.targetMonthlySavings?.toString() || "2000");
       setCurrency(user.currency || "THB");
       setEnableQuotaPacing(user.enableQuotaPacing ?? true);
     }
@@ -46,16 +44,7 @@ export default function ProfilePage() {
     setBudgetLoading(true);
     setBudgetMessage(null);
 
-    const parsedSavings = parseFloat(targetSavings);
-
-    if (isNaN(parsedSavings) || parsedSavings < 0) {
-      setBudgetMessage({ type: "error", text: "Target monthly savings must be greater than or equal to zero." });
-      setBudgetLoading(false);
-      return;
-    }
-
     const res = await updateProfile({
-      targetMonthlySavings: parsedSavings,
       currency,
       enableQuotaPacing,
     });
@@ -527,7 +516,7 @@ export default function ProfilePage() {
             )}
 
             <form onSubmit={handleUpdateBudget} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Daily Quota Pacing Toggle */}
                 <div>
                   <label
@@ -545,27 +534,6 @@ export default function ProfilePage() {
                     <option value="true">Enabled (Pace spending daily)</option>
                     <option value="false">Disabled (Hide spending quota)</option>
                   </select>
-                </div>
-
-                {/* Target Savings */}
-                <div>
-                  <label
-                    htmlFor="target-savings"
-                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
-                  >
-                    Target Monthly Savings
-                  </label>
-                  <input
-                    id="target-savings"
-                    type="number"
-                    min={0}
-                    step="any"
-                    required
-                    value={targetSavings}
-                    onChange={(e) => setTargetSavings(e.target.value)}
-                    placeholder="e.g. 2000"
-                    className="ds-input w-full px-3 py-2.5 text-sm font-mono"
-                  />
                 </div>
 
                 {/* Currency */}
@@ -587,6 +555,7 @@ export default function ProfilePage() {
                     <option value="EUR">EUR (€)</option>
                     <option value="GBP">GBP (£)</option>
                     <option value="SGD">SGD (S$)</option>
+                    <option value="MMK">MMK (K)</option>
                   </select>
                 </div>
               </div>

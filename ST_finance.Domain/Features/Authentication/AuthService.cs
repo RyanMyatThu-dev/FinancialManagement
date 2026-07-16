@@ -98,7 +98,8 @@ namespace ST_finance.Domain.Features.Authentication
                 MonthlyAllowanceAmount = 16000.00m,
                 AllowanceDayOfMonth = 25,
                 TargetMonthlySavings = 2000.00m,
-                Currency = "THB",
+                Currency = string.IsNullOrEmpty(request.Currency) ? "THB" : request.Currency,
+                EnableQuotaPacing = true,
                 UpdatedAt = DateTime.UtcNow
             };
 

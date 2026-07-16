@@ -34,7 +34,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<LoginResult>;
   verifyTwoFactor: (userId: string, otpCode: string) => Promise<{ success: boolean; error?: string }>;
   sendRegisterOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
-  register: (username: string, email: string, password: string, fullName: string, otpCode: string) => Promise<{ success: boolean; error?: string }>;
+  register: (username: string, email: string, password: string, fullName: string, otpCode: string, currency?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
   updateProfile: (profileData: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
@@ -172,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (username: string, email: string, password: string, fullName: string, otpCode: string) => {
+  const register = async (username: string, email: string, password: string, fullName: string, otpCode: string, currency?: string) => {
     try {
       const response = await apiClient.post("/api/auth/register", {
         username,
@@ -180,6 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
         fullName,
         otpCode,
+        currency,
       });
       const result = response.data;
 

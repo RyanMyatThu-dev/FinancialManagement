@@ -20,6 +20,7 @@ import {
   Calendar,
   ChevronRight,
   Clock,
+  Info,
 } from "lucide-react";
 import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
 
@@ -875,6 +876,20 @@ export default function SavingsPage() {
           <Plus className="h-4 w-4" />
           New Goal
         </button>
+      </div>
+
+      {/* ── Explanation Info Card ────────────────────────────────────── */}
+      <div className="bg-[hsl(var(--secondary)/0.3)] p-4 rounded-lg border border-[hsl(var(--border))] text-xs font-mono space-y-2">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-[hsl(var(--primary))] flex items-center gap-1.5">
+          <Info className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
+          💡 How Savings Pacing Works
+        </span>
+        <p className="text-[10px] text-[hsl(var(--muted-foreground))] leading-relaxed">
+          <strong>Earmarked Savings:</strong> Any contributions you make to a goal are instantly "locked" and subtracted from your <em>Disposable Pool</em>, ensuring you do not spend that cash.
+        </p>
+        <p className="text-[10px] text-[hsl(var(--muted-foreground))] leading-relaxed">
+          <strong>Goal Pacing:</strong> If a goal has a future target date, the pacing engine calculates the daily amount required to meet that goal. Your daily quota is reduced by this daily share to make sure you stay on track, even before making contributions!
+        </p>
       </div>
 
       {/* ── Overall Progress Hero ─────────────────────────────────────── */}
