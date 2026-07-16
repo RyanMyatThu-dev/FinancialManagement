@@ -30,9 +30,9 @@ namespace ST_finance.Domain.Features.Dashboard
                 .Where(a => a.UserId == userId)
                 .SumAsync(a => a.Balance ?? 0m);
 
-            // 2. Total Savings Earmarked
+            // 2. Total Savings Earmarked (exclude completed goals since they have already been spent/purchased)
             var totalSavings = await _context.TblSavingsContributions
-                .Where(c => c.SavingsGoal.UserId == userId && !c.SavingsGoal.DeleteFlag)
+                .Where(c => c.SavingsGoal.UserId == userId && !c.SavingsGoal.DeleteFlag && !(c.SavingsGoal.IsCompleted ?? false))
                 .SumAsync(c => c.Amount);
 
             var disposableBalance = totalBalance - totalSavings;

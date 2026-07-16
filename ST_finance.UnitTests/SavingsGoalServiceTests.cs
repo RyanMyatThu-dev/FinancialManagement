@@ -139,5 +139,59 @@ namespace ST_finance.UnitTests
             var saved = await _context.TblSavingsGoals.IgnoreQueryFilters().FirstOrDefaultAsync(g => g.Id == goal.Id);
             Assert.True(saved!.DeleteFlag);
         }
+
+        [Fact]
+        public async Task ContributeToGoal_ShouldFail_WhenContributionExceedsTarget()
+        {
+            // Seed goal
+            var goal = new TblSavingsGoal { UserId = _userId, GoalName = "Keyboard", TargetAmount = 3000m, IsCompleted = false };
+            _context.TblSavingsGoals.Add(goal);
+
+            // Seed account
+            var account = new TblAccount { UserId = _userId, Name = "Main Bank", Balance = 10000m, AccountType = AccountType.Bank, Color = "#4F46E5", Icon = "Wallet" };
+            _context.TblAccounts.Add(account);
+            await _context.SaveChangesAsync();
+
+            // Contribute 2000 first (succeeds)
+            var req1 = new ContributeRequest(2000m, "Save 1");
+            var res1 = await _service.ContributeToGoalAsync(_userId, goal.Id, req1);
+            Assert.True(res1.IsSuccess);
+
+            // Contribute 1500 next (fails because 2000 + 1500 > 3000)
+            var req2 = new ContributeRequest(1500m, "Save 2");
+            var res2 = await _service.ContributeToGoalAsync(_userId, goal.Id, req2);
+
+            Assert.True(res2.IsFailure);
+            Assert.Contains("would exceed the target amount", res2.Error.Message.ToLower());
+            Assert.Contains("remaining needed is 1000", res2.Error.Message.ToLower());
+        }
+
+        [Fact]
+        public async Task ContributeToGoal_ShouldExcludeCompletedGoals_FromEarmarkedSavings()
+        {
+            // Seed a completed goal with 3000 THB contributions
+            var completedGoal = new TblSavingsGoal { UserId = _userId, GoalName = "Completed Goal", TargetAmount = 3000m, IsCompleted = true };
+            _context.TblSavingsGoals.Add(completedGoal);
+            
+            var contribution = new TblSavingsContribution { Id = Guid.NewGuid(), SavingsGoalId = completedGoal.Id, Amount = 3000m, Date = DateTime.UtcNow };
+            _context.TblSavingsContributions.Add(contribution);
+
+            // Seed an active goal
+            var activeGoal = new TblSavingsGoal { UserId = _userId, GoalName = "Active Goal", TargetAmount = 5000m, IsCompleted = false };
+            _context.TblSavingsGoals.Add(activeGoal);
+
+            // Seed account with 4000 THB balance
+            var account = new TblAccount { UserId = _userId, Name = "Main Bank", Balance = 4000m, AccountType = AccountType.Bank, Color = "#4F46E5", Icon = "Wallet" };
+            _context.TblAccounts.Add(account);
+            await _context.SaveChangesAsync();
+
+            // If completed goals are excluded, totalSavings is 0. Disposable balance is 4000 - 0 = 4000.
+            // Contributing 2500 should succeed.
+            // If completed goals are NOT excluded, totalSavings is 3000. Disposable balance is 4000 - 3000 = 1000, and contributing 2500 would fail.
+            var request = new ContributeRequest(2500m, "Save");
+            var result = await _service.ContributeToGoalAsync(_userId, activeGoal.Id, request);
+
+            Assert.True(result.IsSuccess);
+        }
     }
 }

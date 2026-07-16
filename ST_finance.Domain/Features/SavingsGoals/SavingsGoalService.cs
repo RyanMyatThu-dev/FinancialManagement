@@ -117,9 +117,10 @@ namespace ST_finance.Domain.Features.SavingsGoals
 
             var currentGoalSavings = goal.TblSavingsContributions.Sum(c => c.Amount);
 
-            if (request.Amount > 0 && currentGoalSavings >= goal.TargetAmount)
+            if (request.Amount > 0 && currentGoalSavings + request.Amount > goal.TargetAmount)
             {
-                return Result.Failure<SavingsGoalResponse>(CustomErrors.Validation.InvalidInput("Goal has already reached its target amount."));
+                var remainingNeeded = goal.TargetAmount - currentGoalSavings;
+                return Result.Failure<SavingsGoalResponse>(CustomErrors.Validation.InvalidInput($"Contribution of {request.Amount:F2} THB would exceed the target amount. Remaining needed is {remainingNeeded:F2} THB."));
             }
 
             if (request.Amount < 0 && (currentGoalSavings + request.Amount < 0))
@@ -134,7 +135,7 @@ namespace ST_finance.Domain.Features.SavingsGoals
                     .SumAsync(a => a.Balance ?? 0m);
 
                 var totalSavings = await _context.TblSavingsContributions
-                    .Where(c => c.SavingsGoal.UserId == userId && !c.SavingsGoal.DeleteFlag)
+                    .Where(c => c.SavingsGoal.UserId == userId && !c.SavingsGoal.DeleteFlag && !(c.SavingsGoal.IsCompleted ?? false))
                     .SumAsync(c => c.Amount);
 
                 var disposableBalance = totalBalance - totalSavings;
