@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { X, Loader2, AlertTriangle, Plus } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
 
 interface CreateRecurringModalProps {
@@ -24,6 +26,8 @@ interface Category {
 }
 
 export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
+  const { user } = useAuth();
+  const currency = user?.currency || "THB";
   const qc = useQueryClient();
 
   const [name,            setName]            = useState("");
@@ -143,7 +147,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
 
     const selectedAccount = accounts.find((a) => a.id === accountId);
     if (transactionType !== "Income" && selectedAccount && selectedAccount.balance < parsedAmount) {
-      setError(`Insufficient balance. Selected account has ฿${selectedAccount.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}, but the schedule amount is ฿${parsedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}.`);
+      setError(`Insufficient balance. Selected account has ${formatCurrency(selectedAccount.balance, currency)}, but the schedule amount is ${formatCurrency(parsedAmount, currency)}.`);
       return;
     }
 
@@ -266,7 +270,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
             {/* Amount */}
             <div>
               <label htmlFor="rec-amount" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                Amount (THB)
+                Amount ({currency})
               </label>
               <input
                 id="rec-amount"
@@ -297,7 +301,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
                 <option value="" disabled>Select account...</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name} (฿{a.balance.toLocaleString()})
+                    {a.name} ({formatCurrency(a.balance, currency)})
                   </option>
                 ))}
               </select>
@@ -318,7 +322,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
                   <option value="">Select target...</option>
                   {accounts.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.name} (฿{a.balance.toLocaleString()})
+                      {a.name} ({formatCurrency(a.balance, currency)})
                     </option>
                   ))}
                 </select>

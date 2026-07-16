@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
-import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
+import { CurrencyDisplay, formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { TechProgress } from "@/components/ui/TechProgress";
 import { TimeframeFilter, type Timeframe } from "@/components/ui/TimeframeFilter";
 import {
@@ -258,7 +258,7 @@ export default function DashboardHome() {
                       negativeColor
                     />
                     <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono mt-1">
-                      Quota was ฿{summary.quota.toFixed(2)} — spent ฿{summary.spentToday.toFixed(2)}
+                      Quota was {formatCurrency(summary.quota, currency)} — spent {formatCurrency(summary.spentToday, currency)}
                     </p>
                   </>
                 ) : (
@@ -290,8 +290,8 @@ export default function DashboardHome() {
             <TechProgress
               value={quotaUsedPercent}
               label={summary && summary.spentToday > (summary.quota || 0) ? "⚠ Spending Exceeded Quota" : "Today's Spending vs. Quota"}
-              minVal="฿0"
-              maxVal={`฿${summary?.quota?.toFixed(0) ?? "—"}`}
+              minVal={formatCurrency(0, currency)}
+              maxVal={summary?.quota ? formatCurrency(summary.quota, currency) : "—"}
               color={quotaUsedPercent > 80 ? "destructive" : quotaUsedPercent > 60 ? "warning" : "primary"}
             />
 
@@ -320,7 +320,7 @@ export default function DashboardHome() {
               <div>
                 <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Spent Today</p>
                 <p className="font-bold text-[hsl(var(--destructive))]">
-                  ฿{summary?.spentToday?.toFixed(2) ?? "0.00"}
+                  {formatCurrency(summary?.spentToday ?? 0, currency)}
                 </p>
               </div>
               <div>

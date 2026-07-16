@@ -710,6 +710,9 @@ function TransactionDetailsModal({
   categories: Category[];
   onClose: () => void;
 }) {
+  const { user } = useAuth();
+  const currency = user?.currency || "THB";
+
   const getAccountName = (id: string) => {
     return accounts.find((a) => a.id === id)?.name || "Unknown Wallet";
   };
@@ -760,7 +763,7 @@ function TransactionDetailsModal({
               Amount
             </span>
             <p className={`font-mono text-2xl font-black ${amountColor}`}>
-              {sign} {transaction.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} THB
+              {sign} {transaction.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} {currency}
             </p>
           </div>
 

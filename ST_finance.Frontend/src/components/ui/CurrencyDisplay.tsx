@@ -62,3 +62,34 @@ export function CurrencyDisplay({
     </span>
   );
 }
+
+export const formatCurrency = (amount: number, currency: string = "THB") => {
+  const isNegative = amount < 0;
+  const absAmount = Math.abs(amount);
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(absAmount);
+
+  const prefix = isNegative ? "-" : "";
+
+  if (currency === "MMK") {
+    return `${prefix}${formatted} MMK`;
+  }
+  if (currency === "THB") {
+    return `${prefix}฿${formatted}`;
+  }
+  if (currency === "USD") {
+    return `${prefix}$${formatted}`;
+  }
+  if (currency === "EUR") {
+    return `${prefix}€${formatted}`;
+  }
+  if (currency === "GBP") {
+    return `${prefix}£${formatted}`;
+  }
+  if (currency === "SGD") {
+    return `${prefix}S$${formatted}`;
+  }
+  return `${prefix}${formatted} ${currency}`;
+};

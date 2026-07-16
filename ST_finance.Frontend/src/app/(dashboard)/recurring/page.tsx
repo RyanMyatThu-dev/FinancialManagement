@@ -280,6 +280,7 @@ export default function RecurringPage() {
         <RecurringDetailsModal
           schedule={selectedSchedule}
           accounts={accountsList || []}
+          currency={currency}
           onClose={() => setSelectedSchedule(null)}
         />
       )}
@@ -308,10 +309,12 @@ export default function RecurringPage() {
 function RecurringDetailsModal({
   schedule,
   accounts,
+  currency,
   onClose,
 }: {
   schedule: RecurringSchedule;
   accounts: any[];
+  currency: string;
   onClose: () => void;
 }) {
   const getAccountName = (id: string) => {
@@ -362,7 +365,7 @@ function RecurringDetailsModal({
               Cycle Value Amount
             </span>
             <p className={`font-mono text-2xl font-black ${amountColor}`}>
-              {sign} {schedule.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} THB
+              {sign} {schedule.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} {currency}
             </p>
           </div>
 

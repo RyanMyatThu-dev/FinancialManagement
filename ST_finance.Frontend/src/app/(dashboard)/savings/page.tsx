@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
-import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
+import { CurrencyDisplay, formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { TechProgress } from "@/components/ui/TechProgress";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
 import {
@@ -270,6 +270,8 @@ function ContributeModal({
   const qc = useQueryClient();
   const [amount, setAmount] = useState("");
   const [note,   setNote]   = useState("");
+  const { user } = useAuth();
+  const currency = user?.currency || "THB";
   const [error,  setError]  = useState<string | null>(null);
 
   const { data: summaryData } = useQuery({
@@ -303,18 +305,18 @@ function ContributeModal({
 
     if (parsedAmount > 0) {
       if (parsedAmount > disposableBalance) {
-        setError(`Insufficient disposable balance (${disposableBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })} THB) to contribute.`);
+        setError(`Insufficient disposable balance (${disposableBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currency}) to contribute.`);
         return;
       }
       
       const remaining = goal.targetAmount - goal.currentAmount;
       if (parsedAmount > remaining) {
-        setError(`Contribution exceeds the remaining goal amount of ${remaining.toLocaleString(undefined, { minimumFractionDigits: 2 })} THB.`);
+        setError(`Contribution exceeds the remaining goal amount of ${remaining.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currency}.`);
         return;
       }
     } else {
       if (goal.currentAmount + parsedAmount < 0) {
-        setError(`Cannot withdraw more than currently saved (${goal.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} THB).`);
+        setError(`Cannot withdraw more than currently saved (${goal.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currency}).`);
         return;
       }
     }
@@ -925,8 +927,8 @@ export default function SavingsPage() {
           <TechProgress
             value={overallPct}
             color="safe"
-            minVal="฿0"
-            maxVal={`฿${totalTarget.toLocaleString("en-US")}`}
+            minVal={formatCurrency(0, currency)}
+            maxVal={formatCurrency(totalTarget, currency)}
           />
         </div>
       )}

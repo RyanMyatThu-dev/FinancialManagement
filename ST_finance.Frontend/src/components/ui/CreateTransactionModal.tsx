@@ -6,6 +6,7 @@ import { apiClient } from "@/api/client";
 import { X, Loader2, AlertTriangle, Plus, Tag } from "lucide-react";
 import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
 import { useAuth } from "@/context/AuthContext";
+import { formatCurrency } from "@/components/ui/CurrencyDisplay";
 
 interface CreateTransactionModalProps {
   onClose: () => void;
@@ -283,7 +284,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
             {/* Amount */}
             <div>
               <label htmlFor="tx-amount" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                Amount (THB)
+                Amount ({currency})
               </label>
               <input
                 id="tx-amount"
@@ -314,7 +315,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
                 <option value="" disabled>Select account...</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name} (฿{a.balance.toLocaleString()})
+                    {a.name} ({formatCurrency(a.balance, currency)})
                   </option>
                 ))}
               </select>
@@ -335,7 +336,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
                   <option value="">Select target...</option>
                   {accounts.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.name} (฿{a.balance.toLocaleString()})
+                      {a.name} ({formatCurrency(a.balance, currency)})
                     </option>
                   ))}
                 </select>
