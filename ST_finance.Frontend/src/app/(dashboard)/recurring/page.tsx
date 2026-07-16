@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
+import { useToast } from "@/context/ToastContext";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
 import { Clock, Repeat, AlertTriangle, Loader2, Calendar, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Plus, X, FolderOpen, Wallet } from "lucide-react";
 import { CreateRecurringModal } from "@/components/ui/CreateRecurringModal";
@@ -47,6 +48,7 @@ const FREQUENCY_COLORS: Record<string, string> = {
 };
 
 export default function RecurringPage() {
+  const { showToast } = useToast();
   const { user }  = useAuth();
   const currency  = user?.currency || "THB";
   const [page,            setPage]            = useState(1);
@@ -92,6 +94,7 @@ export default function RecurringPage() {
       if (!res.data.isSuccess) throw new Error(res.data.error?.message || "Failed to delete schedule.");
     },
     onSuccess: () => {
+      showToast("Recurring schedule deleted successfully", "success");
       qc.invalidateQueries({ queryKey: ["recurring"] });
     },
   });

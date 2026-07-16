@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { X, Loader2, AlertTriangle, Plus } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
@@ -26,6 +27,7 @@ interface Category {
 }
 
 export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const currency = user?.currency || "THB";
   const qc = useQueryClient();
@@ -60,6 +62,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
       throw new Error(res.data.error?.message || "Failed to create category");
     },
     onSuccess: (newCat) => {
+      showToast("Category created successfully", "success");
       // Synchronously inject the new category into the cache so the useEffect
       // sees it immediately and doesn't reset the selection
       qc.setQueryData<Category[]>(["categories"], (old) => [...(old || []), newCat]);
@@ -119,6 +122,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
       throw new Error(res.data.error?.message || "Failed to create recurring schedule.");
     },
     onSuccess: () => {
+      showToast("Recurring schedule created successfully", "success");
       qc.invalidateQueries({ queryKey: ["recurring"] });
       onClose();
     },

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { CurrencyDisplay, formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { TechProgress } from "@/components/ui/TechProgress";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
@@ -117,6 +118,7 @@ const deleteGoal = async (goalId: string): Promise<void> => {
 
 /** Create Goal Modal */
 function CreateGoalModal({ onClose }: { onClose: () => void }) {
+  const { showToast } = useToast();
   const qc = useQueryClient();
   const [goalName,    setGoalName]    = useState("");
   const [targetAmount,setTargetAmount]= useState("");
@@ -126,6 +128,7 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
   const mutation = useMutation({
     mutationFn: (body: CreateSavingsGoalRequest) => createGoal(body),
     onSuccess: () => {
+      showToast("Goal created successfully", "success");
       qc.invalidateQueries({ queryKey: ["savings-goals"] });
       onClose();
     },
@@ -271,6 +274,7 @@ function ContributeModal({
   const [amount, setAmount] = useState("");
   const [note,   setNote]   = useState("");
   const { user } = useAuth();
+  const { showToast } = useToast();
   const currency = user?.currency || "THB";
   const [error,  setError]  = useState<string | null>(null);
 
@@ -285,7 +289,8 @@ function ContributeModal({
 
   const mutation = useMutation({
     mutationFn: (body: ContributeRequest) => contributeToGoal(goal.id, body),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      showToast(variables.amount > 0 ? "Goal contribution saved successfully" : "Goal withdrawal saved successfully", "success");
       qc.invalidateQueries({ queryKey: ["savings-goals"] });
       qc.invalidateQueries({ queryKey: ["savings-contributions", goal.id] });
       onClose();
@@ -422,12 +427,14 @@ function CompleteGoalModal({
   goal: SavingsGoalResponse;
   onClose: () => void;
 }) {
+  const { showToast } = useToast();
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: () => completeGoal(goal.id),
     onSuccess: () => {
+      showToast("Savings goal completed successfully", "success");
       qc.invalidateQueries({ queryKey: ["savings-goals"] });
       qc.invalidateQueries({ queryKey: ["completed-savings-goals"] });
       onClose();
@@ -597,6 +604,7 @@ function ContributionsPanel({ goal, onClose }: { goal: SavingsGoalResponse; onCl
 
 /** Completed Goals Section Component */
 function CompletedGoalsSection({ currency }: { currency: string }) {
+  const { showToast } = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("CompletedAt");
@@ -613,6 +621,7 @@ function CompletedGoalsSection({ currency }: { currency: string }) {
   const deleteMutation = useMutation({
     mutationFn: deleteGoal,
     onSuccess:  () => {
+      showToast("Archived savings goal deleted successfully", "success");
       qc.invalidateQueries({ queryKey: ["completed-savings-goals"] });
       setPage(1);
     },
@@ -827,6 +836,7 @@ export default function SavingsPage() {
   const [completeGoalItem,    setCompleteGoalItem]    = useState<SavingsGoalResponse | null>(null);
   const [contributionsGoal,   setContributionsGoal]   = useState<SavingsGoalResponse | null>(null);
   const [page,                setPage]                = useState(1);
+  const { showToast } = useToast();
   const [deleteConfirmId,     setDeleteConfirmId]     = useState<string | null>(null);
   const [deleteConfirmName,   setDeleteConfirmName]   = useState<string>("");
 
@@ -851,6 +861,7 @@ export default function SavingsPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteGoal,
     onSuccess:  () => {
+      showToast("Savings goal deleted successfully", "success");
       qc.invalidateQueries({ queryKey: ["savings-goals"] });
       setPage(1);
     },

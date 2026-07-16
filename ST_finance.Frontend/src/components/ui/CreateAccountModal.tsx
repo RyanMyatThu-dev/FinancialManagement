@@ -4,12 +4,14 @@ import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { X, Loader2, AlertTriangle, Wallet, CreditCard, PiggyBank, Plus } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 
 interface CreateAccountModalProps {
   onClose: () => void;
 }
 
 export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
+  const { showToast } = useToast();
   const qc = useQueryClient();
   const [name,        setName]        = useState("");
   const [accountType, setAccountType] = useState<number>(1); // Bank = 1
@@ -31,6 +33,7 @@ export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
       throw new Error(res.data.error?.message || "Failed to create account.");
     },
     onSuccess: () => {
+      showToast("Account created successfully", "success");
       qc.invalidateQueries({ queryKey: ["accounts"] });
       onClose();
     },

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
+import { useToast } from "@/context/ToastContext";
 import {
   Tag,
   Search,
@@ -34,6 +35,7 @@ interface PagedTagsResponse {
 const PAGE_SIZE = 12;
 
 export default function TagsPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -80,6 +82,7 @@ export default function TagsPage() {
       throw new Error(res.data.error?.message || "Failed to create tag");
     },
     onSuccess: () => {
+      showToast("Tag created successfully", "success");
       qc.invalidateQueries({ queryKey: ["tags-paged"] });
       qc.invalidateQueries({ queryKey: ["tags"] });
       setNewTagName("");

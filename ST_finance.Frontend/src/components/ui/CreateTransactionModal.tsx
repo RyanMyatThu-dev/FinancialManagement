@@ -7,6 +7,7 @@ import { X, Loader2, AlertTriangle, Plus, Tag } from "lucide-react";
 import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/components/ui/CurrencyDisplay";
+import { useToast } from "@/context/ToastContext";
 
 interface CreateTransactionModalProps {
   onClose: () => void;
@@ -31,6 +32,7 @@ interface TagType {
 }
 
 export function CreateTransactionModal({ onClose }: CreateTransactionModalProps) {
+  const { showToast } = useToast();
   const qc = useQueryClient();
   const { user } = useAuth();
   const currency = user?.currency || "THB";
@@ -71,6 +73,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
       throw new Error(res.data.error?.message || "Failed to create category");
     },
     onSuccess: (newCat) => {
+      showToast("Category created successfully", "success");
       // Synchronously inject the new category into the cache so the useEffect
       // sees it immediately and doesn't reset the selection
       qc.setQueryData<Category[]>(["categories"], (old) => [...(old || []), newCat]);
@@ -95,6 +98,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
       throw new Error(res.data.error?.message || "Failed to create tag");
     },
     onSuccess: (newTag) => {
+      showToast("Tag created successfully", "success");
       qc.invalidateQueries({ queryKey: ["tags"] });
       setSelectedTagIds((prev) => [...prev, newTag.id]);
       setNewTagName("");
@@ -169,6 +173,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
       throw new Error(res.data.error?.message || "Failed to add transaction.");
     },
     onSuccess: () => {
+      showToast("Transaction registered successfully", "success");
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["dashboardSummary"] });
       qc.invalidateQueries({ queryKey: ["dashboardTrends"] });

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { apiClient } from "@/api/client";
 import {
   User as UserIcon,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 
 export default function ProfilePage() {
+  const { showToast } = useToast();
   const { user, refreshProfile, updateProfile } = useAuth();
 
   // Username State
@@ -50,9 +52,11 @@ export default function ProfilePage() {
     });
 
     if (res.success) {
+      showToast("Budget settings updated successfully", "success");
       setBudgetMessage({ type: "success", text: "Budget settings updated successfully." });
       await refreshProfile();
     } else {
+      showToast(res.error || "Failed to update budget settings", "error");
       setBudgetMessage({ type: "error", text: res.error || "Failed to update budget settings." });
     }
     setBudgetLoading(false);
@@ -102,13 +106,17 @@ export default function ProfilePage() {
       const response = await apiClient.post("/api/auth/profile/update-username", { newUsername });
       const result = response.data;
       if (result.isSuccess) {
+        showToast("Username updated successfully", "success");
         setUsernameMessage({ type: "success", text: "Username updated successfully." });
         await refreshProfile();
       } else {
-        setUsernameMessage({ type: "error", text: result.error?.message || "Failed to update username." });
+        const errorMsg = result.error?.message || "Failed to update username.";
+        showToast(errorMsg, "error");
+        setUsernameMessage({ type: "error", text: errorMsg });
       }
     } catch (err: any) {
       const msg = err.response?.data?.error?.message || "Failed to update username.";
+      showToast(msg, "error");
       setUsernameMessage({ type: "error", text: msg });
     } finally {
       setUsernameLoading(false);
