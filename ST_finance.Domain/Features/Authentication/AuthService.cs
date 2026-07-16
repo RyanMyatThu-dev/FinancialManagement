@@ -239,7 +239,8 @@ namespace ST_finance.Domain.Features.Authentication
                     MonthlyAllowanceAmount = 16000.00m,
                     AllowanceDayOfMonth = 25,
                     TargetMonthlySavings = 2000.00m,
-                    Currency = "THB"
+                    Currency = "THB",
+                    ResetFrequency = "Monthly"
                 };
                 _context.TblUserProfiles.Add(profile);
             }
@@ -249,12 +250,39 @@ namespace ST_finance.Domain.Features.Authentication
                 profile.MonthlyAllowanceAmount = request.MonthlyAllowanceAmount.Value;
             }
 
+            if (!string.IsNullOrEmpty(request.ResetFrequency))
+            {
+                var freq = request.ResetFrequency;
+                if (freq != "Monthly" && freq != "Weekly" && freq != "None")
+                {
+                    return Result.Failure<UserProfileResponse>(CustomErrors.Validation.InvalidInput("Reset frequency must be 'Monthly', 'Weekly', or 'None'."));
+                }
+                profile.ResetFrequency = freq;
+
+                if (freq == "Weekly" && (profile.AllowanceDayOfMonth < 1 || profile.AllowanceDayOfMonth > 7))
+                {
+                    profile.AllowanceDayOfMonth = 1; // Default to Monday
+                }
+            }
+
+            var activeFreq = profile.ResetFrequency ?? "Monthly";
+
             if (request.AllowanceDayOfMonth.HasValue)
             {
                 int val = request.AllowanceDayOfMonth.Value;
-                if (val < 1 || val > 31)
+                if (activeFreq == "Weekly")
                 {
-                    return Result.Failure<UserProfileResponse>(CustomErrors.Validation.InvalidInput("Allowance cycle day must be between 1 and 31."));
+                    if (val < 1 || val > 7)
+                    {
+                        return Result.Failure<UserProfileResponse>(CustomErrors.Validation.InvalidInput("Weekly allowance reset day must be between 1 (Monday) and 7 (Sunday)."));
+                    }
+                }
+                else if (activeFreq == "Monthly")
+                {
+                    if (val < 1 || val > 31)
+                    {
+                        return Result.Failure<UserProfileResponse>(CustomErrors.Validation.InvalidInput("Monthly allowance reset day must be between 1 and 31."));
+                    }
                 }
                 profile.AllowanceDayOfMonth = val;
             }
@@ -554,6 +582,7 @@ namespace ST_finance.Domain.Features.Authentication
                 AllowanceDayOfMonth: profile?.AllowanceDayOfMonth,
                 TargetMonthlySavings: profile?.TargetMonthlySavings,
                 Currency: profile?.Currency,
+                ResetFrequency: profile?.ResetFrequency,
                 UpdatedAt: profile?.UpdatedAt
             );
         }

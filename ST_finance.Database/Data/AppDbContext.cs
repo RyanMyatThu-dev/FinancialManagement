@@ -504,6 +504,10 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
                 .HasMaxLength(3)
                 .HasDefaultValueSql("'THB'::character varying")
                 .HasColumnName("currency");
+            entity.Property(e => e.ResetFrequency)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'Monthly'::character varying")
+                .HasColumnName("reset_frequency");
             entity.Property(e => e.MonthlyAllowanceAmount)
                 .HasPrecision(12, 2)
                 .HasDefaultValueSql("16000.00")

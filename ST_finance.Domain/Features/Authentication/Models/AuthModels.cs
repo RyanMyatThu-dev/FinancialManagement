@@ -52,6 +52,7 @@ public record UserProfileResponse(
     int? AllowanceDayOfMonth,
     decimal? TargetMonthlySavings,
     string? Currency,
+    string? ResetFrequency,
     DateTime? UpdatedAt
 );
 
@@ -59,7 +60,8 @@ public record UpdateProfileRequest(
     decimal? MonthlyAllowanceAmount,
     int? AllowanceDayOfMonth,
     decimal? TargetMonthlySavings,
-    string? Currency
+    string? Currency,
+    string? ResetFrequency
 );
 
 public record UpdateUsernameRequest(

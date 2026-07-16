@@ -283,7 +283,21 @@ export default function DashboardHome() {
               <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Reset Day</p>
               <p className="font-bold text-[hsl(var(--foreground))] flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
-                {user?.allowanceDayOfMonth ?? 25}th of Month
+                {user?.resetFrequency === "Weekly" ? (
+                  `Every ${
+                    user.allowanceDayOfMonth === 1 ? "Monday" :
+                    user.allowanceDayOfMonth === 2 ? "Tuesday" :
+                    user.allowanceDayOfMonth === 3 ? "Wednesday" :
+                    user.allowanceDayOfMonth === 4 ? "Thursday" :
+                    user.allowanceDayOfMonth === 5 ? "Friday" :
+                    user.allowanceDayOfMonth === 6 ? "Saturday" :
+                    user.allowanceDayOfMonth === 7 ? "Sunday" : "Monday"
+                  }`
+                ) : user?.resetFrequency === "None" ? (
+                  "Rolling 30 Days"
+                ) : (
+                  `${user?.allowanceDayOfMonth ?? 25}th of Month`
+                )}
               </p>
             </div>
             <div>

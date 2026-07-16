@@ -22,8 +22,31 @@ namespace ST_finance.Domain.Features.Dashboard
         {
             var nowUtc = DateTime.UtcNow;
             var currentBkk = nowUtc.AddHours(7);
-            var resetDate = GetNextStipendResetDate(currentBkk);
-            var daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
+
+            var profile = await _context.TblUserProfiles
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            var resetFrequency = profile?.ResetFrequency ?? "Monthly";
+            var resetDay = profile?.AllowanceDayOfMonth ?? 25;
+
+            DateTime resetDate;
+            int daysRemaining;
+
+            if (resetFrequency == "Weekly")
+            {
+                resetDate = GetNextWeeklyResetDate(currentBkk, resetDay);
+                daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
+            }
+            else if (resetFrequency == "None")
+            {
+                resetDate = currentBkk.AddDays(30);
+                daysRemaining = 30;
+            }
+            else // Default to Monthly
+            {
+                resetDate = GetNextMonthlyResetDate(currentBkk, resetDay);
+                daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
+            }
 
             // 1. Total Balance
             var totalBalance = await _context.TblAccounts
@@ -188,12 +211,46 @@ namespace ST_finance.Domain.Features.Dashboard
             return Result.Success(responses);
         }
 
-        private static DateTime GetNextStipendResetDate(DateTime currentBkk)
+        private static DateTime GetNextMonthlyResetDate(DateTime currentBkk, int dayOfMonth)
         {
-            var target = new DateTime(currentBkk.Year, currentBkk.Month, 25, 0, 0, 0, DateTimeKind.Utc);
+            int targetDay = Math.Clamp(dayOfMonth, 1, 31);
+            int daysInMonth = DateTime.DaysInMonth(currentBkk.Year, currentBkk.Month);
+            if (targetDay > daysInMonth)
+            {
+                targetDay = daysInMonth;
+            }
+
+            var target = new DateTime(currentBkk.Year, currentBkk.Month, targetDay, 0, 0, 0, DateTimeKind.Utc);
             if (currentBkk >= target)
             {
-                target = target.AddMonths(1);
+                var nextMonth = currentBkk.AddMonths(1);
+                int daysInNextMonth = DateTime.DaysInMonth(nextMonth.Year, nextMonth.Month);
+                int nextTargetDay = Math.Min(dayOfMonth, daysInNextMonth);
+                target = new DateTime(nextMonth.Year, nextMonth.Month, nextTargetDay, 0, 0, 0, DateTimeKind.Utc);
+            }
+            return target;
+        }
+
+        private static DateTime GetNextWeeklyResetDate(DateTime currentBkk, int dayOfWeekIndex)
+        {
+            int targetDay = Math.Clamp(dayOfWeekIndex, 1, 7);
+            DayOfWeek targetDayOfWeek = targetDay switch
+            {
+                1 => DayOfWeek.Monday,
+                2 => DayOfWeek.Tuesday,
+                3 => DayOfWeek.Wednesday,
+                4 => DayOfWeek.Thursday,
+                5 => DayOfWeek.Friday,
+                6 => DayOfWeek.Saturday,
+                7 => DayOfWeek.Sunday,
+                _ => DayOfWeek.Monday
+            };
+
+            int daysToAdd = ((int)targetDayOfWeek - (int)currentBkk.DayOfWeek + 7) % 7;
+            var target = new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(daysToAdd);
+            if (currentBkk >= target)
+            {
+                target = target.AddDays(7);
             }
             return target;
         }

@@ -18,11 +18,84 @@ import {
 } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, updateProfile } = useAuth();
 
   // Username State
   const [newUsername, setNewUsername] = useState(user?.username || "");
   const [usernameLoading, setUsernameLoading] = useState(false);
+
+  // Budget Settings State
+  const [allowanceAmount, setAllowanceAmount] = useState(user?.monthlyAllowanceAmount?.toString() || "16000");
+  const [allowanceDay, setAllowanceDay] = useState(user?.allowanceDayOfMonth?.toString() || "25");
+  const [targetSavings, setTargetSavings] = useState(user?.targetMonthlySavings?.toString() || "2000");
+  const [currency, setCurrency] = useState(user?.currency || "THB");
+  const [resetFrequency, setResetFrequency] = useState(user?.resetFrequency || "Monthly");
+  const [budgetLoading, setBudgetLoading] = useState(false);
+  const [budgetMessage, setBudgetMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Sync state with user data
+  useEffect(() => {
+    if (user) {
+      setAllowanceAmount(user.monthlyAllowanceAmount?.toString() || "16000");
+      setAllowanceDay(user.allowanceDayOfMonth?.toString() || "25");
+      setTargetSavings(user.targetMonthlySavings?.toString() || "2000");
+      setCurrency(user.currency || "THB");
+      setResetFrequency(user.resetFrequency || "Monthly");
+    }
+  }, [user]);
+
+  // Handle Budget Settings Update
+  const handleUpdateBudget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBudgetLoading(true);
+    setBudgetMessage(null);
+
+    const parsedAmount = parseFloat(allowanceAmount);
+    const parsedDay = parseInt(allowanceDay);
+    const parsedSavings = parseFloat(targetSavings);
+
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+      setBudgetMessage({ type: "error", text: "Allowance amount must be greater than or equal to zero." });
+      setBudgetLoading(false);
+      return;
+    }
+
+    if (resetFrequency === "Weekly") {
+      if (isNaN(parsedDay) || parsedDay < 1 || parsedDay > 7) {
+        setBudgetMessage({ type: "error", text: "Weekly reset day must be between 1 (Monday) and 7 (Sunday)." });
+        setBudgetLoading(false);
+        return;
+      }
+    } else if (resetFrequency === "Monthly") {
+      if (isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31) {
+        setBudgetMessage({ type: "error", text: "Monthly reset day must be between 1 and 31." });
+        setBudgetLoading(false);
+        return;
+      }
+    }
+
+    if (isNaN(parsedSavings) || parsedSavings < 0) {
+      setBudgetMessage({ type: "error", text: "Target monthly savings must be greater than or equal to zero." });
+      setBudgetLoading(false);
+      return;
+    }
+
+    const res = await updateProfile({
+      monthlyAllowanceAmount: parsedAmount,
+      allowanceDayOfMonth: parsedDay,
+      targetMonthlySavings: parsedSavings,
+      currency,
+      resetFrequency,
+    });
+
+    if (res.success) {
+      setBudgetMessage({ type: "success", text: "Budget settings updated successfully." });
+      await refreshProfile();
+    } else {
+      setBudgetMessage({ type: "error", text: res.error || "Failed to update budget settings." });
+    }
+    setBudgetLoading(false);
+  };
   const [usernameMessage, setUsernameMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Email State
@@ -455,6 +528,183 @@ export default function ProfilePage() {
                     )}
                   </button>
                 </div>
+              </div>
+            </form>
+          </div>
+
+          {/* Section: Stipend & Budget Settings */}
+          <div className="ds-card p-6">
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[hsl(var(--border))]">
+              <ShieldCheck className="h-4 w-4 text-[hsl(var(--primary))]" />
+              <h3 className="text-sm font-bold tracking-tight">Stipend & Budget Settings</h3>
+            </div>
+
+            {budgetMessage && (
+              <div
+                className={`flex items-center gap-2.5 p-3.5 mb-4 text-xs font-mono rounded-lg ${
+                  budgetMessage.type === "success" ? "ds-alert-success" : "ds-alert-error"
+                }`}
+              >
+                {budgetMessage.type === "success" ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                )}
+                <p>{budgetMessage.text}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateBudget} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Reset Frequency */}
+                <div>
+                  <label
+                    htmlFor="reset-frequency"
+                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                  >
+                    Reset Frequency
+                  </label>
+                  <select
+                    id="reset-frequency"
+                    value={resetFrequency}
+                    onChange={(e) => {
+                      setResetFrequency(e.target.value);
+                      if (e.target.value === "Weekly") {
+                        setAllowanceDay("1"); // Coerce to Monday
+                      } else if (e.target.value === "Monthly") {
+                        setAllowanceDay("25"); // Coerce to default 25th
+                      }
+                    }}
+                    className="ds-input w-full px-3 py-2.5 text-sm"
+                  >
+                    <option value="Monthly">Monthly Reset</option>
+                    <option value="Weekly">Weekly Reset</option>
+                    <option value="None">Rolling 30-Day Window (No Reset Cycle)</option>
+                  </select>
+                </div>
+
+                {/* Reset Day (Hidden for rolling window) */}
+                {resetFrequency !== "None" && (
+                  <div>
+                    <label
+                      htmlFor="allowance-day"
+                      className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                    >
+                      {resetFrequency === "Weekly" ? "Reset Day of Week" : "Reset Day of Month"}
+                    </label>
+                    {resetFrequency === "Weekly" ? (
+                      <select
+                        id="allowance-day"
+                        value={allowanceDay}
+                        onChange={(e) => setAllowanceDay(e.target.value)}
+                        className="ds-input w-full px-3 py-2.5 text-sm"
+                      >
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                        <option value="7">Sunday</option>
+                      </select>
+                    ) : (
+                      <input
+                        id="allowance-day"
+                        type="number"
+                        min={1}
+                        max={31}
+                        required
+                        value={allowanceDay}
+                        onChange={(e) => setAllowanceDay(e.target.value)}
+                        placeholder="e.g. 25"
+                        className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Allowance Amount */}
+                <div>
+                  <label
+                    htmlFor="allowance-amount"
+                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                  >
+                    Stipend Amount
+                  </label>
+                  <input
+                    id="allowance-amount"
+                    type="number"
+                    min={0}
+                    step="any"
+                    required
+                    value={allowanceAmount}
+                    onChange={(e) => setAllowanceAmount(e.target.value)}
+                    placeholder="e.g. 16000"
+                    className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+                  />
+                </div>
+
+                {/* Target Savings */}
+                <div>
+                  <label
+                    htmlFor="target-savings"
+                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                  >
+                    Target Monthly Savings
+                  </label>
+                  <input
+                    id="target-savings"
+                    type="number"
+                    min={0}
+                    step="any"
+                    required
+                    value={targetSavings}
+                    onChange={(e) => setTargetSavings(e.target.value)}
+                    placeholder="e.g. 2000"
+                    className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+                  />
+                </div>
+
+                {/* Currency */}
+                <div>
+                  <label
+                    htmlFor="profile-currency"
+                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                  >
+                    Currency Display
+                  </label>
+                  <select
+                    id="profile-currency"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="ds-input w-full px-3 py-2.5 text-sm"
+                  >
+                    <option value="THB">THB (฿)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="SGD">SGD (S$)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={budgetLoading}
+                  className="ds-btn-primary px-5 py-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider"
+                >
+                  {budgetLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <>
+                      <Save className="h-3.5 w-3.5" />
+                      Save Budget Settings
+                    </>
+                  )}
+                </button>
               </div>
             </form>
           </div>

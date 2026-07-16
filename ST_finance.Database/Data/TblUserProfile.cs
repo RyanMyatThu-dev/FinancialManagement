@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ST_finance.Database.Data;
@@ -16,6 +16,8 @@ public partial class TblUserProfile
     public decimal? TargetMonthlySavings { get; set; }
 
     public string? Currency { get; set; }
+
+    public string? ResetFrequency { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
 

@@ -15,6 +15,7 @@ export interface UserProfile {
   allowanceDayOfMonth?: number;
   targetMonthlySavings?: number;
   currency?: string;
+  resetFrequency?: string;
   updatedAt?: string;
 }
 
@@ -214,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         allowanceDayOfMonth: profileData.allowanceDayOfMonth,
         targetMonthlySavings: profileData.targetMonthlySavings,
         currency: profileData.currency,
+        resetFrequency: profileData.resetFrequency,
       });
       const result = response.data;
 
