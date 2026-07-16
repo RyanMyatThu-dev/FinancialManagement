@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
-import { X, Loader2, AlertTriangle, Plus, Tag } from "lucide-react";
+import { X, Loader2, AlertTriangle, Plus, Tag, Info } from "lucide-react";
 import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/components/ui/CurrencyDisplay";
@@ -593,18 +593,15 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
             ) : null}
           </div>
 
-          {/* Is Recurring Checkbox */}
-          <div className="flex items-center gap-2.5 py-1.5">
-            <input
-              id="tx-recurring"
-              type="checkbox"
-              checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-              className="h-4.5 w-4.5 rounded border-[hsl(var(--border))] bg-[hsl(var(--secondary))] text-[hsl(var(--primary))] focus:ring-[hsl(var(--primary))] cursor-pointer"
-            />
-            <label htmlFor="tx-recurring" className="text-xs font-mono text-[hsl(var(--muted-foreground))] cursor-pointer select-none">
-              Mark as Recurring (triggers automated quota logic)
-            </label>
+          {/* Recurring Info Block */}
+          <div className="flex items-start gap-2.5 p-3 rounded-xl border border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--primary)/0.04)] text-xs text-[hsl(var(--foreground))] font-mono">
+            <Info className="h-4.5 w-4.5 shrink-0 mt-0.5 text-[hsl(var(--primary))]" />
+            <div>
+              <p className="font-bold uppercase tracking-wider text-[10px] text-[hsl(var(--primary))] mb-0.5">Recurring Schedules Notice</p>
+              <p className="opacity-90 leading-normal text-[hsl(var(--muted-foreground))]">
+                To set up automated recurring bills, deposits, or subscriptions, please go to the dedicated <a href="/recurring" className="text-[hsl(var(--primary))] font-bold hover:underline">Recurring Schedules</a> section on our website.
+              </p>
+            </div>
           </div>
 
           {/* Overdraft Warning */}
