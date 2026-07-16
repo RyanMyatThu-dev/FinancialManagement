@@ -21,22 +21,20 @@ namespace ST_finance.UnitTests
         }
 
         [Fact]
-        public async Task GetDashboardSummary_ShouldUseMonthlyReset_WhenFrequencyIsMonthly()
+        public async Task GetDashboardSummary_ShouldUseIncomeScheduleReset_WhenPacingIsEnabledAndIncomeExists()
         {
-            // Arrange: Setup monthly stipend resetting on the 20th of the month
+            // Arrange: Setup user profile with pacing active
             var profile = new TblUserProfile
             {
                 Id = Guid.NewGuid(),
                 UserId = _userId,
-                MonthlyAllowanceAmount = 10000m,
-                AllowanceDayOfMonth = 20,
                 TargetMonthlySavings = 1000m,
                 Currency = "THB",
-                ResetFrequency = "Monthly"
+                EnableQuotaPacing = true
             };
             _context.TblUserProfiles.Add(profile);
 
-            // Add a mock source account
+            // Add source account
             var account = new TblAccount
             {
                 Id = Guid.NewGuid(),
@@ -49,6 +47,22 @@ namespace ST_finance.UnitTests
                 DeleteFlag = false
             };
             _context.TblAccounts.Add(account);
+
+            // Add a recurring income schedule (e.g., next occurrence in 10 days)
+            var schedule = new TblRecurringSchedule
+            {
+                Id = Guid.NewGuid(),
+                UserId = _userId,
+                Name = "Monthly Pocket Money",
+                Amount = 15000m,
+                Frequency = "Monthly",
+                TransactionType = "Income",
+                StartDate = DateTime.UtcNow.Date,
+                NextOccurrenceDate = DateTime.UtcNow.Date.AddDays(10),
+                DeleteFlag = false,
+                AccountId = account.Id
+            };
+            _context.TblRecurringSchedules.Add(schedule);
             await _context.SaveChangesAsync();
 
             // Act
@@ -56,22 +70,23 @@ namespace ST_finance.UnitTests
 
             // Assert
             Assert.True(result.IsSuccess);
-            Assert.True(result.Value.Quota > 0);
+            Assert.True(result.Value.EnableQuotaPacing);
+            Assert.Contains("from Monthly Pocket Money", result.Value.ResetDayText);
+            // Quota should be disposable balance (5000) divided by 10 days = 500 THB
+            Assert.Equal(500m, result.Value.Quota);
         }
 
         [Fact]
-        public async Task GetDashboardSummary_ShouldUseWeeklyReset_WhenFrequencyIsWeekly()
+        public async Task GetDashboardSummary_ShouldUseRolling30Days_WhenPacingIsEnabledAndNoIncomeExists()
         {
-            // Arrange: Setup weekly stipend resetting on Monday (1)
+            // Arrange: Setup user profile with pacing active but no recurring income configured
             var profile = new TblUserProfile
             {
                 Id = Guid.NewGuid(),
                 UserId = _userId,
-                MonthlyAllowanceAmount = 10000m,
-                AllowanceDayOfMonth = 1, // Monday
-                TargetMonthlySavings = 1000m,
+                TargetMonthlySavings = 0m,
                 Currency = "THB",
-                ResetFrequency = "Weekly"
+                EnableQuotaPacing = true
             };
             _context.TblUserProfiles.Add(profile);
 
@@ -81,7 +96,7 @@ namespace ST_finance.UnitTests
                 UserId = _userId,
                 Name = "Cash",
                 AccountType = AccountType.Cash,
-                Balance = 5000m,
+                Balance = 3000m,
                 Color = "#4F46E5",
                 Icon = "Wallet",
                 DeleteFlag = false
@@ -94,22 +109,25 @@ namespace ST_finance.UnitTests
 
             // Assert
             Assert.True(result.IsSuccess);
-            Assert.True(result.Value.Quota > 0);
+            Assert.True(result.Value.EnableQuotaPacing);
+            Assert.Equal("Rolling 30 Days", result.Value.ResetDayText);
+            // Quota should fall back to rolling 30-day window: 3000 / 30 = 100 THB
+            Assert.Equal(100m, result.Value.Quota);
+            // Verify pacing warning/hint is added
+            Assert.Contains(result.Value.ActiveWarnings, w => w.Contains("Pacing-Hint: No recurring income configured"));
         }
 
         [Fact]
-        public async Task GetDashboardSummary_ShouldUseRolling30Days_WhenFrequencyIsNone()
+        public async Task GetDashboardSummary_ShouldDisablePacing_WhenPacingIsDisabled()
         {
-            // Arrange: Setup rolling 30-day window
+            // Arrange: Setup user profile with pacing disabled
             var profile = new TblUserProfile
             {
                 Id = Guid.NewGuid(),
                 UserId = _userId,
-                MonthlyAllowanceAmount = 10000m,
-                AllowanceDayOfMonth = 25,
                 TargetMonthlySavings = 1000m,
                 Currency = "THB",
-                ResetFrequency = "None"
+                EnableQuotaPacing = false
             };
             _context.TblUserProfiles.Add(profile);
 
@@ -132,7 +150,9 @@ namespace ST_finance.UnitTests
 
             // Assert
             Assert.True(result.IsSuccess);
-            Assert.True(result.Value.Quota > 0);
+            Assert.False(result.Value.EnableQuotaPacing);
+            Assert.Equal(0m, result.Value.Quota);
+            Assert.Equal(0, result.Value.CanteenIndex);
         }
     }
 }

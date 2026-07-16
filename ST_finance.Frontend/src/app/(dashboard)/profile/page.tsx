@@ -25,22 +25,18 @@ export default function ProfilePage() {
   const [usernameLoading, setUsernameLoading] = useState(false);
 
   // Budget Settings State
-  const [allowanceAmount, setAllowanceAmount] = useState(user?.monthlyAllowanceAmount?.toString() || "16000");
-  const [allowanceDay, setAllowanceDay] = useState(user?.allowanceDayOfMonth?.toString() || "25");
   const [targetSavings, setTargetSavings] = useState(user?.targetMonthlySavings?.toString() || "2000");
   const [currency, setCurrency] = useState(user?.currency || "THB");
-  const [resetFrequency, setResetFrequency] = useState(user?.resetFrequency || "Monthly");
+  const [enableQuotaPacing, setEnableQuotaPacing] = useState(user?.enableQuotaPacing ?? true);
   const [budgetLoading, setBudgetLoading] = useState(false);
   const [budgetMessage, setBudgetMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Sync state with user data
   useEffect(() => {
     if (user) {
-      setAllowanceAmount(user.monthlyAllowanceAmount?.toString() || "16000");
-      setAllowanceDay(user.allowanceDayOfMonth?.toString() || "25");
       setTargetSavings(user.targetMonthlySavings?.toString() || "2000");
       setCurrency(user.currency || "THB");
-      setResetFrequency(user.resetFrequency || "Monthly");
+      setEnableQuotaPacing(user.enableQuotaPacing ?? true);
     }
   }, [user]);
 
@@ -50,29 +46,7 @@ export default function ProfilePage() {
     setBudgetLoading(true);
     setBudgetMessage(null);
 
-    const parsedAmount = parseFloat(allowanceAmount);
-    const parsedDay = parseInt(allowanceDay);
     const parsedSavings = parseFloat(targetSavings);
-
-    if (isNaN(parsedAmount) || parsedAmount < 0) {
-      setBudgetMessage({ type: "error", text: "Allowance amount must be greater than or equal to zero." });
-      setBudgetLoading(false);
-      return;
-    }
-
-    if (resetFrequency === "Weekly") {
-      if (isNaN(parsedDay) || parsedDay < 1 || parsedDay > 7) {
-        setBudgetMessage({ type: "error", text: "Weekly reset day must be between 1 (Monday) and 7 (Sunday)." });
-        setBudgetLoading(false);
-        return;
-      }
-    } else if (resetFrequency === "Monthly") {
-      if (isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31) {
-        setBudgetMessage({ type: "error", text: "Monthly reset day must be between 1 and 31." });
-        setBudgetLoading(false);
-        return;
-      }
-    }
 
     if (isNaN(parsedSavings) || parsedSavings < 0) {
       setBudgetMessage({ type: "error", text: "Target monthly savings must be greater than or equal to zero." });
@@ -81,11 +55,9 @@ export default function ProfilePage() {
     }
 
     const res = await updateProfile({
-      monthlyAllowanceAmount: parsedAmount,
-      allowanceDayOfMonth: parsedDay,
       targetMonthlySavings: parsedSavings,
       currency,
-      resetFrequency,
+      enableQuotaPacing,
     });
 
     if (res.success) {
@@ -532,11 +504,11 @@ export default function ProfilePage() {
             </form>
           </div>
 
-          {/* Section: Stipend & Budget Settings */}
-          <div className="ds-card p-6">
+          {/* Section: Budget & Pacing Settings */}
+          <div className="ds-card p-6 space-y-6">
             <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[hsl(var(--border))]">
               <ShieldCheck className="h-4 w-4 text-[hsl(var(--primary))]" />
-              <h3 className="text-sm font-bold tracking-tight">Stipend & Budget Settings</h3>
+              <h3 className="text-sm font-bold tracking-tight">Budget & Pacing Settings</h3>
             </div>
 
             {budgetMessage && (
@@ -554,96 +526,25 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <form onSubmit={handleUpdateBudget} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Reset Frequency */}
+            <form onSubmit={handleUpdateBudget} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Daily Quota Pacing Toggle */}
                 <div>
                   <label
-                    htmlFor="reset-frequency"
+                    htmlFor="enable-quota-pacing"
                     className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
                   >
-                    Reset Frequency
+                    Daily Quota Pacing
                   </label>
                   <select
-                    id="reset-frequency"
-                    value={resetFrequency}
-                    onChange={(e) => {
-                      setResetFrequency(e.target.value);
-                      if (e.target.value === "Weekly") {
-                        setAllowanceDay("1"); // Coerce to Monday
-                      } else if (e.target.value === "Monthly") {
-                        setAllowanceDay("25"); // Coerce to default 25th
-                      }
-                    }}
+                    id="enable-quota-pacing"
+                    value={enableQuotaPacing ? "true" : "false"}
+                    onChange={(e) => setEnableQuotaPacing(e.target.value === "true")}
                     className="ds-input w-full px-3 py-2.5 text-sm"
                   >
-                    <option value="Monthly">Monthly Reset</option>
-                    <option value="Weekly">Weekly Reset</option>
-                    <option value="None">Rolling 30-Day Window (No Reset Cycle)</option>
+                    <option value="true">Enabled (Pace spending daily)</option>
+                    <option value="false">Disabled (Hide spending quota)</option>
                   </select>
-                </div>
-
-                {/* Reset Day (Hidden for rolling window) */}
-                {resetFrequency !== "None" && (
-                  <div>
-                    <label
-                      htmlFor="allowance-day"
-                      className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
-                    >
-                      {resetFrequency === "Weekly" ? "Reset Day of Week" : "Reset Day of Month"}
-                    </label>
-                    {resetFrequency === "Weekly" ? (
-                      <select
-                        id="allowance-day"
-                        value={allowanceDay}
-                        onChange={(e) => setAllowanceDay(e.target.value)}
-                        className="ds-input w-full px-3 py-2.5 text-sm"
-                      >
-                        <option value="1">Monday</option>
-                        <option value="2">Tuesday</option>
-                        <option value="3">Wednesday</option>
-                        <option value="4">Thursday</option>
-                        <option value="5">Friday</option>
-                        <option value="6">Saturday</option>
-                        <option value="7">Sunday</option>
-                      </select>
-                    ) : (
-                      <input
-                        id="allowance-day"
-                        type="number"
-                        min={1}
-                        max={31}
-                        required
-                        value={allowanceDay}
-                        onChange={(e) => setAllowanceDay(e.target.value)}
-                        placeholder="e.g. 25"
-                        className="ds-input w-full px-3 py-2.5 text-sm font-mono"
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Allowance Amount */}
-                <div>
-                  <label
-                    htmlFor="allowance-amount"
-                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
-                  >
-                    Stipend Amount
-                  </label>
-                  <input
-                    id="allowance-amount"
-                    type="number"
-                    min={0}
-                    step="any"
-                    required
-                    value={allowanceAmount}
-                    onChange={(e) => setAllowanceAmount(e.target.value)}
-                    placeholder="e.g. 16000"
-                    className="ds-input w-full px-3 py-2.5 text-sm font-mono"
-                  />
                 </div>
 
                 {/* Target Savings */}
@@ -688,6 +589,19 @@ export default function ProfilePage() {
                     <option value="SGD">SGD (S$)</option>
                   </select>
                 </div>
+              </div>
+
+              {/* How Pacing Works Explanation Block */}
+              <div className="bg-[hsl(var(--secondary)/0.3)] p-4 rounded-lg border border-[hsl(var(--border))] text-xs font-mono space-y-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[hsl(var(--primary))] block">
+                  ⚙️ How Budget Pacing Works
+                </span>
+                <p className="text-[10px] text-[hsl(var(--muted-foreground))] leading-relaxed">
+                  Our pacing engine automatically aligns your daily quota reset date with your <strong>largest active recurring Income schedule</strong> (e.g., your salary, allowance, or primary pocket money).
+                </p>
+                <p className="text-[10px] text-[hsl(var(--muted-foreground))] leading-relaxed">
+                  If you have not configured any recurring Income schedules yet, the engine falls back to a <strong>rolling 30-day window</strong> to pace your disposable balance.
+                </p>
               </div>
 
               <div className="flex justify-end">

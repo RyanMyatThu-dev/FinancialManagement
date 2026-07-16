@@ -19,6 +19,8 @@ public partial class TblUserProfile
 
     public string? ResetFrequency { get; set; }
 
+    public bool EnableQuotaPacing { get; set; }
+
     public DateTime? UpdatedAt { get; set; }
 
     public virtual TblUser User { get; set; } = null!;

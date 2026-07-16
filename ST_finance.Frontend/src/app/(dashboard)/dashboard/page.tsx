@@ -18,6 +18,7 @@ import {
   CheckCircle,
   PiggyBank,
   Wallet,
+  Info,
   Zap,
 } from "lucide-react";
 import {
@@ -41,6 +42,8 @@ interface DashboardSummary {
   monthlyExpense: number;
   spentToday: number;
   activeWarnings: string[];
+  resetDayText: string;
+  enableQuotaPacing: boolean;
 }
 
 interface QuotaTrendItem {
@@ -96,6 +99,9 @@ export default function DashboardHome() {
       </div>
     );
   }
+
+  const hints = summary?.activeWarnings?.filter(w => w.startsWith("Pacing-Hint:")) || [];
+  const warnings = summary?.activeWarnings?.filter(w => !w.startsWith("Pacing-Hint:")) || [];
 
   const chartData = (trends || []).map((item) => {
     const parts = String(item.date).split("-");
@@ -219,99 +225,107 @@ export default function DashboardHome() {
 
       {/* ── Primary KPI: Quota + Warnings ────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Safe-To-Spend Quota Gauge */}
-        <div className="lg:col-span-2 ds-card p-6 flex flex-col gap-6">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              {summary && summary.spentToday > summary.quota ? (
-                <>
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-[9px] font-bold text-[hsl(var(--destructive))] uppercase tracking-widest">
-                      Exceeded By
+        {summary && !summary.enableQuotaPacing ? (
+          <div className="lg:col-span-2 ds-card p-6 flex flex-col items-center justify-center text-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-[hsl(var(--secondary)/0.5)] flex items-center justify-center text-[hsl(var(--muted-foreground))]">
+              <Calendar className="h-6 w-6 text-[hsl(var(--primary))]" />
+            </div>
+            <h3 className="text-sm font-bold">Daily Quota Pacing is Disabled</h3>
+            <p className="text-xs text-[hsl(var(--muted-foreground))] max-w-sm leading-relaxed">
+              You can turn on daily quota pacing in your account profile settings to track your safe-to-spend allowance relative to your recurring inflows.
+            </p>
+          </div>
+        ) : (
+          /* Safe-To-Spend Quota Gauge */
+          <div className="lg:col-span-2 ds-card p-6 flex flex-col gap-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                {summary && summary.spentToday > summary.quota ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-[9px] font-bold text-[hsl(var(--destructive))] uppercase tracking-widest">
+                        Exceeded By
+                      </p>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))] border border-[hsl(var(--destructive)/0.25)]">
+                        <AlertTriangle className="h-2.5 w-2.5" />
+                        Over Budget
+                      </span>
+                    </div>
+                    <CurrencyDisplay
+                      amount={summary.spentToday - summary.quota}
+                      currency={currency}
+                      size="lg"
+                      negativeColor
+                    />
+                    <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono mt-1">
+                      Quota was ฿{summary.quota.toFixed(2)} — spent ฿{summary.spentToday.toFixed(2)}
                     </p>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))] border border-[hsl(var(--destructive)/0.25)]">
-                      <AlertTriangle className="h-2.5 w-2.5" />
-                      Over Budget
-                    </span>
-                  </div>
-                  <CurrencyDisplay
-                    amount={summary.spentToday - summary.quota}
-                    currency={currency}
-                    size="lg"
-                    negativeColor
-                  />
-                  <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono mt-1">
-                    Quota was ฿{summary.quota.toFixed(2)} — spent ฿{summary.spentToday.toFixed(2)}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest">
-                    Daily Spending Allowance (Quota)
-                  </p>
-                  <CurrencyDisplay
-                    amount={summary?.quota ?? 0}
-                    currency={currency}
-                    size="lg"
-                  />
-                </>
-              )}
-            </div>
-            {/* Canteen Index */}
-            <div className="ds-card p-3.5 text-center">
-              <div className="flex items-center gap-1.5 justify-center text-[hsl(var(--foreground))]">
-                <UtensilsCrossed className="h-4 w-4 text-[hsl(var(--primary))]" />
-                <span className="text-lg font-extrabold font-mono">{summary?.canteenIndex ?? 0}</span>
-              </div>
-              <p className="text-[8px] uppercase font-bold tracking-wider text-[hsl(var(--muted-foreground))] mt-0.5">
-                Meal Units
-              </p>
-            </div>
-          </div>
-
-          {/* Progress Widget */}
-          <TechProgress
-            value={quotaUsedPercent}
-            label={summary && summary.spentToday > (summary.quota || 0) ? "⚠ Spending Exceeded Quota" : "Today's Spending vs. Quota"}
-            minVal="฿0"
-            maxVal={`฿${summary?.quota?.toFixed(0) ?? "—"}`}
-            color={quotaUsedPercent > 80 ? "destructive" : quotaUsedPercent > 60 ? "warning" : "primary"}
-          />
-
-          <div className="border-t border-[hsl(var(--border))] pt-4 grid grid-cols-3 gap-4 text-[11px] text-[hsl(var(--muted-foreground))] font-mono">
-            <div>
-              <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Reset Day</p>
-              <p className="font-bold text-[hsl(var(--foreground))] flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
-                {user?.resetFrequency === "Weekly" ? (
-                  `Every ${
-                    user.allowanceDayOfMonth === 1 ? "Monday" :
-                    user.allowanceDayOfMonth === 2 ? "Tuesday" :
-                    user.allowanceDayOfMonth === 3 ? "Wednesday" :
-                    user.allowanceDayOfMonth === 4 ? "Thursday" :
-                    user.allowanceDayOfMonth === 5 ? "Friday" :
-                    user.allowanceDayOfMonth === 6 ? "Saturday" :
-                    user.allowanceDayOfMonth === 7 ? "Sunday" : "Monday"
-                  }`
-                ) : user?.resetFrequency === "None" ? (
-                  "Rolling 30 Days"
+                  </>
                 ) : (
-                  `${user?.allowanceDayOfMonth ?? 25}th of Month`
+                  <>
+                    <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest">
+                      Daily Spending Allowance (Quota)
+                    </p>
+                    <CurrencyDisplay
+                      amount={summary?.quota ?? 0}
+                      currency={currency}
+                      size="lg"
+                    />
+                  </>
                 )}
-              </p>
+              </div>
+              {/* Canteen Index */}
+              <div className="ds-card p-3.5 text-center">
+                <div className="flex items-center gap-1.5 justify-center text-[hsl(var(--foreground))]">
+                  <UtensilsCrossed className="h-4 w-4 text-[hsl(var(--primary))]" />
+                  <span className="text-lg font-extrabold font-mono">{summary?.canteenIndex ?? 0}</span>
+                </div>
+                <p className="text-[8px] uppercase font-bold tracking-wider text-[hsl(var(--muted-foreground))] mt-0.5">
+                  Meal Units
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Spent Today</p>
-              <p className="font-bold text-[hsl(var(--destructive))]">
-                ฿{summary?.spentToday?.toFixed(2) ?? "0.00"}
-              </p>
+
+            {/* Progress Widget */}
+            <TechProgress
+              value={quotaUsedPercent}
+              label={summary && summary.spentToday > (summary.quota || 0) ? "⚠ Spending Exceeded Quota" : "Today's Spending vs. Quota"}
+              minVal="฿0"
+              maxVal={`฿${summary?.quota?.toFixed(0) ?? "—"}`}
+              color={quotaUsedPercent > 80 ? "destructive" : quotaUsedPercent > 60 ? "warning" : "primary"}
+            />
+
+            <div className="border-t border-[hsl(var(--border))] pt-4 grid grid-cols-3 gap-4 text-[11px] text-[hsl(var(--muted-foreground))] font-mono">
+              <div>
+                <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Reset Cycle</p>
+                <p className="font-bold text-[hsl(var(--foreground))] flex items-center gap-1.5 truncate max-w-[200px]" title={summary?.resetDayText || "—"}>
+                  <Calendar className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
+                  {summary?.resetDayText || "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Spent Today</p>
+                <p className="font-bold text-[hsl(var(--destructive))]">
+                  ฿{summary?.spentToday?.toFixed(2) ?? "0.00"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Canteen Math</p>
+                <p className="text-[hsl(var(--foreground))]">floor(Daily Quota / 50)</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Canteen Math</p>
-              <p className="text-[hsl(var(--foreground))]">floor(Daily Quota / 50)</p>
-            </div>
+
+            {hints.map((hint, i) => (
+              <div
+                key={i}
+                className="bg-[hsl(var(--primary)/0.06)] border border-[hsl(var(--primary)/0.2)] text-[hsl(var(--muted-foreground))] p-3 rounded-lg text-[10px] font-mono leading-normal flex items-start gap-2.5 mt-2"
+              >
+                <Info className="h-4 w-4 text-[hsl(var(--primary))] shrink-0" />
+                <span>{hint.replace("Pacing-Hint: ", "")}</span>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
         {/* Active Warnings */}
         <div className="ds-card p-5 flex flex-col">
@@ -319,8 +333,8 @@ export default function DashboardHome() {
             Active Warnings
           </h3>
           <div className="flex-1 overflow-y-auto max-h-[200px] no-scrollbar space-y-2.5">
-            {summary?.activeWarnings && summary.activeWarnings.length > 0 ? (
-              summary.activeWarnings.map((warning, i) => (
+            {warnings && warnings.length > 0 ? (
+              warnings.map((warning, i) => (
                 <div
                   key={i}
                   className="ds-alert-warning flex items-start gap-2.5 p-3 text-xs font-mono leading-relaxed"

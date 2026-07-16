@@ -26,26 +26,55 @@ namespace ST_finance.Domain.Features.Dashboard
             var profile = await _context.TblUserProfiles
                 .FirstOrDefaultAsync(p => p.UserId == userId);
 
-            var resetFrequency = profile?.ResetFrequency ?? "Monthly";
-            var resetDay = profile?.AllowanceDayOfMonth ?? 25;
+            var enableQuotaPacing = profile?.EnableQuotaPacing ?? true;
 
             DateTime resetDate;
             int daysRemaining;
+            string resetDayText = "Rolling 30 Days";
 
-            if (resetFrequency == "Weekly")
+            if (enableQuotaPacing)
             {
-                resetDate = GetNextWeeklyResetDate(currentBkk, resetDay);
-                daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
+                var primaryIncomeSchedule = await _context.TblRecurringSchedules
+                    .Where(s => s.UserId == userId && s.TransactionType == "Income" && !s.DeleteFlag)
+                    .OrderByDescending(s => s.Amount)
+                    .FirstOrDefaultAsync();
+
+                if (primaryIncomeSchedule != null)
+                {
+                    var localNextOccurrence = primaryIncomeSchedule.NextOccurrenceDate.AddHours(7);
+                    resetDate = localNextOccurrence;
+                    daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
+
+                    var frequency = primaryIncomeSchedule.Frequency ?? "Monthly";
+                    var name = primaryIncomeSchedule.Name ?? "Primary Income";
+
+                    if (frequency == "Weekly")
+                    {
+                        var dayOfWeekStr = localNextOccurrence.DayOfWeek.ToString();
+                        resetDayText = $"Every {dayOfWeekStr} (from {name})";
+                    }
+                    else if (frequency == "Monthly")
+                    {
+                        var daySuffix = GetDaySuffix(localNextOccurrence.Day);
+                        resetDayText = $"{localNextOccurrence.Day}{daySuffix} of Month (from {name})";
+                    }
+                    else
+                    {
+                        resetDayText = $"{frequency} (from {name})";
+                    }
+                }
+                else
+                {
+                    resetDate = currentBkk.AddDays(30);
+                    daysRemaining = 30;
+                    resetDayText = "Rolling 30 Days";
+                }
             }
-            else if (resetFrequency == "None")
+            else
             {
                 resetDate = currentBkk.AddDays(30);
                 daysRemaining = 30;
-            }
-            else // Default to Monthly
-            {
-                resetDate = GetNextMonthlyResetDate(currentBkk, resetDay);
-                daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
+                resetDayText = "Disabled";
             }
 
             // 1. Total Balance
@@ -99,11 +128,6 @@ namespace ST_finance.Domain.Features.Dashboard
                 }
             }
 
-            // 5. Calculate Daily Quota
-            var balanceForQuota = disposableBalance - remainingBills - remainingGoalNeeds;
-            var quota = balanceForQuota / daysRemaining;
-            if (quota < 0) quota = 0m; // Avoid negative quotas
-
             // 6. Spent Today (relative to Bangkok timezone boundaries, queried in UTC)
             var startOfTodayBkk = DateTime.SpecifyKind(
                 new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7),
@@ -114,8 +138,19 @@ namespace ST_finance.Domain.Features.Dashboard
                 .Where(t => t.UserId == userId && t.TransactionType == "Expense" && t.Date >= startOfTodayBkk && t.Date < endOfTodayBkk)
                 .SumAsync(t => t.Amount);
 
-            // 7. Chula Canteen Index
-            var canteenIndex = (int)Math.Floor(Math.Max(0, quota - spentToday) / 50m);
+            // 5. Calculate Daily Quota
+            decimal quota = 0m;
+            int canteenIndex = 0;
+
+            if (enableQuotaPacing)
+            {
+                var balanceForQuota = disposableBalance - remainingBills - remainingGoalNeeds;
+                quota = balanceForQuota / daysRemaining;
+                if (quota < 0) quota = 0m; // Avoid negative quotas
+                
+                // 7. Chula Canteen Index
+                canteenIndex = (int)Math.Floor(Math.Max(0, quota - spentToday) / 50m);
+            }
 
             // 8. Income and Expenses by timeframe (relative to Bangkok timezone boundaries, queried in UTC)
             DateTime startDate = DateTime.MinValue;
@@ -181,6 +216,16 @@ namespace ST_finance.Domain.Features.Dashboard
                 }
             }
 
+            if (enableQuotaPacing)
+            {
+                var hasIncome = await _context.TblRecurringSchedules
+                    .AnyAsync(s => s.UserId == userId && s.TransactionType == "Income" && !s.DeleteFlag);
+                if (!hasIncome)
+                {
+                    warnings.Add("Pacing-Hint: No recurring income configured. Daily quota is computed using a rolling 30-day window.");
+                }
+            }
+
             return Result.Success(new DashboardSummaryResponse(
                 Quota: quota,
                 CanteenIndex: canteenIndex,
@@ -190,7 +235,9 @@ namespace ST_finance.Domain.Features.Dashboard
                 MonthlyIncome: monthlyIncome,
                 MonthlyExpense: monthlyExpense,
                 SpentToday: spentToday,
-                ActiveWarnings: warnings
+                ActiveWarnings: warnings,
+                ResetDayText: resetDayText,
+                EnableQuotaPacing: enableQuotaPacing
             ));
         }
 
@@ -253,6 +300,18 @@ namespace ST_finance.Domain.Features.Dashboard
                 target = target.AddDays(7);
             }
             return target;
+        }
+
+        private static string GetDaySuffix(int day)
+        {
+            if (day >= 11 && day <= 13) return "th";
+            return (day % 10) switch
+            {
+                1 => "st",
+                2 => "nd",
+                3 => "rd",
+                _ => "th"
+            };
         }
     }
 }

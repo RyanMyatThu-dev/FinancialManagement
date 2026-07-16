@@ -240,7 +240,8 @@ namespace ST_finance.Domain.Features.Authentication
                     AllowanceDayOfMonth = 25,
                     TargetMonthlySavings = 2000.00m,
                     Currency = "THB",
-                    ResetFrequency = "Monthly"
+                    ResetFrequency = "Monthly",
+                    EnableQuotaPacing = true
                 };
                 _context.TblUserProfiles.Add(profile);
             }
@@ -295,6 +296,11 @@ namespace ST_finance.Domain.Features.Authentication
             if (!string.IsNullOrEmpty(request.Currency))
             {
                 profile.Currency = request.Currency;
+            }
+
+            if (request.EnableQuotaPacing.HasValue)
+            {
+                profile.EnableQuotaPacing = request.EnableQuotaPacing.Value;
             }
 
             profile.UpdatedAt = DateTime.UtcNow;
@@ -583,6 +589,7 @@ namespace ST_finance.Domain.Features.Authentication
                 TargetMonthlySavings: profile?.TargetMonthlySavings,
                 Currency: profile?.Currency,
                 ResetFrequency: profile?.ResetFrequency,
+                EnableQuotaPacing: profile == null || profile.EnableQuotaPacing,
                 UpdatedAt: profile?.UpdatedAt
             );
         }

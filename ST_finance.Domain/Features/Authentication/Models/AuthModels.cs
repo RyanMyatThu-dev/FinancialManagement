@@ -53,6 +53,7 @@ public record UserProfileResponse(
     decimal? TargetMonthlySavings,
     string? Currency,
     string? ResetFrequency,
+    bool? EnableQuotaPacing,
     DateTime? UpdatedAt
 );
 
@@ -61,7 +62,8 @@ public record UpdateProfileRequest(
     int? AllowanceDayOfMonth,
     decimal? TargetMonthlySavings,
     string? Currency,
-    string? ResetFrequency
+    string? ResetFrequency,
+    bool? EnableQuotaPacing
 );
 
 public record UpdateUsernameRequest(

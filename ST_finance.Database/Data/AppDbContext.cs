@@ -516,6 +516,9 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
                 .HasPrecision(12, 2)
                 .HasDefaultValueSql("2000.00")
                 .HasColumnName("target_monthly_savings");
+            entity.Property(e => e.EnableQuotaPacing)
+                .HasDefaultValue(true)
+                .HasColumnName("enable_quota_pacing");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");

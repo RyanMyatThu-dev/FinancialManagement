@@ -16,6 +16,7 @@ export interface UserProfile {
   targetMonthlySavings?: number;
   currency?: string;
   resetFrequency?: string;
+  enableQuotaPacing?: boolean;
   updatedAt?: string;
 }
 
@@ -216,6 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         targetMonthlySavings: profileData.targetMonthlySavings,
         currency: profileData.currency,
         resetFrequency: profileData.resetFrequency,
+        enableQuotaPacing: profileData.enableQuotaPacing,
       });
       const result = response.data;
 
