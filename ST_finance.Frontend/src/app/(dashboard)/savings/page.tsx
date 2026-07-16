@@ -135,6 +135,17 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     setError(null);
 
+    if (!goalName.trim()) {
+      setError("Goal name cannot be empty.");
+      return;
+    }
+
+    const parsedAmount = parseFloat(targetAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setError("Target amount must be greater than zero.");
+      return;
+    }
+
     if (targetDate) {
       const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local format
       if (targetDate <= todayStr) {
@@ -144,8 +155,8 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
     }
 
     mutation.mutate({
-      goalName,
-      targetAmount: parseFloat(targetAmount) || 0,
+      goalName: goalName.trim(),
+      targetAmount: parsedAmount,
       targetDate:   targetDate || null,
     });
   };
@@ -260,6 +271,15 @@ function ContributeModal({
   const [note,   setNote]   = useState("");
   const [error,  setError]  = useState<string | null>(null);
 
+  const { data: summaryData } = useQuery({
+    queryKey: ["dashboardSummary", "Month"],
+    queryFn: async () => {
+      const res = await apiClient.get("/api/dashboard/summary?timeframe=Month");
+      return res.data.value;
+    },
+  });
+  const disposableBalance = summaryData?.disposableBalance ?? 0;
+
   const mutation = useMutation({
     mutationFn: (body: ContributeRequest) => contributeToGoal(goal.id, body),
     onSuccess: () => {
@@ -273,8 +293,33 @@ function ContributeModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount === 0) {
+      setError("Amount cannot be zero.");
+      return;
+    }
+
+    if (parsedAmount > 0) {
+      if (parsedAmount > disposableBalance) {
+        setError(`Insufficient disposable balance (${disposableBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })} THB) to contribute.`);
+        return;
+      }
+      
+      const remaining = goal.targetAmount - goal.currentAmount;
+      if (parsedAmount > remaining) {
+        setError(`Contribution exceeds the remaining goal amount of ${remaining.toLocaleString(undefined, { minimumFractionDigits: 2 })} THB.`);
+        return;
+      }
+    } else {
+      if (goal.currentAmount + parsedAmount < 0) {
+        setError(`Cannot withdraw more than currently saved (${goal.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} THB).`);
+        return;
+      }
+    }
+
     mutation.mutate({
-      amount: parseFloat(amount) || 0,
+      amount: parsedAmount,
       note: note.trim() || null,
     });
   };

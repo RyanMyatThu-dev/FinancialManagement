@@ -187,6 +187,12 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
     e.preventDefault();
     setError(null);
 
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setError("Amount must be greater than zero.");
+      return;
+    }
+
     if (!accountId) {
       setError("Please select a source account.");
       return;
@@ -202,6 +208,11 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
       return;
     }
 
+    if (!date) {
+      setError("Please select a valid date.");
+      return;
+    }
+
     mutation.mutate({
       accountId,
       targetAccountId:  transactionType === "Transfer" ? targetAccountId : null,
@@ -209,7 +220,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
       transactionType,
       isRecurring,
       date:             new Date(date).toISOString(),
-      amount:           parseFloat(amount) || 0,
+      amount:           parsedAmount,
       description:      description.trim() || null,
       tagIds:           selectedTagIds.length > 0 ? selectedTagIds : null,
     });

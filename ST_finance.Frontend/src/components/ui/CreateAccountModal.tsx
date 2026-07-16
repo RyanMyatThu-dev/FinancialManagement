@@ -40,10 +40,22 @@ export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!name.trim()) {
+      setError("Account name cannot be empty.");
+      return;
+    }
+
+    const parsedBalance = parseFloat(balance);
+    if (isNaN(parsedBalance) || parsedBalance < 0) {
+      setError("Initial balance cannot be negative.");
+      return;
+    }
+
     mutation.mutate({
       name: name.trim(),
       accountType,
-      balance: parseFloat(balance) || 0,
+      balance: parsedBalance,
       color,
       icon,
     });

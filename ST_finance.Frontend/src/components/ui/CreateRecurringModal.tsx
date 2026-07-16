@@ -125,6 +125,17 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
     e.preventDefault();
     setError(null);
 
+    if (!name.trim()) {
+      setError("Schedule name cannot be empty.");
+      return;
+    }
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setError("Amount must be greater than zero.");
+      return;
+    }
+
     if (!accountId) {
       setError("Please select a source account.");
       return;
@@ -140,12 +151,22 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
       return;
     }
 
+    if (!startDate) {
+      setError("Please select a valid start date.");
+      return;
+    }
+
+    if (endDate && new Date(endDate) < new Date(startDate)) {
+      setError("End date cannot be before start date.");
+      return;
+    }
+
     mutation.mutate({
       accountId,
       targetAccountId:    transactionType === "Transfer" ? targetAccountId : null,
       categoryId:         transactionType !== "Transfer" && categoryId ? categoryId : null,
       name:               name.trim(),
-      amount:             parseFloat(amount) || 0,
+      amount:             parsedAmount,
       transactionType,
       frequency,
       startDate:          new Date(startDate).toISOString(),
