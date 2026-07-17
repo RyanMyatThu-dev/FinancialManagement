@@ -58,7 +58,7 @@ export default function RegisterPage() {
       setOtpSent(true);
       setOtpDigits(Array(6).fill(""));
       setOtpCode("");
-      setInfo("Verification code sent. Check your email (or API console in dev mode).");
+      setInfo("Verification code sent. Check your email.");
     } else {
       setError(result.error || "Failed to send verification code.");
     }
