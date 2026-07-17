@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "AWS-Lambda-Deployment-Guide.md",
+                "file": "Database-Schema.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "AWS-Lambda-Deployment-Guide"
+              "title": "Database-Schema"
             }
           }
         ]
@@ -185,14 +185,14 @@
   },
   "active": "51c8ec7429143dd6",
   "lastOpenFiles": [
-    "Architecture-Design.md",
-    "AWS-Lambda-Deployment-Guide.md",
+    "design.md",
     "Environments.md",
     "Goals-and-Scope.md",
+    "Database-Schema.md",
+    "Architecture-Design.md",
+    "AWS-Lambda-Deployment-Guide.md",
     "Use-Cases.md",
     "00-Index.md",
-    "design.md",
-    "Database-Schema.md",
     "Backend-Tasks.md"
   ]
 }

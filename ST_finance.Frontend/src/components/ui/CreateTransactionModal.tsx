@@ -259,7 +259,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
           </div>
         )}
 
-        <form id="create-transaction-form" onSubmit={handleSubmit} className="space-y-4">
+        <form id="create-transaction-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="grid grid-cols-2 gap-4">
             {/* Transaction Type */}
             <div>
@@ -293,6 +293,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
                 className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -366,6 +367,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         className="ds-input w-full px-2 py-1 text-xs"
                         autoFocus
+                        autoComplete="off"
                       />
                     </div>
                     <div>
@@ -472,6 +474,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+                autoComplete="off"
               />
             </div>
 
@@ -487,6 +490,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="e.g. Starbucks, Tuition"
                 className="ds-input w-full px-3 py-2.5 text-sm"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -518,6 +522,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
                     onChange={(e) => setNewTagName(e.target.value)}
                     className="ds-input w-full px-2 py-1 text-xs"
                     autoFocus
+                    autoComplete="off"
                   />
                 </div>
                 <div className="flex gap-2 items-center">

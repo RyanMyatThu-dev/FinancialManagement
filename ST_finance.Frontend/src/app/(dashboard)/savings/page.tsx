@@ -194,7 +194,7 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        <form id="create-goal-form" onSubmit={handleSubmit} className="space-y-4">
+        <form id="create-goal-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {/* Goal Name */}
           <div>
             <label htmlFor="goal-name" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -209,6 +209,7 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
               onChange={(e) => setGoalName(e.target.value)}
               placeholder="e.g. Emergency Fund, New Laptop"
               className="ds-input w-full px-3 py-2.5 text-sm"
+              autoComplete="off"
             />
           </div>
 
@@ -227,6 +228,7 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
               onChange={(e) => setTargetAmount(e.target.value)}
               placeholder="10000.00"
               className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+              autoComplete="off"
             />
           </div>
 
@@ -241,6 +243,7 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
               className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+              autoComplete="off"
             />
           </div>
 
@@ -366,7 +369,7 @@ function ContributeModal({
           </div>
         )}
 
-        <form id="contribute-form" onSubmit={handleSubmit} className="space-y-4">
+        <form id="contribute-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {/* Amount — positive to add, negative to withdraw */}
           <div>
             <label htmlFor="contribute-amount" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -382,6 +385,7 @@ function ContributeModal({
               onChange={(e) => setAmount(e.target.value)}
               placeholder="500.00"
               className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+              autoComplete="off"
             />
           </div>
 
@@ -398,6 +402,7 @@ function ContributeModal({
               onChange={(e) => setNote(e.target.value)}
               placeholder="Monthly top-up, bonus, etc."
               className="ds-input w-full px-3 py-2.5 text-sm"
+              autoComplete="off"
             />
           </div>
 

@@ -183,7 +183,7 @@ export default function AccountsPage() {
       </div>
 
       {/* Search and Filters Bar */}
-      <form onSubmit={handleSearchSubmit} className="ds-card p-3.5 flex flex-col gap-3 w-full">
+      <form onSubmit={handleSearchSubmit} className="ds-card p-3.5 flex flex-col gap-3 w-full" autoComplete="off">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 w-full">
           {/* Text Search */}
           <div className="relative flex-1">
@@ -195,6 +195,7 @@ export default function AccountsPage() {
               value={tempSearch}
               onChange={(e) => setTempSearch(e.target.value)}
               className="ds-input w-full pl-9 pr-3 py-2.5 text-xs font-medium font-sans"
+              autoComplete="off"
             />
           </div>
 

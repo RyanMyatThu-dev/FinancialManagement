@@ -173,7 +173,7 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form id="login-2fa-form" onSubmit={handleVerify2Fa} className="space-y-6">
+              <form id="login-2fa-form" onSubmit={handleVerify2Fa} className="space-y-6" autoComplete="off">
                 <div>
                   <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest text-center mb-3 font-mono">
                     Verification Code
@@ -193,6 +193,7 @@ export default function LoginPage() {
                         onPaste={idx === 0 ? handlePaste : undefined}
                         className="w-11 h-12 text-center text-lg font-bold rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all outline-none font-mono"
                         autoFocus={idx === 0}
+                        autoComplete="off"
                       />
                     ))}
                   </div>
@@ -249,7 +250,7 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form id="login-form" onSubmit={handleSubmit} className="space-y-4">
+              <form id="login-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
                 <div>
                   <label
                     htmlFor="login-email"
@@ -266,6 +267,7 @@ export default function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="ds-input w-full pl-9 pr-3 py-2.5 text-sm"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
@@ -286,6 +288,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="ds-input w-full pl-9 pr-10 py-2.5 text-sm"
+                      autoComplete="off"
                     />
                     <button
                       type="button"

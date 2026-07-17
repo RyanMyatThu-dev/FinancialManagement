@@ -203,7 +203,7 @@ export default function CategoriesPage() {
             </p>
           </div>
 
-          <form onSubmit={handleCreateCategory} className="space-y-4">
+          <form onSubmit={handleCreateCategory} className="space-y-4" autoComplete="off">
             <div>
               <label htmlFor="cat-name" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
                 Name
@@ -217,6 +217,7 @@ export default function CategoriesPage() {
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
                 className="ds-input w-full px-3 py-2 text-xs"
+                autoComplete="off"
               />
             </div>
 
@@ -308,7 +309,7 @@ export default function CategoriesPage() {
         <div className="lg:col-span-2 space-y-4">
           {/* Search bar */}
           <div className="ds-card p-4">
-            <form onSubmit={handleSearchSubmit} className="flex gap-2">
+            <form onSubmit={handleSearchSubmit} className="flex gap-2" autoComplete="off">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
                 <input
@@ -317,6 +318,7 @@ export default function CategoriesPage() {
                   value={tempSearch}
                   onChange={(e) => setTempSearch(e.target.value)}
                   className="ds-input w-full pl-9 pr-4 py-2.5 text-xs font-mono"
+                  autoComplete="off"
                 />
               </div>
               <button

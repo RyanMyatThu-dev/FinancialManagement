@@ -460,7 +460,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <form onSubmit={handleUpdateUsername} className="space-y-4">
+            <form onSubmit={handleUpdateUsername} className="space-y-4" autoComplete="off">
               <div>
                 <label
                   htmlFor="settings-username"
@@ -480,6 +480,7 @@ export default function ProfilePage() {
                       onChange={(e) => setNewUsername(e.target.value)}
                       placeholder="username"
                       className="ds-input w-full pl-8 pr-3 py-2.5 text-sm"
+                      autoComplete="off"
                     />
                   </div>
                   <button
@@ -523,7 +524,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <form onSubmit={handleUpdateBudget} className="space-y-6">
+            <form onSubmit={handleUpdateBudget} className="space-y-6" autoComplete="off">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Daily Quota Pacing Toggle */}
                 <div>
@@ -623,7 +624,7 @@ export default function ProfilePage() {
             )}
 
             {emailStep === "input" ? (
-              <form onSubmit={handleSendEmailOtp} className="space-y-4">
+              <form onSubmit={handleSendEmailOtp} className="space-y-4" autoComplete="off">
                 <div>
                   <label
                     htmlFor="settings-email"
@@ -643,6 +644,7 @@ export default function ProfilePage() {
                       onChange={(e) => setNewEmail(e.target.value)}
                       placeholder="new-email@university.edu"
                       className="ds-input flex-1 px-3 py-2.5 text-sm"
+                      autoComplete="off"
                     />
                     <button
                       type="submit"
@@ -659,7 +661,7 @@ export default function ProfilePage() {
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleVerifyEmail} className="space-y-4">
+              <form onSubmit={handleVerifyEmail} className="space-y-4" autoComplete="off">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest text-center mb-3 font-mono">
@@ -680,6 +682,7 @@ export default function ProfilePage() {
                           onPaste={idx === 0 ? handleEmailOtpPaste : undefined}
                           className="w-11 h-12 text-center text-lg font-bold rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all outline-none font-mono"
                           autoFocus={idx === 0}
+                          autoComplete="off"
                         />
                       ))}
                     </div>
@@ -737,7 +740,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <form onSubmit={handleResetPassword} className="space-y-4">
+            <form onSubmit={handleResetPassword} className="space-y-4" autoComplete="off">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label
@@ -754,6 +757,7 @@ export default function ProfilePage() {
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="••••••••"
                     className="ds-input w-full px-3 py-2.5 text-sm"
+                    autoComplete="off"
                   />
                 </div>
 
@@ -772,6 +776,7 @@ export default function ProfilePage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
                     className="ds-input w-full px-3 py-2.5 text-sm"
+                    autoComplete="off"
                   />
                 </div>
 
@@ -790,6 +795,7 @@ export default function ProfilePage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     className="ds-input w-full px-3 py-2.5 text-sm"
+                    autoComplete="off"
                   />
                 </div>
               </div>
@@ -867,7 +873,7 @@ export default function ProfilePage() {
               </div>
 
               {show2FaConfirm && (
-                <form onSubmit={handleConfirm2Fa} className="ds-card p-4 space-y-4 border-[hsl(var(--primary)/0.3)]">
+                <form onSubmit={handleConfirm2Fa} className="ds-card p-4 space-y-4 border-[hsl(var(--primary)/0.3)]" autoComplete="off">
                   <div>
                     <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest text-center mb-3 font-mono">
                       Enter 6-Digit Code Sent to {user?.email}
@@ -887,6 +893,7 @@ export default function ProfilePage() {
                           onPaste={idx === 0 ? handle2FaOtpPaste : undefined}
                           className="w-11 h-12 text-center text-lg font-bold rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all outline-none font-mono"
                           autoFocus={idx === 0}
+                          autoComplete="off"
                         />
                       ))}
                     </div>

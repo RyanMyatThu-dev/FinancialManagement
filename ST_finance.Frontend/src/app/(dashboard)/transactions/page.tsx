@@ -329,7 +329,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Search & Filter Bar */}
-      <form onSubmit={handleApplyFilters} className="ds-card p-3 flex flex-col gap-3">
+      <form onSubmit={handleApplyFilters} className="ds-card p-3 flex flex-col gap-3" autoComplete="off">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
@@ -340,6 +340,7 @@ export default function TransactionsPage() {
               value={tempSearch}
               onChange={(e) => setTempSearch(e.target.value)}
               className="ds-input w-full pl-9 pr-3 py-2 text-sm"
+              autoComplete="off"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -480,6 +481,7 @@ export default function TransactionsPage() {
                 value={tempMinAmount}
                 onChange={(e) => setTempMinAmount(e.target.value)}
                 className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+                autoComplete="off"
               />
             </div>
 
@@ -495,6 +497,7 @@ export default function TransactionsPage() {
                 value={tempMaxAmount}
                 onChange={(e) => setTempMaxAmount(e.target.value)}
                 className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+                autoComplete="off"
               />
             </div>
 
@@ -509,6 +512,7 @@ export default function TransactionsPage() {
                 value={tempStartDate}
                 onChange={(e) => setTempStartDate(e.target.value)}
                 className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+                autoComplete="off"
               />
             </div>
 
@@ -523,6 +527,7 @@ export default function TransactionsPage() {
                 value={tempEndDate}
                 onChange={(e) => setTempEndDate(e.target.value)}
                 className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
+                autoComplete="off"
               />
             </div>
 

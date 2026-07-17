@@ -212,7 +212,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
           </div>
         )}
 
-        <form id="create-recurring-form" onSubmit={handleSubmit} className="space-y-4">
+        <form id="create-recurring-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {/* Schedule Name */}
           <div>
             <label htmlFor="rec-name" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -227,6 +227,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Monthly Rent, Salary Deposit, Netflix Sub"
               className="ds-input w-full px-3 py-2.5 text-sm"
+              autoComplete="off"
             />
           </div>
 
@@ -281,6 +282,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
                 className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -353,6 +355,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         className="ds-input w-full px-2 py-1 text-xs"
                         autoFocus
+                        autoComplete="off"
                       />
                     </div>
                     <div>
@@ -459,6 +462,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+                autoComplete="off"
               />
             </div>
 
@@ -473,6 +477,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+                autoComplete="off"
               />
             </div>
           </div>

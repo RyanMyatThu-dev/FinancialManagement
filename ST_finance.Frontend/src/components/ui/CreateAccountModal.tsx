@@ -109,7 +109,7 @@ export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
           </div>
         )}
 
-        <form id="create-account-form" onSubmit={handleSubmit} className="space-y-4">
+        <form id="create-account-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {/* Account Name */}
           <div>
             <label htmlFor="account-name" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -124,6 +124,7 @@ export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. SCB Savings, Cash Pocket"
               className="ds-input w-full px-3 py-2.5 text-sm"
+              autoComplete="off"
             />
           </div>
 
@@ -161,6 +162,7 @@ export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
               onChange={(e) => setBalance(e.target.value)}
               placeholder="0.00"
               className="ds-input w-full px-3 py-2.5 text-sm font-mono"
+              autoComplete="off"
             />
           </div>
 

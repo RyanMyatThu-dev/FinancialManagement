@@ -196,7 +196,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              <form id="register-otp-form" onSubmit={handleSubmit} className="space-y-6">
+              <form id="register-otp-form" onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
                 <div>
                   <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest text-center mb-3 font-mono">
                     Verification Code
@@ -216,6 +216,7 @@ export default function RegisterPage() {
                         onPaste={idx === 0 ? handlePaste : undefined}
                         className="w-11 h-12 text-center text-lg font-bold rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all outline-none font-mono"
                         autoFocus={idx === 0}
+                        autoComplete="off"
                       />
                     ))}
                   </div>
@@ -288,7 +289,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              <form id="register-details-form" onSubmit={handleSendOtp} className="space-y-4">
+              <form id="register-details-form" onSubmit={handleSendOtp} className="space-y-4" autoComplete="off">
                 <div>
                   <label
                     htmlFor="register-fullname"
@@ -305,6 +306,7 @@ export default function RegisterPage() {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="ds-input w-full pl-9 pr-3 py-2.5 text-sm"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
@@ -327,6 +329,7 @@ export default function RegisterPage() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="ds-input w-full pl-8 pr-3 py-2.5 text-sm"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
@@ -347,6 +350,7 @@ export default function RegisterPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="ds-input w-full pl-9 pr-3 py-2.5 text-sm"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
@@ -367,6 +371,7 @@ export default function RegisterPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="ds-input w-full pl-9 pr-10 py-2.5 text-sm"
+                      autoComplete="off"
                     />
                     <button
                       type="button"
@@ -399,6 +404,7 @@ export default function RegisterPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="ds-input w-full pl-9 pr-10 py-2.5 text-sm"
+                      autoComplete="off"
                     />
                     <button
                       type="button"
