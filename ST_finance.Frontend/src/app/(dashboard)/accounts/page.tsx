@@ -113,6 +113,15 @@ export default function AccountsPage() {
     placeholderData: (prev) => prev,
   });
 
+  const { data: lookupData } = useQuery<Account[]>({
+    queryKey: ["accounts", "lookup"],
+    queryFn: async () => {
+      const res = await apiClient.get("/api/accounts?pageSize=100");
+      if (res.data.isSuccess && res.data.value?.items) return res.data.value.items;
+      return [];
+    },
+  });
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSearch(tempSearch);
@@ -129,7 +138,9 @@ export default function AccountsPage() {
 
   const currency     = user?.currency || "THB";
   const accounts     = data?.items ?? [];
-  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalBalance = lookupData
+    ? lookupData.reduce((sum, a) => sum + a.balance, 0)
+    : accounts.reduce((sum, a) => sum + a.balance, 0);
 
   const meta: PaginationMeta | null = data
     ? {
