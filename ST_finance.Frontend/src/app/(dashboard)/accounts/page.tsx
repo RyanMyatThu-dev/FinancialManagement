@@ -29,7 +29,7 @@ interface PagedAccountResponse {
   hasNextPage:     boolean;
 }
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 5;
 
 const ACCOUNT_ICONS: Record<string, React.ReactNode> = {
   "1":         <Wallet      className="h-5 w-5" />,
