@@ -193,5 +193,30 @@ namespace ST_finance.UnitTests
 
             Assert.True(result.IsSuccess);
         }
+
+        [Fact]
+        public async Task GetCompletedGoals_ShouldSortCorrectly()
+        {
+            // Seed completed goals with different dates
+            var goal1 = new TblSavingsGoal { Id = Guid.NewGuid(), UserId = _userId, GoalName = "Goal 1", TargetAmount = 1000m, IsCompleted = true, CreatedAt = DateTime.UtcNow.AddDays(-10), CompletedAt = DateTime.UtcNow.AddDays(-5), TargetDate = DateTime.UtcNow.AddDays(5), DeleteFlag = false };
+            var goal2 = new TblSavingsGoal { Id = Guid.NewGuid(), UserId = _userId, GoalName = "Goal 2", TargetAmount = 1000m, IsCompleted = true, CreatedAt = DateTime.UtcNow.AddDays(-5), CompletedAt = DateTime.UtcNow.AddDays(-8), TargetDate = DateTime.UtcNow.AddDays(10), DeleteFlag = false };
+            _context.TblSavingsGoals.AddRange(goal1, goal2);
+            await _context.SaveChangesAsync();
+
+            // Sort by CreatedAt (descending) -> Goal 2 (5 days ago) should be first
+            var resultCreated = await _service.GetCompletedGoalsAsync(_userId, 1, 10, "CreatedAt");
+            Assert.True(resultCreated.IsSuccess);
+            Assert.Equal("Goal 2", resultCreated.Value.Items.First().GoalName);
+
+            // Sort by CompletedAt (descending) -> Goal 1 (5 days ago) should be first
+            var resultCompleted = await _service.GetCompletedGoalsAsync(_userId, 1, 10, "CompletedAt");
+            Assert.True(resultCompleted.IsSuccess);
+            Assert.Equal("Goal 1", resultCompleted.Value.Items.First().GoalName);
+
+            // Sort by TargetDate (descending) -> Goal 2 (10 days in future) should be first
+            var resultTarget = await _service.GetCompletedGoalsAsync(_userId, 1, 10, "TargetDate");
+            Assert.True(resultTarget.IsSuccess);
+            Assert.Equal("Goal 2", resultTarget.Value.Items.First().GoalName);
+        }
     }
 }

@@ -157,21 +157,21 @@ namespace ST_finance.Domain.Features
             // 15 COMPLETED goals (various durations ago) + 6 ACTIVE goals
             var completedGoals = new (string Name, decimal Target, int StartMonthsAgo, int CompletedMonthsAgo)[]
             {
-                ("Semester 1 Textbooks",     5_000m,  24, 21),
+                ("Semester 1 Textbooks",     5_000m,  24, 15),
                 ("New Headphones",           3_500m,  22, 19),
-                ("Semester 2 Textbooks",     5_500m,  20, 17),
-                ("Birthday Trip",           12_000m,  20, 15),
+                ("Semester 2 Textbooks",     5_500m,  20,  8),
+                ("Birthday Trip",           12_000m,  20, 17),
                 ("Graphic Tablet",           8_000m,  18, 14),
-                ("Dorm Room Upgrade",        6_500m,  17, 13),
+                ("Dorm Room Upgrade",        6_500m,  17,  5),
                 ("Semester 3 Textbooks",     5_000m,  16, 13),
-                ("Gaming Keyboard",          2_800m,  15, 12),
+                ("Gaming Keyboard",          2_800m,  15,  3),
                 ("Gym Membership 1 Year",    5_400m,  14, 11),
-                ("Summer Internship Fund",  15_000m,  14, 10),
+                ("Summer Internship Fund",  15_000m,  14,  6),
                 ("Mechanical Watch",         9_800m,  13,  9),
                 ("New Sneakers",             4_200m,  11,  8),
                 ("Semester 4 Textbooks",     5_000m,  10,  7),
-                ("Camera Lens",             18_000m,  10,  5),
-                ("Conference Registration",  7_500m,   7,  3),
+                ("Camera Lens",             18_000m,  10,  2),
+                ("Conference Registration",  7_500m,   7,  4),
             };
 
             var activeGoals = new (string Name, decimal Target, int StartMonthsAgo, int? TargetMonthsAhead)[]
@@ -192,7 +192,7 @@ namespace ST_finance.Domain.Features
                 var created     = now.AddMonths(-StartMonthsAgo);
                 var completedAt = now.AddMonths(-CompletedMonthsAgo)
                                      .AddDays(rnd.Next(-10, 0));   // completed a few days before month cutoff
-                var targetDate  = completedAt.AddDays(rnd.Next(3, 25));
+                var targetDate  = created.AddMonths(StartMonthsAgo / 2 + rnd.Next(1, 4));
 
                 var goal = new TblSavingsGoal
                 {

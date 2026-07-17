@@ -7,7 +7,7 @@ import { apiClient } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { CurrencyDisplay, formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { TechProgress } from "@/components/ui/TechProgress";
-import { TimeframeFilter, type Timeframe } from "@/components/ui/TimeframeFilter";
+import { type Timeframe } from "@/components/ui/TimeframeFilter";
 import {
   TrendingUp,
   TrendingDown,
@@ -54,7 +54,7 @@ interface QuotaTrendItem {
 
 export default function DashboardHome() {
   const { user } = useAuth();
-  const [timeframe, setTimeframe] = useState<Timeframe>("Month");
+  const timeframe: Timeframe = "Day";
 
   const { data: summary, isLoading: isSummaryLoading, error: summaryError } = useQuery<DashboardSummary>({
     queryKey: ["dashboardSummary", timeframe],
@@ -142,9 +142,8 @@ export default function DashboardHome() {
           </p>
         </div>
 
-        {/* Right: disposable pool + timeframe */}
+        {/* Right: disposable pool */}
         <div className="flex flex-col lg:items-end items-start gap-4 shrink-0">
-          <TimeframeFilter value={timeframe} onChange={setTimeframe} />
           <div className="lg:text-right text-left">
             <p className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono font-bold uppercase tracking-widest mb-1.5">
               Disposable Pool
@@ -274,16 +273,6 @@ export default function DashboardHome() {
                   </>
                 )}
               </div>
-              {/* Canteen Index */}
-              <div className="ds-card p-3.5 text-center">
-                <div className="flex items-center gap-1.5 justify-center text-[hsl(var(--foreground))]">
-                  <UtensilsCrossed className="h-4 w-4 text-[hsl(var(--primary))]" />
-                  <span className="text-lg font-extrabold font-mono">{summary?.canteenIndex ?? 0}</span>
-                </div>
-                <p className="text-[8px] uppercase font-bold tracking-wider text-[hsl(var(--muted-foreground))] mt-0.5">
-                  Meal Units
-                </p>
-              </div>
             </div>
 
             {/* Progress Widget */}
@@ -309,7 +298,7 @@ export default function DashboardHome() {
               </div>
             </div>
 
-            <div className="border-t border-[hsl(var(--border))] pt-4 grid grid-cols-3 gap-4 text-[11px] text-[hsl(var(--muted-foreground))] font-mono">
+            <div className="border-t border-[hsl(var(--border))] pt-4 grid grid-cols-2 gap-4 text-[11px] text-[hsl(var(--muted-foreground))] font-mono">
               <div>
                 <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Reset Cycle</p>
                 <p className="font-bold text-[hsl(var(--foreground))] flex items-center gap-1.5 truncate max-w-[280px] md:max-w-[350px]" title={summary?.resetDayText || "—"}>
@@ -322,10 +311,6 @@ export default function DashboardHome() {
                 <p className="font-bold text-[hsl(var(--destructive))]">
                   {formatCurrency(summary?.spentToday ?? 0, currency)}
                 </p>
-              </div>
-              <div>
-                <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Canteen Math</p>
-                <p className="text-[hsl(var(--foreground))]">floor(Daily Quota / 50)</p>
               </div>
             </div>
 
