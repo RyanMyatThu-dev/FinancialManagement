@@ -581,23 +581,94 @@ export default function TransactionsPage() {
 
       {/* Table */}
       <div className="sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none overflow-hidden">
-        {/* Table Header */}
-        <div className="grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
-            No.
-          </span>
-          <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
-            Description
-          </span>
-          <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
-            Date
-          </span>
-          <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
-            Type
-          </span>
-          <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-right">
-            Amount
-          </span>
+        <div className="w-full overflow-x-auto no-scrollbar">
+          <div className="min-w-[500px] sm:min-w-0">
+            {/* Table Header */}
+            <div className="grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
+                No.
+              </span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
+                Description
+              </span>
+              <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
+                Date
+              </span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
+                Type
+              </span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-right">
+                Amount
+              </span>
+            </div>
+
+            {/* Rows */}
+            {!isLoading && !error && transactions.map((tx, idx) => (
+              <div
+                key={tx.id ?? `tx-${idx}`}
+                className={`ds-table-row grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-3.5 items-center cursor-pointer ${
+                  idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
+                }`}
+                onClick={() => setSelectedTransaction(tx)}
+              >
+                {/* Number index */}
+                <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
+                  {(page - 1) * PAGE_SIZE + idx + 1}
+                </span>
+
+                {/* Description */}
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {tx.description || <span className="text-[hsl(var(--muted-foreground))] italic text-xs font-mono">No description</span>}
+                  </p>
+                  <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-0.5">
+                    {formatDate(tx.date)}
+                  </p>
+                </div>
+
+                {/* Date (desktop) */}
+                <div className="hidden sm:flex justify-center">
+                  <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
+                    {formatDate(tx.date)}
+                  </span>
+                </div>
+
+                {/* Type badge */}
+                <div className="flex justify-center">
+                  {tx.transactionType === "Income" ? (
+                    <span className="ds-badge ds-badge-success">+IN</span>
+                  ) : tx.transactionType === "Transfer" ? (
+                    <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] font-mono">↔ TR</span>
+                  ) : (
+                    <span className="ds-badge ds-badge-danger">−OUT</span>
+                  )}
+                </div>
+
+                {/* Amount */}
+                <p
+                  className={`text-right font-mono tabular-nums font-semibold text-sm ${
+                    tx.transactionType === "Income"
+                      ? "text-[hsl(var(--primary))]"
+                      : tx.transactionType === "Transfer"
+                      ? "text-[hsl(var(--muted-foreground))]"
+                      : "text-[hsl(var(--destructive))]"
+                  }`}
+                >
+                  {tx.transactionType === "Income" ? "+" : tx.transactionType === "Transfer" ? "↔" : "−"}
+                  {formatAmount(tx.amount)}
+                  <span className="text-[9px] ml-1 opacity-50">{currency}</span>
+                </p>
+              </div>
+            ))}
+
+            {/* Empty */}
+            {!isLoading && !error && transactions.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-[hsl(var(--muted-foreground))] font-mono text-center">
+                <p className="text-sm font-bold text-[hsl(var(--foreground))]">No transactions found</p>
+                <p className="text-xs mt-1">Try adjusting your filters or search query.</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Loading */}
@@ -612,73 +683,6 @@ export default function TransactionsPage() {
           <div className="ds-alert-error flex items-center gap-2.5 p-4 m-4 text-sm font-mono">
             <AlertTriangle className="h-5 w-5 shrink-0" />
             <p>{(error as Error).message}</p>
-          </div>
-        )}
-
-        {/* Rows */}
-        {transactions.map((tx, idx) => (
-          <div
-            key={tx.id ?? `tx-${idx}`}
-            className={`ds-table-row grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-3.5 items-center cursor-pointer ${
-              idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
-            }`}
-            onClick={() => setSelectedTransaction(tx)}
-          >
-            {/* Number index */}
-            <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
-              {(page - 1) * PAGE_SIZE + idx + 1}
-            </span>
-
-            {/* Description */}
-            <div className="min-w-0">
-              <p className="text-sm font-medium truncate">
-                {tx.description || <span className="text-[hsl(var(--muted-foreground))] italic text-xs font-mono">No description</span>}
-              </p>
-              <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-0.5">
-                {formatDate(tx.date)}
-              </p>
-            </div>
-
-            {/* Date (desktop) */}
-            <div className="hidden sm:flex justify-center">
-              <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
-                {formatDate(tx.date)}
-              </span>
-            </div>
-
-            {/* Type badge */}
-            <div className="flex justify-center">
-              {tx.transactionType === "Income" ? (
-                <span className="ds-badge ds-badge-success">+IN</span>
-              ) : tx.transactionType === "Transfer" ? (
-                <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] font-mono">↔ TR</span>
-              ) : (
-                <span className="ds-badge ds-badge-danger">−OUT</span>
-              )}
-            </div>
-
-            {/* Amount */}
-            <p
-              className={`text-right font-mono tabular-nums font-semibold text-sm ${
-                tx.transactionType === "Income"
-                  ? "text-[hsl(var(--primary))]"
-                  : tx.transactionType === "Transfer"
-                  ? "text-[hsl(var(--muted-foreground))]"
-                  : "text-[hsl(var(--destructive))]"
-              }`}
-            >
-              {tx.transactionType === "Income" ? "+" : tx.transactionType === "Transfer" ? "↔" : "−"}
-              {formatAmount(tx.amount)}
-              <span className="text-[9px] ml-1 opacity-50">{currency}</span>
-            </p>
-          </div>
-        ))}
-
-        {/* Empty */}
-        {!isLoading && !error && transactions.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-[hsl(var(--muted-foreground))] font-mono text-center">
-            <p className="text-sm font-bold text-[hsl(var(--foreground))]">No transactions found</p>
-            <p className="text-xs mt-1">Try adjusting your filters or search query.</p>
           </div>
         )}
 

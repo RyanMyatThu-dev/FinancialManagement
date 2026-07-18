@@ -231,7 +231,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Transaction Type */}
             <div>
               <label htmlFor="rec-type" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -287,7 +287,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Account (Source) */}
             <div>
               <label htmlFor="rec-account" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -449,7 +449,7 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Start Date */}
             <div>
               <label htmlFor="rec-start" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">

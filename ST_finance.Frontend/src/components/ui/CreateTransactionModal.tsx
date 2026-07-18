@@ -260,7 +260,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
         )}
 
         <form id="create-transaction-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Transaction Type */}
             <div>
               <label htmlFor="tx-type" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -298,7 +298,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Account (Source) */}
             <div>
               <label htmlFor="tx-account" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
@@ -461,7 +461,7 @@ export function CreateTransactionModal({ onClose }: CreateTransactionModalProps)
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Date */}
             <div>
               <label htmlFor="tx-date" className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">

@@ -120,6 +120,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* ─── Mobile Top Header ──────────────────────────────────────── */}
       <header className="md:hidden w-full h-14 fixed top-0 left-0 bg-[hsl(var(--card))] border-b border-[hsl(var(--border))] px-4 flex items-center justify-between z-40">
         <div className="flex items-center gap-2.5">
+          <button
+            id="mobile-menu-toggle"
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            className="ds-btn-icon h-8 w-8"
+            aria-label="Toggle Menu"
+          >
+            {isMobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
           {/* Logo badge */}
           <Logo className="h-7 w-7" />
           <span className="font-extrabold text-sm tracking-tight">ST-Finance</span>
@@ -132,13 +140,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             title="Toggle theme"
           >
             {isDarkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-          </button>
-          <button
-            id="mobile-menu-toggle"
-            onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className="ds-btn-icon h-8 w-8"
-          >
-            {isMobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
         </div>
       </header>
@@ -284,12 +285,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ─── Mobile Drawer ──────────────────────────────────────────── */}
       {isMobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
+        <div className="md:hidden fixed inset-0 z-50 flex justify-start">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
             onClick={() => setIsMobileOpen(false)}
           />
-          <aside className="relative flex flex-col w-64 h-full bg-[hsl(var(--card))] border-r border-[hsl(var(--border))] p-4 z-50">
+          <aside className="relative flex flex-col w-64 h-full bg-[hsl(var(--card))] border-r border-[hsl(var(--border))] p-4 z-50 animate-slide-in-left">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2.5">
                 <Logo className="h-7 w-7" />

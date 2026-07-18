@@ -361,74 +361,76 @@ export default function AccountsPage() {
               })}
             </div>
           ) : (
-            <div className="sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none overflow-hidden">
-              {/* Table Header */}
-              <div className="grid grid-cols-[40px_1fr_110px_130px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
-                  No.
-                </span>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
-                  Account Name
-                </span>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
-                  Account Type
-                </span>
-                <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
-                  Created Date
-                </span>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-right">
-                  Balance
-                </span>
-              </div>
+            <div className="w-full overflow-x-auto no-scrollbar sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none">
+              <div className="min-w-[500px] sm:min-w-0">
+                {/* Table Header */}
+                <div className="grid grid-cols-[40px_1fr_110px_130px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
+                    No.
+                  </span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
+                    Account Name
+                  </span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
+                    Account Type
+                  </span>
+                  <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-center">
+                    Created Date
+                  </span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-right">
+                    Balance
+                  </span>
+                </div>
 
-              {/* Table Rows */}
-              {accounts.map((account, idx) => {
-                const typeStr = String(account.accountType);
-                const colorClass = ACCOUNT_COLORS[typeStr] ?? ACCOUNT_COLORS.default;
-                const typeLabel  = getAccountTypeLabel(account.accountType);
-                return (
-                  <div
-                    key={account.id ?? `account-${idx}`}
-                    className={`ds-table-row grid grid-cols-[40px_1fr_110px_130px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-3.5 items-center cursor-pointer ${
-                      idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
-                    }`}
-                    onClick={() => setSelectedAccount(account)}
-                  >
-                    {/* Number index */}
-                    <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
-                      {(page - 1) * PAGE_SIZE + idx + 1}
-                    </span>
-
-                    {/* Name */}
-                    <p className="text-sm font-medium truncate">
-                      {account.name}
-                    </p>
-
-                    {/* Account Type badge */}
-                    <div className="flex justify-center">
-                      <span className={`ds-badge ${colorClass}`}>{typeLabel}</span>
-                    </div>
-
-                    {/* Created Date (desktop) */}
-                    <div className="hidden sm:flex justify-center">
+                {/* Table Rows */}
+                {accounts.map((account, idx) => {
+                  const typeStr = String(account.accountType);
+                  const colorClass = ACCOUNT_COLORS[typeStr] ?? ACCOUNT_COLORS.default;
+                  const typeLabel  = getAccountTypeLabel(account.accountType);
+                  return (
+                    <div
+                      key={account.id ?? `account-${idx}`}
+                      className={`ds-table-row grid grid-cols-[40px_1fr_110px_130px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-3.5 items-center cursor-pointer ${
+                        idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
+                      }`}
+                      onClick={() => setSelectedAccount(account)}
+                    >
+                      {/* Number index */}
                       <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
-                        {new Date(account.createdAt).toLocaleDateString(undefined, {
-                          day: "2-digit", month: "short", year: "numeric"
-                        })}
+                        {(page - 1) * PAGE_SIZE + idx + 1}
                       </span>
-                    </div>
 
-                    {/* Balance */}
-                    <div className="text-right">
-                      <CurrencyDisplay
-                        amount={account.balance}
-                        currency={account.currency || currency}
-                        size="sm"
-                      />
+                      {/* Name */}
+                      <p className="text-sm font-medium truncate">
+                        {account.name}
+                      </p>
+
+                      {/* Account Type badge */}
+                      <div className="flex justify-center">
+                        <span className={`ds-badge ${colorClass}`}>{typeLabel}</span>
+                      </div>
+
+                      {/* Created Date (desktop) */}
+                      <div className="hidden sm:flex justify-center">
+                        <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
+                          {new Date(account.createdAt).toLocaleDateString(undefined, {
+                            day: "2-digit", month: "short", year: "numeric"
+                          })}
+                        </span>
+                      </div>
+
+                      {/* Balance */}
+                      <div className="text-right">
+                        <CurrencyDisplay
+                          amount={account.balance}
+                          currency={account.currency || currency}
+                          size="sm"
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
 
