@@ -210,7 +210,7 @@ export default function AccountsPage() {
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 w-full lg:w-auto">
             {/* Account Type Filter */}
             <select
               id="accounts-type-filter"

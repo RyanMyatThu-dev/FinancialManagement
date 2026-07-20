@@ -209,6 +209,8 @@ export default function RegisterPage() {
                         key={idx}
                         id={`register-otp-${idx}`}
                         type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         maxLength={1}
                         value={otpDigits[idx] || ""}
                         onChange={(e) => handleOtpChange(e.target.value, idx)}

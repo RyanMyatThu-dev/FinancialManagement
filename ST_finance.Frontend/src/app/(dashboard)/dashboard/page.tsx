@@ -372,7 +372,7 @@ export default function DashboardHome() {
         <div className="h-64 w-full">
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradTarget" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor="hsl(142 86% 55%)" stopOpacity={0.15} />

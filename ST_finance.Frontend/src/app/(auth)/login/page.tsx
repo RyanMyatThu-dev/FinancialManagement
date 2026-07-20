@@ -186,6 +186,8 @@ export default function LoginPage() {
                         key={idx}
                         id={`login-2fa-otp-${idx}`}
                         type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         maxLength={1}
                         value={otpDigits[idx] || ""}
                         onChange={(e) => handleOtpChange(e.target.value, idx)}

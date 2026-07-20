@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Authentication.Models;
 using ST_finance.Shared;
@@ -19,17 +20,20 @@ namespace ST_finance.Domain.Features.Authentication
         private readonly AppDbContext _context;
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
 
         public AuthService(
             UserManager<TblUser> userManager,
             AppDbContext context,
             ITokenService tokenService,
-            IEmailService emailService)
+            IEmailService emailService,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _context = context;
             _tokenService = tokenService;
             _emailService = emailService;
+            _configuration = configuration;
         }
 
         public async Task<Result> SendRegisterOtpAsync(string email)
@@ -556,11 +560,15 @@ namespace ST_finance.Domain.Features.Authentication
             var accessToken = _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var accessTokenExpiryMinutes = double.Parse(jwtSettings["AccessTokenExpiryMinutes"] ?? "1440");
+            var refreshTokenExpiryDays = double.Parse(jwtSettings["RefreshTokenExpiryDays"] ?? "30");
+
             user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(refreshTokenExpiryDays);
             await _userManager.UpdateAsync(user);
 
-            var expiration = DateTime.UtcNow.AddMinutes(60);
+            var expiration = DateTime.UtcNow.AddMinutes(accessTokenExpiryMinutes);
 
             return Result.Success(new AuthResponse(
                 AccessToken: accessToken,
