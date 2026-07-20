@@ -6,7 +6,7 @@ namespace ST_finance.Domain.Features.Authentication
 {
     public interface ITokenService
     {
-        string GenerateAccessToken(TblUser user);
+        string GenerateAccessToken(TblUser user, System.Collections.Generic.IEnumerable<string> roles);
         string GenerateRefreshToken();
         ClaimsPrincipal GetPrincipalFromExpiredToken(string token);
     }

@@ -214,7 +214,7 @@ namespace ST_finance.Domain.Features.Authentication
                 return Result.Failure<UserProfileResponse>(CustomErrors.Auth.UserNotFound);
             }
 
-            return Result.Success(BuildUserProfileResponse(user));
+            return Result.Success(await BuildUserProfileResponseAsync(user));
         }
 
         public async Task<Result<UserProfileResponse>> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
@@ -311,7 +311,7 @@ namespace ST_finance.Domain.Features.Authentication
             profile.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            return Result.Success(BuildUserProfileResponse(user));
+            return Result.Success(await BuildUserProfileResponseAsync(user));
         }
 
         public async Task<Result> UpdateUsernameAsync(Guid userId, string newUsername)
@@ -557,7 +557,16 @@ namespace ST_finance.Domain.Features.Authentication
 
         private async Task<Result<AuthResponse>> BuildAuthResponseAsync(TblUser user)
         {
-            var accessToken = _tokenService.GenerateAccessToken(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "Student";
+            var permissions = await _context.TblRolePermissions
+                .Join(_context.Roles, rp => rp.RoleId, r => r.Id, (rp, r) => new { rp.Permission, RoleName = r.Name })
+                .Where(x => roles.Contains(x.RoleName))
+                .Select(x => x.Permission)
+                .Distinct()
+                .ToListAsync();
+
+            var accessToken = _tokenService.GenerateAccessToken(user, roles);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
             var jwtSettings = _configuration.GetSection("JwtSettings");
@@ -578,13 +587,23 @@ namespace ST_finance.Domain.Features.Authentication
                 Email: user.Email!,
                 FullName: user.FullName ?? string.Empty,
                 Expiration: expiration,
-                IsTwoFactorRequired: false
+                IsTwoFactorRequired: false,
+                Role: role,
+                Permissions: permissions
             ));
         }
 
-        private static UserProfileResponse BuildUserProfileResponse(TblUser user)
+        private async Task<UserProfileResponse> BuildUserProfileResponseAsync(TblUser user)
         {
             var profile = user.TblUserProfile;
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "Student";
+            var permissions = await _context.TblRolePermissions
+                .Join(_context.Roles, rp => rp.RoleId, r => r.Id, (rp, r) => new { rp.Permission, RoleName = r.Name })
+                .Where(x => roles.Contains(x.RoleName))
+                .Select(x => x.Permission)
+                .Distinct()
+                .ToListAsync();
 
             return new UserProfileResponse(
                 UserId: user.Id,
@@ -599,7 +618,9 @@ namespace ST_finance.Domain.Features.Authentication
                 Currency: profile?.Currency,
                 ResetFrequency: profile?.ResetFrequency,
                 EnableQuotaPacing: profile == null || profile.EnableQuotaPacing,
-                UpdatedAt: profile?.UpdatedAt
+                UpdatedAt: profile?.UpdatedAt,
+                Role: role,
+                Permissions: permissions
             );
         }
     }

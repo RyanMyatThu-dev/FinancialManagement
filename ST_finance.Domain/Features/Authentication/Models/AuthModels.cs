@@ -29,7 +29,9 @@ public record AuthResponse(
     string Email,
     string FullName,
     DateTime? Expiration,
-    bool IsTwoFactorRequired = false
+    bool IsTwoFactorRequired = false,
+    string? Role = null,
+    System.Collections.Generic.List<string>? Permissions = null
 );
 
 public record VerifyTwoFactorRequest(
@@ -55,7 +57,9 @@ public record UserProfileResponse(
     string? Currency,
     string? ResetFrequency,
     bool? EnableQuotaPacing,
-    DateTime? UpdatedAt
+    DateTime? UpdatedAt,
+    string? Role = null,
+    System.Collections.Generic.List<string>? Permissions = null
 );
 
 public record UpdateProfileRequest(

@@ -91,6 +91,10 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, ST_finance.Domain.Features.Authentication.PermissionPolicyProvider>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ST_finance.Domain.Features.Authentication.PermissionAuthorizationHandler>();
+
+
 var connectionString = builder.Configuration.GetConnectionString("DbConnection");
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)

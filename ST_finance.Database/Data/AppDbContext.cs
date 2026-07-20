@@ -43,6 +43,11 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
 
     public virtual DbSet<TblOtpVerification> TblOtpVerifications { get; set; }
 
+    public virtual DbSet<TblRolePermission> TblRolePermissions { get; set; }
+
+    public virtual DbSet<TblUserReport> TblUserReports { get; set; }
+
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -64,7 +69,9 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
         modelBuilder.Entity<TblRecurringSchedule>().HasQueryFilter(e => !e.DeleteFlag);
         modelBuilder.Entity<TblCategoryBudget>().HasQueryFilter(e => !e.DeleteFlag);
         modelBuilder.Entity<TblSavingsGoal>().HasQueryFilter(e => !e.DeleteFlag);
+        modelBuilder.Entity<TblUserReport>().HasQueryFilter(e => !e.DeleteFlag);
         modelBuilder.HasPostgresExtension("uuid-ossp");
+
 
         modelBuilder.Entity<TblAccount>(entity =>
         {
@@ -555,7 +562,60 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
                 .HasColumnName("is_used");
         });
 
+        modelBuilder.Entity<TblRolePermission>(entity =>
+        {
+            entity.HasKey(e => new { e.RoleId, e.Permission }).HasName("Tbl_RolePermission_pkey");
+
+            entity.ToTable("Tbl_RolePermission");
+
+            entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.Permission)
+                .HasMaxLength(256)
+                .HasColumnName("permission");
+
+            entity.HasOne(d => d.Role)
+                .WithMany()
+                .HasForeignKey(d => d.RoleId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("Tbl_RolePermission_role_id_fkey");
+        });
+
+        modelBuilder.Entity<TblUserReport>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("Tbl_UserReport_pkey");
+
+            entity.ToTable("Tbl_UserReport");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Title)
+                .HasMaxLength(256)
+                .HasColumnName("title");
+            entity.Property(e => e.Description)
+                .HasColumnName("description");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'Open'::character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.DeleteFlag)
+                .HasDefaultValue(false)
+                .HasColumnName("delete_flag");
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("Tbl_UserReport_user_id_fkey");
+        });
+
         OnModelCreatingPartial(modelBuilder);
+
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

@@ -23,18 +23,55 @@ import {
   Moon,
   FolderOpen,
   Tag,
+  ShieldCheck,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
+import { apiClient } from "@/api/client";
+import { useToast } from "@/context/ToastContext";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { showToast } = useToast();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen]   = useState(false);
   const [isDarkMode, setIsDarkMode]       = useState(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Feedback System States
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackTitle, setFeedbackTitle] = useState("");
+  const [feedbackDesc, setFeedbackDesc] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackTitle.trim() || !feedbackDesc.trim()) return;
+
+    setIsSubmittingFeedback(true);
+    try {
+      const response = await apiClient.post("/api/reports", {
+        title: feedbackTitle.trim(),
+        description: feedbackDesc.trim(),
+      });
+      if (response.data.isSuccess) {
+        showToast("Feedback submitted successfully. Thank you!", "success");
+        setFeedbackTitle("");
+        setFeedbackDesc("");
+        setShowFeedbackModal(false);
+      } else {
+        showToast(response.data.error?.message || "Failed to submit feedback.", "error");
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.error?.message || "Failed to submit feedback.", "error");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -107,6 +144,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Tags",               href: "/tags",         icon: Tag             },
     { name: "Profile",            href: "/profile",      icon: UserIcon        },
   ];
+
+  const displayNavItems = [...navItems];
+  if (user?.role === "Admin") {
+    displayNavItems.push({ name: "Admin Portal", href: "/admin", icon: ShieldCheck });
+  }
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -181,7 +223,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Nav Items */}
         <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto no-scrollbar">
-          {navItems.map((item) => {
+          {displayNavItems.map((item) => {
             const isActive =
               item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
             const Icon = item.icon;
@@ -305,7 +347,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             <nav className="flex-grow space-y-0.5">
-              {navItems.map((item) => {
+              {displayNavItems.map((item) => {
                 const isActive =
                   item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
                 const Icon = item.icon;
@@ -372,6 +414,89 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }}
         onCancel={() => setShowLogoutConfirm(false)}
       />
+
+      {/* Floating Feedback Trigger */}
+      <button
+        onClick={() => setShowFeedbackModal(true)}
+        className="fixed bottom-6 right-6 h-12 w-12 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-110 active:scale-95 transition-all z-40 group"
+        title="Submit Feedback or Report Bug"
+      >
+        <MessageSquare className="h-5 w-5" />
+        <span className="absolute right-14 bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-300 px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-medium shadow-md whitespace-nowrap">
+          Report Issue / Feedback
+        </span>
+      </button>
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl animate-scale-up text-left">
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3 text-indigo-400">
+                <MessageSquare className="h-6 w-6 shrink-0" />
+                <h3 className="font-bold text-zinc-100 text-lg">Send Feedback / Bug Report</h3>
+              </div>
+              <p className="text-xs text-zinc-400">
+                Found a bug? Have an improvement idea? Let our support team know below. We appreciate it!
+              </p>
+
+              <form onSubmit={handleFeedbackSubmit} className="space-y-4 pt-2">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Summary Title</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={150}
+                    placeholder="e.g. Transaction balance not syncing"
+                    className="w-full px-3.5 py-2 text-sm bg-zinc-950 border border-zinc-850 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-200"
+                    value={feedbackTitle}
+                    onChange={(e) => setFeedbackTitle(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Detailed Description</label>
+                  <textarea
+                    required
+                    rows={4}
+                    maxLength={1000}
+                    placeholder="Describe the issue or feedback in detail. Include reproduction steps if it's a bug."
+                    className="w-full px-3.5 py-2.5 text-sm bg-zinc-950 border border-zinc-850 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-200 resize-none leading-relaxed"
+                    value={feedbackDesc}
+                    onChange={(e) => setFeedbackDesc(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-850/60 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowFeedbackModal(false);
+                      setFeedbackTitle("");
+                      setFeedbackDesc("");
+                    }}
+                    className="px-4 py-2 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingFeedback || !feedbackTitle.trim() || !feedbackDesc.trim()}
+                    className="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 font-semibold rounded-lg text-white transition-all flex items-center gap-1.5"
+                  >
+                    {isSubmittingFeedback ? (
+                      <span className="h-3.5 w-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Send className="h-3.5 w-3.5" />
+                    )}
+                    Submit Ticket
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

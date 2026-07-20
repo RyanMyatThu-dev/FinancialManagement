@@ -18,7 +18,7 @@ namespace ST_finance.Domain.Features.Authentication
             _configuration = configuration;
         }
 
-        public string GenerateAccessToken(TblUser user)
+        public string GenerateAccessToken(TblUser user, System.Collections.Generic.IEnumerable<string> roles)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
             var secretKey = jwtSettings["SecretKey"] ?? "ST_finance_SuperSecretKeyForJWTSigningMustBeLongEnough123!";
@@ -29,7 +29,7 @@ namespace ST_finance.Domain.Features.Authentication
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            var claimsList = new System.Collections.Generic.List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
@@ -37,10 +37,15 @@ namespace ST_finance.Domain.Features.Authentication
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
+            foreach (var role in roles)
+            {
+                claimsList.Add(new Claim(ClaimTypes.Role, role));
+            }
+
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
-                claims: claims,
+                claims: claimsList,
                 expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
                 signingCredentials: creds
             );

@@ -18,6 +18,8 @@ export interface UserProfile {
   resetFrequency?: string;
   enableQuotaPacing?: boolean;
   updatedAt?: string;
+  role?: string;
+  permissions?: string[];
 }
 
 interface LoginResult {
@@ -38,6 +40,7 @@ interface AuthContextType {
   logout: () => void;
   refreshProfile: () => Promise<void>;
   updateProfile: (profileData: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
+  hasPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,6 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     username: string;
     email: string;
     fullName: string;
+    role?: string;
+    permissions?: string[];
   }) => {
     localStorage.setItem("accessToken", value.accessToken);
     localStorage.setItem("refreshToken", value.refreshToken);
@@ -82,6 +87,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       username: value.username,
       email: value.email,
       fullName: value.fullName,
+      role: value.role,
+      permissions: value.permissions,
     };
     setUser(initialUser);
     setIsAuthenticated(true);
@@ -126,8 +133,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
         }
 
-        const { accessToken, refreshToken, userId, username, fullName } = result.value;
-        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName });
+        const { accessToken, refreshToken, userId, username, fullName, role, permissions } = result.value;
+        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
         return { success: true };
       } else {
         return { success: false, error: result.error?.message || "Login failed." };
@@ -144,8 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const result = response.data;
 
       if (result.isSuccess && result.value) {
-        const { accessToken, refreshToken, username, email, fullName } = result.value;
-        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName });
+        const { accessToken, refreshToken, username, email, fullName, role, permissions } = result.value;
+        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
         return { success: true };
       } else {
         return { success: false, error: result.error?.message || "Verification failed." };
@@ -185,8 +192,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const result = response.data;
 
       if (result.isSuccess && result.value) {
-        const { accessToken, refreshToken, userId } = result.value;
-        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName });
+        const { accessToken, refreshToken, userId, role, permissions } = result.value;
+        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
         return { success: true };
       } else {
         return { success: false, error: result.error?.message || "Registration failed." };
@@ -235,6 +242,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const hasPermission = (permission: string): boolean => {
+    if (!user) return false;
+    if (user.role === "Admin") return true; // Super admins bypass check
+    return user.permissions?.includes(permission) || false;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -248,6 +261,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         refreshProfile,
         updateProfile,
+        hasPermission,
       }}
     >
       {children}
