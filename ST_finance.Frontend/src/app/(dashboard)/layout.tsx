@@ -418,11 +418,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Floating Feedback Trigger */}
       <button
         onClick={() => setShowFeedbackModal(true)}
-        className="fixed bottom-6 right-6 h-12 w-12 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-110 active:scale-95 transition-all z-40 group"
+        className="fixed bottom-6 right-6 h-12 w-12 rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] flex items-center justify-center shadow-lg shadow-[hsl(var(--primary)/0.15)] hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] hover:scale-110 active:scale-95 transition-all z-40 group"
         title="Submit Feedback or Report Bug"
       >
         <MessageSquare className="h-5 w-5" />
-        <span className="absolute right-14 bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-300 px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-medium shadow-md whitespace-nowrap">
+        <span className="absolute right-14 bg-[hsl(var(--card))] border border-[hsl(var(--border))] text-[10px] text-[hsl(var(--muted-foreground))] px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-medium shadow-md whitespace-nowrap">
           Report Issue / Feedback
         </span>
       </button>
@@ -430,44 +430,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Feedback Modal */}
       {showFeedbackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl animate-scale-up text-left">
+          <div className="w-full max-w-md bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-2xl animate-scale-up text-left">
             <div className="p-6 space-y-4">
-              <div className="flex items-center gap-3 text-indigo-400">
+              <div className="flex items-center gap-3 text-[hsl(var(--primary))]">
                 <MessageSquare className="h-6 w-6 shrink-0" />
-                <h3 className="font-bold text-zinc-100 text-lg">Send Feedback / Bug Report</h3>
+                <h3 className="font-bold text-[hsl(var(--foreground))] text-lg">Send Feedback / Bug Report</h3>
               </div>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">
                 Found a bug? Have an improvement idea? Let our support team know below. We appreciate it!
               </p>
 
               <form onSubmit={handleFeedbackSubmit} className="space-y-4 pt-2">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Summary Title</label>
+                  <label className="text-[10px] font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Summary Title</label>
                   <input
                     type="text"
                     required
                     maxLength={150}
                     placeholder="e.g. Transaction balance not syncing"
-                    className="w-full px-3.5 py-2 text-sm bg-zinc-950 border border-zinc-850 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-200"
+                    className="w-full px-3.5 py-2 text-sm bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] text-[hsl(var(--foreground))]"
                     value={feedbackTitle}
                     onChange={(e) => setFeedbackTitle(e.target.value)}
                   />
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Detailed Description</label>
+                  <label className="text-[10px] font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Detailed Description</label>
                   <textarea
                     required
                     rows={4}
                     maxLength={1000}
                     placeholder="Describe the issue or feedback in detail. Include reproduction steps if it's a bug."
-                    className="w-full px-3.5 py-2.5 text-sm bg-zinc-950 border border-zinc-850 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-200 resize-none leading-relaxed"
+                    className="w-full px-3.5 py-2.5 text-sm bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] text-[hsl(var(--foreground))] resize-none leading-relaxed"
                     value={feedbackDesc}
                     onChange={(e) => setFeedbackDesc(e.target.value)}
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-850/60 mt-6">
+                <div className="flex items-center justify-end gap-3 pt-2 border-t border-[hsl(var(--border))] mt-6">
                   <button
                     type="button"
                     onClick={() => {
@@ -475,17 +475,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       setFeedbackTitle("");
                       setFeedbackDesc("");
                     }}
-                    className="px-4 py-2 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                    className="px-4 py-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingFeedback || !feedbackTitle.trim() || !feedbackDesc.trim()}
-                    className="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 font-semibold rounded-lg text-white transition-all flex items-center gap-1.5"
+                    className="px-4 py-2 text-xs bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-50 font-bold rounded-lg text-[hsl(var(--primary-foreground))] hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] transition-all flex items-center gap-1.5"
                   >
                     {isSubmittingFeedback ? (
-                      <span className="h-3.5 w-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      <span className="h-3.5 w-3.5 border-2 border-[hsl(var(--primary-foreground)/0.2)] border-t-[hsl(var(--primary-foreground))] rounded-full animate-spin" />
                     ) : (
                       <Send className="h-3.5 w-3.5" />
                     )}

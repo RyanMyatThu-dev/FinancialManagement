@@ -70,19 +70,19 @@ export default function ReportsPage() {
     switch (status) {
       case "Resolved":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1 w-fit">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))] border border-[hsl(var(--primary)/0.2)] flex items-center gap-1 w-fit">
             <CheckCircle2 className="h-3 w-3" /> Resolved
           </span>
         );
       case "InProgress":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1 w-fit">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[hsl(var(--warning)/0.1)] text-[hsl(var(--warning))] border border-[hsl(var(--warning)/0.2)] flex items-center gap-1 w-fit">
             <Clock className="h-3 w-3 animate-spin" /> In Progress
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20 flex items-center gap-1 w-fit">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[hsl(var(--destructive)/0.1)] text-[hsl(var(--destructive))] border border-[hsl(var(--destructive)/0.2)] flex items-center gap-1 w-fit">
             <AlertCircle className="h-3 w-3" /> Open
           </span>
         );
@@ -93,8 +93,8 @@ export default function ReportsPage() {
     <div className="space-y-8 animate-fade-in">
       {/* Title */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-zinc-100">User Reports & Feedback</h2>
-        <p className="text-sm text-zinc-400">Review student-submitted bugs, feedback, and general operations requests.</p>
+        <h2 className="text-2xl font-bold tracking-tight text-[hsl(var(--foreground))]">User Reports & Feedback</h2>
+        <p className="text-sm text-[hsl(var(--muted-foreground))]">Review student-submitted bugs, feedback, and general operations requests.</p>
       </div>
 
       {/* Grid Layout */}
@@ -102,36 +102,44 @@ export default function ReportsPage() {
         {/* Left Column: Ticket List */}
         <div className="lg:col-span-2 space-y-4">
           {/* Filters */}
-          <div className="flex items-center gap-2 bg-zinc-900/40 p-4 rounded-xl border border-zinc-800 backdrop-blur-sm">
-            <span className="text-xs text-zinc-400 font-medium">Filter Status:</span>
+          <div className="flex items-center gap-2 bg-[hsl(var(--card))] p-4 rounded-xl border border-[hsl(var(--border))]">
+            <span className="text-xs text-[hsl(var(--muted-foreground))] font-medium">Filter Status:</span>
             <button
               onClick={() => { setStatusFilter(""); setPage(1); }}
-              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
-                statusFilter === "" ? "bg-zinc-800 text-zinc-200" : "text-zinc-500 hover:text-zinc-300"
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors border ${
+                statusFilter === "" 
+                  ? "bg-[hsl(var(--secondary))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]" 
+                  : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] border-transparent"
               }`}
             >
               All Tickets
             </button>
             <button
               onClick={() => { setStatusFilter("Open"); setPage(1); }}
-              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
-                statusFilter === "Open" ? "bg-red-500/10 text-red-400 border border-red-500/20" : "text-zinc-500 hover:text-zinc-300"
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors border ${
+                statusFilter === "Open" 
+                  ? "bg-[hsl(var(--destructive)/0.1)] text-[hsl(var(--destructive))] border-[hsl(var(--destructive)/0.2)]" 
+                  : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] border-transparent"
               }`}
             >
               Open
             </button>
             <button
               onClick={() => { setStatusFilter("InProgress"); setPage(1); }}
-              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
-                statusFilter === "InProgress" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "text-zinc-500 hover:text-zinc-300"
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors border ${
+                statusFilter === "InProgress" 
+                  ? "bg-[hsl(var(--warning)/0.1)] text-[hsl(var(--warning))] border-[hsl(var(--warning)/0.2)]" 
+                  : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] border-transparent"
               }`}
             >
               In Progress
             </button>
             <button
               onClick={() => { setStatusFilter("Resolved"); setPage(1); }}
-              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
-                statusFilter === "Resolved" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-zinc-500 hover:text-zinc-300"
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors border ${
+                statusFilter === "Resolved" 
+                  ? "bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))] border-[hsl(var(--primary)/0.2)]" 
+                  : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] border-transparent"
               }`}
             >
               Resolved
@@ -141,11 +149,11 @@ export default function ReportsPage() {
           {/* List */}
           <div className="space-y-3">
             {isLoading ? (
-              <div className="bg-zinc-900/10 rounded-xl border border-zinc-850 p-12 flex justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-800 border-t-indigo-500" />
+              <div className="bg-[hsl(var(--card))] rounded-xl border border-[hsl(var(--border))] p-12 flex justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[hsl(var(--secondary))] border-t-[hsl(var(--primary))]" />
               </div>
             ) : tickets.length === 0 ? (
-              <div className="bg-zinc-900/10 rounded-xl border border-zinc-850 p-12 text-center text-zinc-500">
+              <div className="bg-[hsl(var(--card))] rounded-xl border border-[hsl(var(--border))] p-12 text-center text-[hsl(var(--muted-foreground))]">
                 No tickets found for this status.
               </div>
             ) : (
@@ -153,24 +161,24 @@ export default function ReportsPage() {
                 <div
                   key={ticket.id}
                   onClick={() => setSelectedTicket(ticket)}
-                  className={`p-5 rounded-xl border cursor-pointer transition-all duration-200 space-y-3 text-left ${
+                  className={`p-5 rounded-xl border cursor-pointer transition-all duration-200 space-y-3 text-left relative hover:before:absolute hover:before:left-0 hover:before:top-0 hover:before:bottom-0 hover:before:w-[2px] hover:before:bg-[hsl(var(--primary))] ${
                     selectedTicket?.id === ticket.id
-                      ? "bg-indigo-600/5 border-indigo-500/30 shadow-md shadow-indigo-500/5"
-                      : "bg-zinc-900/20 border-zinc-850/80 hover:bg-zinc-900/30 hover:border-zinc-800"
+                      ? "bg-[hsl(var(--primary)/0.04)] border-[hsl(var(--primary)/0.3)] shadow-[0_0_12px_rgba(57,255,20,0.03)]"
+                      : "bg-[hsl(var(--secondary)/0.3)] border border-[hsl(var(--border))] hover:bg-[hsl(var(--accent)/0.4)]"
                   }`}
                 >
                   <div className="flex justify-between items-start gap-4">
-                    <h3 className="font-semibold text-sm text-zinc-200 line-clamp-1">{ticket.title}</h3>
+                    <h3 className="font-semibold text-sm text-[hsl(var(--foreground))] line-clamp-1">{ticket.title}</h3>
                     {getStatusBadge(ticket.status)}
                   </div>
                   
-                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-[hsl(var(--muted-foreground))] line-clamp-2 leading-relaxed">
                     {ticket.description}
                   </p>
 
-                  <div className="flex items-center gap-4 text-[10px] text-zinc-500 pt-1 border-t border-zinc-900/60">
+                  <div className="flex items-center gap-4 text-[10px] text-[hsl(var(--muted-foreground))] pt-1 border-t border-[hsl(var(--border))]">
                     <div className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
+                      <User className="h-3 w-3 text-[hsl(var(--primary))]" />
                       {ticket.user.fullName}
                     </div>
                     <div className="flex items-center gap-1">
@@ -185,22 +193,22 @@ export default function ReportsPage() {
 
           {/* Pagination */}
           {pageCount > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/10 border border-zinc-850 rounded-xl">
-              <div className="text-xs text-zinc-500">
+            <div className="flex items-center justify-between px-6 py-4 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl">
+              <div className="text-xs text-[hsl(var(--muted-foreground))]">
                 Page {page} of {pageCount} ({total} tickets)
               </div>
               <div className="flex items-center gap-2">
                 <button
                   disabled={page === 1}
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  className="px-3 py-1.5 text-xs bg-zinc-800 border border-zinc-700 rounded-md disabled:opacity-50 text-zinc-300"
+                  className="px-3 py-1.5 text-xs bg-[hsl(var(--secondary))] border border-[hsl(var(--border))] hover:bg-[hsl(var(--accent))] disabled:opacity-50 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] rounded-md transition-all"
                 >
                   Previous
                 </button>
                 <button
                   disabled={page === pageCount}
                   onClick={() => setPage((p) => Math.min(p + 1, pageCount))}
-                  className="px-3 py-1.5 text-xs bg-zinc-800 border border-zinc-700 rounded-md disabled:opacity-50 text-zinc-300"
+                  className="px-3 py-1.5 text-xs bg-[hsl(var(--secondary))] border border-[hsl(var(--border))] hover:bg-[hsl(var(--accent))] disabled:opacity-50 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] rounded-md transition-all"
                 >
                   Next
                 </button>
@@ -210,61 +218,61 @@ export default function ReportsPage() {
         </div>
 
         {/* Right Column: Ticket Inspector */}
-        <div className="bg-zinc-900/30 rounded-xl border border-zinc-850 p-6 h-fit min-h-[300px] flex flex-col justify-between">
+        <div className="bg-[hsl(var(--card))] rounded-xl border border-[hsl(var(--border))] p-6 h-fit min-h-[300px] flex flex-col justify-between">
           {selectedTicket ? (
             <div className="space-y-6 text-left">
               {/* Header Info */}
-              <div className="space-y-2 pb-4 border-b border-zinc-850">
+              <div className="space-y-2 pb-4 border-b border-[hsl(var(--border))]">
                 <div className="flex justify-between items-start gap-3">
-                  <span className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase">Ticket details</span>
+                  <span className="text-[10px] text-[hsl(var(--muted-foreground))] font-semibold tracking-wider uppercase">Ticket details</span>
                   {getStatusBadge(selectedTicket.status)}
                 </div>
-                <h3 className="font-bold text-zinc-100 text-base leading-snug">{selectedTicket.title}</h3>
+                <h3 className="font-bold text-[hsl(var(--foreground))] text-base leading-snug">{selectedTicket.title}</h3>
               </div>
 
               {/* Submitter details */}
-              <div className="bg-zinc-950/40 border border-zinc-850 p-3.5 rounded-lg space-y-2 text-xs">
-                <p className="font-semibold text-zinc-300 flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-zinc-500" /> Submitter Profile
+              <div className="bg-[hsl(var(--background))] border border-[hsl(var(--border))] p-3.5 rounded-lg space-y-2 text-xs">
+                <p className="font-semibold text-[hsl(var(--foreground))] flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-[hsl(var(--primary))]" /> Submitter Profile
                 </p>
-                <div className="text-zinc-400 space-y-1">
-                  <p><span className="text-zinc-500">Name:</span> {selectedTicket.user.fullName}</p>
-                  <p><span className="text-zinc-500">Email:</span> {selectedTicket.user.email}</p>
-                  <p><span className="text-zinc-500">Username:</span> @{selectedTicket.user.userName}</p>
-                  <p><span className="text-zinc-500">Submitted:</span> {new Date(selectedTicket.createdAt).toLocaleString()}</p>
+                <div className="text-[hsl(var(--muted-foreground))] space-y-1">
+                  <p><span className="text-[hsl(var(--muted-foreground))/0.6]">Name:</span> {selectedTicket.user.fullName}</p>
+                  <p><span className="text-[hsl(var(--muted-foreground))/0.6]">Email:</span> {selectedTicket.user.email}</p>
+                  <p><span className="text-[hsl(var(--muted-foreground))/0.6]">Username:</span> @{selectedTicket.user.userName}</p>
+                  <p><span className="text-[hsl(var(--muted-foreground))/0.6]">Submitted:</span> {new Date(selectedTicket.createdAt).toLocaleString()}</p>
                 </div>
               </div>
 
               {/* Ticket Description */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-zinc-300">Issue Description</p>
-                <div className="bg-zinc-900/60 p-4 rounded-lg text-xs text-zinc-300 leading-relaxed max-h-[220px] overflow-y-auto border border-zinc-850">
+                <p className="text-xs font-semibold text-[hsl(var(--foreground))]">Issue Description</p>
+                <div className="bg-[hsl(var(--secondary)/0.2)] p-4 rounded-lg text-xs text-[hsl(var(--foreground))] leading-relaxed max-h-[220px] overflow-y-auto border border-[hsl(var(--border))]">
                   {selectedTicket.description}
                 </div>
               </div>
 
               {/* Transition actions */}
-              <div className="space-y-3 pt-4 border-t border-zinc-850">
-                <p className="text-xs font-semibold text-zinc-300">Set Ticket Status</p>
+              <div className="space-y-3 pt-4 border-t border-[hsl(var(--border))]">
+                <p className="text-xs font-semibold text-[hsl(var(--foreground))]">Set Ticket Status</p>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => updateStatusMutation.mutate({ ticketId: selectedTicket.id, status: "Open" })}
                     disabled={updateStatusMutation.isPending || selectedTicket.status === "Open"}
-                    className="py-2 text-[10px] bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 font-semibold rounded-lg transition-colors disabled:opacity-30"
+                    className="py-2 text-[10px] bg-[hsl(var(--destructive)/0.08)] border border-[hsl(var(--destructive)/0.2)] text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.15)] font-semibold rounded-lg transition-all disabled:opacity-30"
                   >
                     Open
                   </button>
                   <button
                     onClick={() => updateStatusMutation.mutate({ ticketId: selectedTicket.id, status: "InProgress" })}
                     disabled={updateStatusMutation.isPending || selectedTicket.status === "InProgress"}
-                    className="py-2 text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 font-semibold rounded-lg transition-colors disabled:opacity-30"
+                    className="py-2 text-[10px] bg-[hsl(var(--warning)/0.08)] border border-[hsl(var(--warning)/0.2)] text-[hsl(var(--warning))] hover:bg-[hsl(var(--warning)/0.15)] font-semibold rounded-lg transition-all disabled:opacity-30"
                   >
                     In Progress
                   </button>
                   <button
                     onClick={() => updateStatusMutation.mutate({ ticketId: selectedTicket.id, status: "Resolved" })}
                     disabled={updateStatusMutation.isPending || selectedTicket.status === "Resolved"}
-                    className="py-2 text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-semibold rounded-lg transition-colors disabled:opacity-30"
+                    className="py-2 text-[10px] bg-[hsl(var(--primary)/0.08)] border border-[hsl(var(--primary)/0.2)] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.15)] font-semibold rounded-lg transition-all disabled:opacity-30"
                   >
                     Resolve
                   </button>
@@ -273,8 +281,8 @@ export default function ReportsPage() {
             </div>
           ) : (
             <div className="h-64 flex flex-col items-center justify-center text-center p-6 gap-3">
-              <MessageSquareText className="h-8 w-8 text-zinc-600" />
-              <p className="text-xs text-zinc-500">
+              <MessageSquareText className="h-8 w-8 text-[hsl(var(--muted-foreground))] opacity-60" />
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">
                 Select a ticket from the reports column to inspect user feedback and transition status.
               </p>
             </div>

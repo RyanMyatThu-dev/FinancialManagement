@@ -130,31 +130,31 @@ export default function RbacPage() {
     <div className="space-y-8 animate-fade-in">
       {/* Title */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-zinc-100">Dynamic RBAC Settings</h2>
-        <p className="text-sm text-zinc-400">Map string permissions dynamically to user identity roles in the database.</p>
+        <h2 className="text-2xl font-bold tracking-tight text-[hsl(var(--foreground))]">Dynamic RBAC Settings</h2>
+        <p className="text-sm text-[hsl(var(--muted-foreground))]">Map string permissions dynamically to user identity roles in the database.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Role List & Create Role */}
         <div className="space-y-6">
           {/* Create Role Panel */}
-          <div className="bg-zinc-900/40 p-6 rounded-xl border border-zinc-800 backdrop-blur-sm space-y-4">
-            <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-              <Plus className="h-4 w-4 text-indigo-400" />
+          <div className="bg-[hsl(var(--card))] p-6 rounded-xl border border-[hsl(var(--border))] space-y-4">
+            <h3 className="text-sm font-semibold text-[hsl(var(--foreground))] flex items-center gap-2">
+              <Plus className="h-4 w-4 text-[hsl(var(--primary))]" />
               Create Custom Role
             </h3>
             <form onSubmit={handleCreateRole} className="space-y-3">
               <input
                 type="text"
                 placeholder="e.g. Moderator, CustomerCare..."
-                className="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-200"
+                className="w-full px-3 py-2 text-xs bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] text-[hsl(var(--foreground))]"
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
               />
               <button
                 type="submit"
                 disabled={createRoleMutation.isPending}
-                className="w-full py-2 text-xs bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg text-white transition-colors"
+                className="w-full py-2 text-xs bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.9)] text-[hsl(var(--primary-foreground))] hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] font-bold rounded-lg transition-all"
               >
                 Create Role
               </button>
@@ -162,21 +162,21 @@ export default function RbacPage() {
           </div>
 
           {/* Quick User Role Assignment */}
-          <div className="bg-zinc-900/40 p-6 rounded-xl border border-zinc-800 backdrop-blur-sm space-y-4">
-            <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-              <UserCheck className="h-4 w-4 text-emerald-400" />
+          <div className="bg-[hsl(var(--card))] p-6 rounded-xl border border-[hsl(var(--border))] space-y-4">
+            <h3 className="text-sm font-semibold text-[hsl(var(--foreground))] flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-[hsl(var(--primary))]" />
               Reassign User Role
             </h3>
             <form onSubmit={handleAssignRoleSubmit} className="space-y-3">
               <input
                 type="text"
                 placeholder="Enter User GUID / ID..."
-                className="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-200"
+                className="w-full px-3 py-2 text-xs bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] text-[hsl(var(--foreground))]"
                 value={targetUserId}
                 onChange={(e) => setTargetUserId(e.target.value)}
               />
               <select
-                className="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-400"
+                className="w-full px-3 py-2 text-xs bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg focus:outline-none focus:border-[hsl(var(--primary))] text-[hsl(var(--muted-foreground))]"
                 value={targetRole}
                 onChange={(e) => setTargetRole(e.target.value)}
               >
@@ -190,7 +190,7 @@ export default function RbacPage() {
               <button
                 type="submit"
                 disabled={assignRoleMutation.isPending}
-                className="w-full py-2 text-xs bg-emerald-600 hover:bg-emerald-500 font-semibold rounded-lg text-white transition-colors"
+                className="w-full py-2 text-xs bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.9)] text-[hsl(var(--primary-foreground))] hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] font-bold rounded-lg transition-all"
               >
                 Reassign Role
               </button>
@@ -199,15 +199,15 @@ export default function RbacPage() {
         </div>
 
         {/* Middle Column: Roles Grid */}
-        <div className="bg-zinc-900/30 rounded-xl border border-zinc-850 p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-indigo-400" />
+        <div className="bg-[hsl(var(--card))] rounded-xl border border-[hsl(var(--border))] p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-[hsl(var(--foreground))] flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-[hsl(var(--primary))]" />
             System Roles Mapping
           </h3>
 
           {isLoading ? (
             <div className="p-8 flex justify-center">
-              <div className="h-6 w-6 animate-spin rounded-full border-4 border-zinc-800 border-t-indigo-500" />
+              <div className="h-6 w-6 animate-spin rounded-full border-4 border-[hsl(var(--secondary))] border-t-[hsl(var(--primary))]" />
             </div>
           ) : (
             <div className="space-y-3">
@@ -217,13 +217,13 @@ export default function RbacPage() {
                   onClick={() => setSelectedRole(role)}
                   className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
                     selectedRole?.name === role.name
-                      ? "bg-indigo-600/10 border-indigo-500/40 text-indigo-400"
-                      : "bg-zinc-900/20 border-zinc-850 text-zinc-300 hover:bg-zinc-900/40"
+                      ? "bg-[hsl(var(--primary)/0.08)] border-[hsl(var(--primary)/0.4)] text-[hsl(var(--primary))]"
+                      : "bg-[hsl(var(--secondary)/0.3)] border border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent)/0.5)] hover:text-[hsl(var(--foreground))]"
                   }`}
                 >
                   <div className="flex justify-between items-center">
-                    <span className="font-semibold text-sm text-zinc-200">{role.name}</span>
-                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded font-mono">
+                    <span className="font-semibold text-sm">{role.name}</span>
+                    <span className="text-[10px] bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] px-2 py-0.5 rounded font-mono border border-[hsl(var(--border))]">
                       {role.permissions.length} perms
                     </span>
                   </div>
@@ -234,18 +234,18 @@ export default function RbacPage() {
         </div>
 
         {/* Right Column: Permission Editor */}
-        <div className="bg-zinc-900/30 rounded-xl border border-zinc-850 p-6 flex flex-col justify-between">
+        <div className="bg-[hsl(var(--card))] rounded-xl border border-[hsl(var(--border))] p-6 flex flex-col justify-between">
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-amber-500" />
+            <h3 className="text-sm font-semibold text-[hsl(var(--foreground))] flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-[hsl(var(--chula-pink))]" />
               Permissions Configurator
             </h3>
 
             {selectedRole ? (
               <div className="space-y-4">
-                <div className="pb-2 border-b border-zinc-850">
-                  <p className="text-xs text-zinc-500">Configuring Role:</p>
-                  <p className="text-sm font-bold text-zinc-100">{selectedRole.name}</p>
+                <div className="pb-2 border-b border-[hsl(var(--border))]">
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">Configuring Role:</p>
+                  <p className="text-sm font-bold text-[hsl(var(--foreground))]">{selectedRole.name}</p>
                 </div>
 
                 <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
@@ -255,18 +255,18 @@ export default function RbacPage() {
                       <div
                         key={perm.id}
                         onClick={() => handlePermissionToggle(perm.id)}
-                        className="flex gap-3 p-2.5 rounded-lg hover:bg-zinc-800/20 cursor-pointer transition-colors border border-transparent hover:border-zinc-850"
+                        className="flex gap-3 p-2.5 rounded-lg hover:bg-[hsl(var(--accent)/0.4)] cursor-pointer transition-colors border border-transparent hover:border-[hsl(var(--border))]"
                       >
                         <div className="mt-0.5">
                           {isChecked ? (
-                            <CheckSquare className="h-4 w-4 text-indigo-500 shrink-0" />
+                            <CheckSquare className="h-4 w-4 text-[hsl(var(--primary))] shrink-0" />
                           ) : (
-                            <Square className="h-4 w-4 text-zinc-600 shrink-0" />
+                            <Square className="h-4 w-4 text-[hsl(var(--muted-foreground))/0.6] shrink-0" />
                           )}
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-zinc-200">{perm.name}</p>
-                          <p className="text-[10px] text-zinc-500 leading-normal">{perm.desc}</p>
+                          <p className="text-xs font-semibold text-[hsl(var(--foreground))]">{perm.name}</p>
+                          <p className="text-[10px] text-[hsl(var(--muted-foreground))] leading-normal">{perm.desc}</p>
                         </div>
                       </div>
                     );
@@ -274,25 +274,24 @@ export default function RbacPage() {
                 </div>
               </div>
             ) : (
-              <div className="h-48 flex items-center justify-center text-center text-xs text-zinc-500">
+              <div className="h-48 flex items-center justify-center text-center text-xs text-[hsl(var(--muted-foreground))]">
                 Select a role from the mapping column to configure its dynamic permissions.
               </div>
             )}
           </div>
 
           {selectedRole && (
-            <div className="pt-4 border-t border-zinc-850 mt-4">
+            <div className="pt-4 border-t border-[hsl(var(--border))] mt-4">
               <button
                 onClick={handleSavePermissions}
                 disabled={updatePermissionsMutation.isPending}
-                className="w-full py-2 text-xs bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg text-white transition-colors"
+                className="w-full py-2 text-xs bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.9)] text-[hsl(var(--primary-foreground))] hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] font-bold rounded-lg transition-all"
               >
                 Save Role Permissions
               </button>
             </div>
           )}
         </div>
-      </div>
     </div>
   );
 }
