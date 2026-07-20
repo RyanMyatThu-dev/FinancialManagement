@@ -129,7 +129,7 @@ export default function UsersPage() {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[hsl(var(--border))/0.4] text-[hsl(var(--foreground))]">
+              <tbody className="text-[hsl(var(--foreground))]">
                 {users.map((user: UserProfile) => (
                   <tr key={user.id} className="hover:bg-[hsl(var(--accent)/0.4)] transition-colors group">
                     <td className="px-6 py-4 relative before:hidden group-hover:before:block before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-[hsl(var(--primary))]">
