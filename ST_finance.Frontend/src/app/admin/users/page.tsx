@@ -124,7 +124,6 @@ export default function UsersPage() {
                 <tr>
                   <th className="px-6 py-4">User Details</th>
                   <th className="px-6 py-4">Identity Role</th>
-                  <th className="px-6 py-4">Stipend Status</th>
                   <th className="px-6 py-4">Access Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -146,18 +145,6 @@ export default function UsersPage() {
                       }`}>
                         {user.role}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-[hsl(var(--muted-foreground))]">
-                      {user.profile ? (
-                        <div>
-                          <div className="font-semibold text-[hsl(var(--foreground))]">
-                            {user.profile.monthlyAllowanceAmount?.toLocaleString()} {user.profile.currency}
-                          </div>
-                          <div>Day {user.profile.allowanceDayOfMonth} • {user.profile.resetFrequency}</div>
-                        </div>
-                      ) : (
-                        <span className="text-[hsl(var(--muted-foreground))/0.6]">No profile created</span>
-                      )}
                     </td>
                     <td className="px-6 py-4">
                       {user.isBlocked ? (

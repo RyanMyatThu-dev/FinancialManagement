@@ -99,11 +99,11 @@ namespace ST_finance.Domain.Features.Authentication
             {
                 Id = Guid.NewGuid(),
                 UserId = user.Id,
-                MonthlyAllowanceAmount = 16000.00m,
-                AllowanceDayOfMonth = 25,
-                TargetMonthlySavings = 2000.00m,
+                MonthlyAllowanceAmount = 0m,
+                AllowanceDayOfMonth = 1,
+                TargetMonthlySavings = 0m,
                 Currency = string.IsNullOrEmpty(request.Currency) ? "THB" : request.Currency,
-                EnableQuotaPacing = true,
+                EnableQuotaPacing = false,
                 UpdatedAt = DateTime.UtcNow
             };
 
@@ -241,12 +241,12 @@ namespace ST_finance.Domain.Features.Authentication
                 {
                     Id = Guid.NewGuid(),
                     UserId = user.Id,
-                    MonthlyAllowanceAmount = 16000.00m,
-                    AllowanceDayOfMonth = 25,
-                    TargetMonthlySavings = 2000.00m,
+                    MonthlyAllowanceAmount = 0m,
+                    AllowanceDayOfMonth = 1,
+                    TargetMonthlySavings = 0m,
                     Currency = "THB",
                     ResetFrequency = "Monthly",
-                    EnableQuotaPacing = true
+                    EnableQuotaPacing = false
                 };
                 _context.TblUserProfiles.Add(profile);
             }
