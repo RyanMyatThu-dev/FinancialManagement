@@ -348,11 +348,11 @@ function RecurringDetailsModal({
         <div className="mb-5">
           <div className="flex items-center gap-2 mb-2">
             {isIncome ? (
-              <span className="ds-badge ds-badge-success">+ AUTOMATED INCOME</span>
+              <span className="ds-badge ds-badge-success">AUTOMATED INCOME</span>
             ) : isTransfer ? (
-              <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]">↔ AUTOMATED TRANSFER</span>
+              <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]">AUTOMATED TRANSFER</span>
             ) : (
-              <span className="ds-badge ds-badge-danger">− AUTOMATED EXPENSE</span>
+              <span className="ds-badge ds-badge-danger">AUTOMATED EXPENSE</span>
             )}
           </div>
           <h2 className="text-xl font-bold tracking-tight">{schedule.name}</h2>

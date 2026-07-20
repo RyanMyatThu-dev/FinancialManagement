@@ -309,7 +309,7 @@ export default function TransactionsPage() {
               Period Inflow ({timeframe})
             </span>
           </div>
-          <p className="font-mono tabular-nums font-bold text-lg text-[hsl(var(--primary))]">
+          <p className="font-mono tabular-nums font-bold text-base sm:text-lg text-[hsl(var(--primary))]">
             +{formatAmount(totalIncome)}
             <span className="text-[10px] ml-1 opacity-60">{currency}</span>
           </p>
@@ -321,7 +321,7 @@ export default function TransactionsPage() {
               Period Outflow ({timeframe})
             </span>
           </div>
-          <p className="font-mono tabular-nums font-bold text-lg text-[hsl(var(--destructive))]">
+          <p className="font-mono tabular-nums font-bold text-base sm:text-lg text-[hsl(var(--destructive))]">
             -{formatAmount(totalExpense)}
             <span className="text-[10px] ml-1 opacity-60">{currency}</span>
           </p>
@@ -423,8 +423,8 @@ export default function TransactionsPage() {
                 className="ds-input w-full px-2.5 py-1.5 text-xs font-mono"
               >
                 <option value="">All Types</option>
-                <option value="Income">Income (+IN)</option>
-                <option value="Expense">Expense (-OUT)</option>
+                <option value="Income">Income (IN)</option>
+                <option value="Expense">Expense (OUT)</option>
                 <option value="Transfer">Transfer (TR)</option>
               </select>
             </div>
@@ -582,9 +582,9 @@ export default function TransactionsPage() {
       {/* Table */}
       <div className="sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none overflow-hidden">
         <div className="w-full overflow-x-auto no-scrollbar">
-          <div className="min-w-[500px] sm:min-w-0">
+          <div className="w-full">
             {/* Table Header */}
-            <div className="grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
+            <div className="grid grid-cols-[30px_1fr_55px_100px] sm:grid-cols-[50px_1fr_120px_65px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
               <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
                 No.
               </span>
@@ -606,7 +606,7 @@ export default function TransactionsPage() {
             {!isLoading && !error && transactions.map((tx, idx) => (
               <div
                 key={tx.id ?? `tx-${idx}`}
-                className={`ds-table-row grid grid-cols-[40px_1fr_80px_110px] sm:grid-cols-[50px_1fr_120px_80px_130px] px-5 py-3.5 items-center cursor-pointer ${
+                className={`ds-table-row grid grid-cols-[30px_1fr_55px_100px] sm:grid-cols-[50px_1fr_120px_65px_130px] px-5 py-3.5 items-center cursor-pointer ${
                   idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
                 }`}
                 onClick={() => setSelectedTransaction(tx)}
@@ -636,11 +636,11 @@ export default function TransactionsPage() {
                 {/* Type badge */}
                 <div className="flex justify-center">
                   {tx.transactionType === "Income" ? (
-                    <span className="ds-badge ds-badge-success">+IN</span>
+                    <span className="ds-badge ds-badge-success">IN</span>
                   ) : tx.transactionType === "Transfer" ? (
-                    <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] font-mono">↔ TR</span>
+                    <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]">TR</span>
                   ) : (
-                    <span className="ds-badge ds-badge-danger">−OUT</span>
+                    <span className="ds-badge ds-badge-danger">OUT</span>
                   )}
                 </div>
 
@@ -755,11 +755,11 @@ function TransactionDetailsModal({
         <div className="mb-5">
           <div className="flex items-center gap-2 mb-2">
             {isIncome ? (
-              <span className="ds-badge ds-badge-success">+ INFLOW</span>
+              <span className="ds-badge ds-badge-success">INFLOW</span>
             ) : isTransfer ? (
-              <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]">↔ TRANSFER</span>
+              <span className="ds-badge border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))]">TRANSFER</span>
             ) : (
-              <span className="ds-badge ds-badge-danger">− OUTFLOW</span>
+              <span className="ds-badge ds-badge-danger">OUTFLOW</span>
             )}
           </div>
           <h2 className="text-xl font-bold tracking-tight">Transaction Details</h2>

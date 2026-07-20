@@ -362,9 +362,9 @@ export default function AccountsPage() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto no-scrollbar sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none">
-              <div className="min-w-[500px] sm:min-w-0">
+              <div className="w-full">
                 {/* Table Header */}
-                <div className="grid grid-cols-[40px_1fr_110px_130px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
+                <div className="grid grid-cols-[30px_1fr_85px_100px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
                     No.
                   </span>
@@ -390,7 +390,7 @@ export default function AccountsPage() {
                   return (
                     <div
                       key={account.id ?? `account-${idx}`}
-                      className={`ds-table-row grid grid-cols-[40px_1fr_110px_130px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-3.5 items-center cursor-pointer ${
+                      className={`ds-table-row grid grid-cols-[30px_1fr_85px_100px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-3.5 items-center cursor-pointer ${
                         idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
                       }`}
                       onClick={() => setSelectedAccount(account)}
