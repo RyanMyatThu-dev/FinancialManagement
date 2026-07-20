@@ -292,6 +292,7 @@ export default function RbacPage() {
             </div>
           )}
         </div>
+      </div>
     </div>
   );
 }
