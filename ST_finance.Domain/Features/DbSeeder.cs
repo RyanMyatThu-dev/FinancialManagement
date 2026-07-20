@@ -16,38 +16,109 @@ namespace ST_finance.Domain.Features
     /// </summary>
     public static class DbSeeder
     {
-        public static async Task SeedAsync(UserManager<TblUser> userManager, AppDbContext context)
+        public static async Task SeedAsync(
+            UserManager<TblUser> userManager,
+            RoleManager<IdentityRole<Guid>> roleManager,
+            AppDbContext context)
         {
-            // ── Clean up any previous seed users ─────────────────────────
-            var oldUsers = new[] { "ryan", "pim", "somchai", "kanya", "alex", "emma" };
-            foreach (var username in oldUsers)
+            var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+
+            // ── Seed Roles ───────────────────────────────────────────────
+            var adminRoleName = "Admin";
+            var studentRoleName = "Student";
+
+            if (!await roleManager.RoleExistsAsync(adminRoleName))
             {
-                var existing = await userManager.FindByNameAsync(username);
-                if (existing != null)
+                await roleManager.CreateAsync(new IdentityRole<Guid> { Id = Guid.NewGuid(), Name = adminRoleName });
+            }
+            if (!await roleManager.RoleExistsAsync(studentRoleName))
+            {
+                await roleManager.CreateAsync(new IdentityRole<Guid> { Id = Guid.NewGuid(), Name = studentRoleName });
+            }
+
+            var adminRole = await roleManager.FindByNameAsync(adminRoleName);
+
+            // ── Seed Role Permissions ─────────────────────────────────────
+            var adminPermissions = new[] { "User.Read", "User.Write", "User.Delete", "Rbac.Read", "Rbac.Write", "Report.Read", "Report.Write" };
+            if (adminRole != null)
+            {
+                var existingPerms = await context.TblRolePermissions.Where(rp => rp.RoleId == adminRole.Id).ToListAsync();
+                context.TblRolePermissions.RemoveRange(existingPerms);
+                
+                foreach (var perm in adminPermissions)
                 {
-                    await DeleteUserDataAsync(context, existing.Id);
-                    await userManager.DeleteAsync(existing);
+                    context.TblRolePermissions.Add(new TblRolePermission
+                    {
+                        RoleId = adminRole.Id,
+                        Permission = perm
+                    });
+                }
+                await context.SaveChangesAsync();
+            }
+
+            // ── Bootstrap Admin Role to Existing User in Production ───────
+            var bootstrapEmail = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_EMAIL");
+            if (!string.IsNullOrWhiteSpace(bootstrapEmail))
+            {
+                var promoUser = await userManager.FindByEmailAsync(bootstrapEmail);
+                if (promoUser != null && !await userManager.IsInRoleAsync(promoUser, adminRoleName))
+                {
+                    await userManager.AddToRoleAsync(promoUser, adminRoleName);
                 }
             }
 
-            // ── Create single demo user: Alex Mercer ─────────────────────
-            var alex = new TblUser
+            // ── Demo / Development Seed Data ─────────────────────────────
+            if (isDevelopment)
             {
-                Id               = Guid.NewGuid(),
-                UserName         = "alex",
-                Email            = "alex.mercer@studentmail.com",
-                FullName         = "Alex Mercer",
-                EmailConfirmed   = true,
-                SecurityStamp    = Guid.NewGuid().ToString(),
-                DeleteFlag       = false
-            };
-            var createResult = await userManager.CreateAsync(alex, "Password123!");
-            if (!createResult.Succeeded)
-            {
-                throw new Exception($"Failed to seed demo user: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
-            }
+                // Clean up previous seed users
+                var oldUsers = new[] { "ryan", "pim", "somchai", "kanya", "alex", "emma", "admin" };
+                foreach (var username in oldUsers)
+                {
+                    var existing = await userManager.FindByNameAsync(username);
+                    if (existing != null)
+                    {
+                        await DeleteUserDataAsync(context, existing.Id);
+                        await userManager.DeleteAsync(existing);
+                    }
+                }
 
-            await SeedAlexDataAsync(context, alex.Id);
+                // Create Alex Mercer
+                var alex = new TblUser
+                {
+                    Id               = Guid.NewGuid(),
+                    UserName         = "alex",
+                    Email            = "alex.mercer@studentmail.com",
+                    FullName         = "Alex Mercer",
+                    EmailConfirmed   = true,
+                    SecurityStamp    = Guid.NewGuid().ToString(),
+                    DeleteFlag       = false
+                };
+                var createResult = await userManager.CreateAsync(alex, "Password123!");
+                if (!createResult.Succeeded)
+                {
+                    throw new Exception($"Failed to seed demo user: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
+                }
+
+                await userManager.AddToRoleAsync(alex, studentRoleName);
+                await SeedAlexDataAsync(context, alex.Id);
+
+                // Create default Admin user for local dev testing
+                var adminUser = new TblUser
+                {
+                    Id               = Guid.NewGuid(),
+                    UserName         = "admin",
+                    Email = "admin@st-finance.com",
+                    FullName         = "System Administrator",
+                    EmailConfirmed   = true,
+                    SecurityStamp    = Guid.NewGuid().ToString(),
+                    DeleteFlag       = false
+                };
+                var createAdminResult = await userManager.CreateAsync(adminUser, "AdminPassword123!");
+                if (createAdminResult.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, adminRoleName);
+                }
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────

@@ -26,12 +26,13 @@ namespace ST_finance.Domain.Features.Authentication
         [AllowAnonymous]
         public async Task<IActionResult> SeedDatabase(
             [FromServices] UserManager<TblUser> userManager,
+            [FromServices] RoleManager<IdentityRole<Guid>> roleManager,
             [FromServices] AppDbContext context)
         {
             try
             {
-                await DbSeeder.SeedAsync(userManager, context);
-                return Ok(Result.Success(new { message = "Database seeded successfully with 2 test students." }));
+                await DbSeeder.SeedAsync(userManager, roleManager, context);
+                return Ok(Result.Success(new { message = "Database seeded successfully with default roles, admin, and test students." }));
             }
             catch (Exception ex)
             {
