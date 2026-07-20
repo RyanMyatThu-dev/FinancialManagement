@@ -16,6 +16,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ST-Finance",
   description: "Futuristic budget tracker, rolling safe-to-spend quotas, and savings goals tracking.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ST-Finance",
+  },
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo-large.png",
+  },
 };
 
 export const viewport = {
