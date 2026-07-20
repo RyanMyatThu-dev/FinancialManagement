@@ -22,23 +22,7 @@ namespace ST_finance.Domain.Features.Authentication
             _authService = authService;
         }
 
-        [HttpPost("seed")]
-        [AllowAnonymous]
-        public async Task<IActionResult> SeedDatabase(
-            [FromServices] UserManager<TblUser> userManager,
-            [FromServices] RoleManager<IdentityRole<Guid>> roleManager,
-            [FromServices] AppDbContext context)
-        {
-            try
-            {
-                await DbSeeder.SeedAsync(userManager, roleManager, context);
-                return Ok(Result.Success(new { message = "Database seeded successfully with default roles, admin, and test students." }));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, Result.Failure(new Error("Database.SeedFailed", ex.Message)));
-            }
-        }
+
 
         [HttpPost("register/send-otp")]
         [AllowAnonymous]

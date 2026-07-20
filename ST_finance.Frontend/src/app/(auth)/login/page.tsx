@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { Lock, Mail, AlertTriangle, Loader2, Zap, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import { apiClient } from "@/api/client";
 
 export default function LoginPage() {
   const { login, verifyTwoFactor, isAuthenticated, isLoading } = useAuth();
@@ -20,23 +19,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
-
-  const handleTempSeed = async () => {
-    setIsSeeding(true);
-    try {
-      const res = await apiClient.post("/api/auth/seed");
-      if (res.data.isSuccess) {
-        alert("Database seeded successfully! Default roles, permissions, and administrator account initialized.");
-      } else {
-        alert("Seeding failed: " + (res.data.error?.message || "Unknown error"));
-      }
-    } catch (err: any) {
-      alert("Seeding failed: " + (err.response?.data?.error?.message || err.message));
-    } finally {
-      setIsSeeding(false);
-    }
-  };
 
   useEffect(() => {
     document.title = "Login | ST-Finance";
@@ -344,20 +326,6 @@ export default function LoginPage() {
                   )}
                 </button>
               </form>
-
-              <button
-                type="button"
-                onClick={handleTempSeed}
-                disabled={isSeeding}
-                className="w-full mt-3 py-2 text-[10px] bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 font-mono rounded-lg transition-colors flex items-center justify-center gap-1.5"
-              >
-                {isSeeding ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Zap className="h-3 w-3" />
-                )}
-                [TEMP] Seed DB Roles & Admin
-              </button>
 
               <p className="mt-6 text-center text-xs text-[hsl(var(--muted-foreground))]">
                 No account?{" "}
