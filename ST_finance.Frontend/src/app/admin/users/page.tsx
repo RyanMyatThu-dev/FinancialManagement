@@ -131,8 +131,8 @@ export default function UsersPage() {
               </thead>
               <tbody className="divide-y divide-[hsl(var(--border))/0.4] text-[hsl(var(--foreground))]">
                 {users.map((user: UserProfile) => (
-                  <tr key={user.id} className="hover:bg-[hsl(var(--accent)/0.4)] transition-colors relative hover:before:absolute hover:before:left-0 hover:before:top-0 hover:before:bottom-0 hover:before:w-[2px] hover:before:bg-[hsl(var(--primary))]">
-                    <td className="px-6 py-4">
+                  <tr key={user.id} className="hover:bg-[hsl(var(--accent)/0.4)] transition-colors group">
+                    <td className="px-6 py-4 relative before:hidden group-hover:before:block before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-[hsl(var(--primary))]">
                       <div>
                         <div className="font-medium text-[hsl(var(--foreground))]">{user.fullName}</div>
                         <div className="text-xs text-[hsl(var(--muted-foreground))]">@{user.userName} • {user.email}</div>
