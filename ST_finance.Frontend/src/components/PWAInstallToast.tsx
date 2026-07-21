@@ -8,17 +8,30 @@ export function PWAInstallToast() {
   const { canInstall, isInstalled, triggerInstall } = usePWAInstall();
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
-  // Slide in after 2.5s delay, only if installable and not already installed
   useEffect(() => {
-    if (!canInstall || isInstalled || dismissed) return;
+    const checkIOS = () => {
+      if (typeof window === "undefined") return false;
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
+      return /iphone|ipad|ipod/.test(userAgent) && !isStandalone;
+    };
+    setIsIOS(checkIOS());
+  }, []);
+
+  const shouldPrompt = canInstall || isIOS;
+
+  // Slide in after 2.5s delay, only if installable/iOS and not already installed/dismissed
+  useEffect(() => {
+    if (!shouldPrompt || isInstalled || dismissed) return;
 
     const timer = setTimeout(() => {
       setVisible(true);
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, [canInstall, isInstalled, dismissed]);
+  }, [shouldPrompt, isInstalled, dismissed]);
 
   const handleDismiss = () => {
     setVisible(false);
@@ -33,7 +46,7 @@ export function PWAInstallToast() {
   };
 
   // Don't render if not installable, already a PWA, or dismissed this session
-  if (!canInstall || isInstalled || dismissed) return null;
+  if (!shouldPrompt || isInstalled || dismissed) return null;
 
   return (
     <div
@@ -59,10 +72,12 @@ export function PWAInstallToast() {
             {/* Text content */}
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-[hsl(var(--foreground))] leading-snug">
-                Add ST-Finance to your home screen
+                {isIOS ? "Install ST-Finance on iPhone" : "Add ST-Finance to your home screen"}
               </p>
               <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-0.5 leading-relaxed">
-                Install the app for instant access — works just like a native app, no app store needed.
+                {isIOS 
+                  ? "Tap the Share button in Safari and select 'Add to Home Screen' to launch it as an app."
+                  : "Install the app for instant access — works just like a native app, no app store needed."}
               </p>
             </div>
 
@@ -78,23 +93,25 @@ export function PWAInstallToast() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 mt-3 pl-[52px]">
-            <button
-              onClick={handleInstall}
-              id="pwa-toast-install-btn"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] rounded-lg hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] transition-all"
-            >
-              <Download className="h-3 w-3" />
-              Install App
-            </button>
-            <button
-              onClick={handleDismiss}
-              id="pwa-toast-later-btn"
-              className="px-3 py-1.5 text-[10px] font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
-            >
-              Maybe later
-            </button>
-          </div>
+          {!isIOS && (
+            <div className="flex items-center gap-2 mt-3 pl-[52px]">
+              <button
+                onClick={handleInstall}
+                id="pwa-toast-install-btn"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] rounded-lg hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] transition-all"
+              >
+                <Download className="h-3 w-3" />
+                Install App
+              </button>
+              <button
+                onClick={handleDismiss}
+                id="pwa-toast-later-btn"
+                className="px-3 py-1.5 text-[10px] font-medium text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+              >
+                Maybe later
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
