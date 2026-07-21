@@ -597,7 +597,7 @@ export default function LoginPage() {
                         setConfirmNewPassword("");
                         setError(null);
                       }}
-                      className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))] hover:underline transition-all font-mono uppercase tracking-wider"
+                      className="text-[10px] font-bold text-[hsl(var(--primary))] hover:text-white transition-all font-mono uppercase tracking-wider cursor-pointer"
                     >
                       Forgot?
                     </button>
