@@ -50,17 +50,25 @@ export function PWAInstallToast() {
 
   return (
     <div
-      className={`fixed top-20 right-4 z-[100] w-[320px] transition-all duration-400 ease-out ${
+      className={`fixed z-[100] transition-all duration-500 ease-out ${
+        isIOS
+          ? "bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-[340px]"
+          : "top-20 right-4 w-[320px]"
+      } ${
         visible
           ? "opacity-100 translate-y-0 scale-100"
-          : "opacity-0 -translate-y-3 scale-95 pointer-events-none"
+          : "opacity-0 translate-y-4 scale-95 pointer-events-none"
       }`}
       role="alert"
       aria-live="polite"
     >
-      <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
-        {/* Volt Green top accent line */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[hsl(var(--primary))] to-transparent" />
+      <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
+        {/* Pulsing indicator line for iOS, solid for desktop */}
+        <div className={`absolute top-0 left-0 right-0 h-[2.5px] ${
+          isIOS 
+            ? "bg-[hsl(var(--primary))] animate-pulse" 
+            : "bg-gradient-to-r from-transparent via-[hsl(var(--primary))] to-transparent"
+        }`} />
 
         <div className="p-4">
           <div className="flex items-start gap-3">
