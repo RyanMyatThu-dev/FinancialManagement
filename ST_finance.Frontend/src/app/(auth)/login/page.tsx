@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { Lock, Mail, AlertTriangle, Loader2, Zap, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import { apiClient } from "@/api/client";
 
 export default function LoginPage() {
   const { login, verifyTwoFactor, isAuthenticated, isLoading } = useAuth();
@@ -183,21 +184,19 @@ export default function LoginPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/auth/forgot-password/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: forgotPasswordEmail }),
+      const response = await apiClient.post("/api/auth/forgot-password/send-otp", {
+        email: forgotPasswordEmail,
       });
-      const data = await response.json();
-      if (response.ok && data.isSuccess) {
+      const result = response.data;
+      if (result.isSuccess) {
         setForgotPasswordStep(2);
         setForgotPasswordOtpDigits(Array(6).fill(""));
         setForgotPasswordOtp("");
       } else {
-        setError(data.error?.message || "Failed to send reset code. Please verify your email.");
+        setError(result.error?.message || "Failed to send reset code. Please verify your email.");
       }
-    } catch (err) {
-      setError("An unexpected network error occurred.");
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || "An unexpected network error occurred.");
     } finally {
       setIsSubmitting(false);
     }
@@ -215,17 +214,13 @@ export default function LoginPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/auth/forgot-password/reset", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: forgotPasswordEmail,
-          otpCode: forgotPasswordOtp,
-          newPassword: newPassword,
-        }),
+      const response = await apiClient.post("/api/auth/forgot-password/reset", {
+        email: forgotPasswordEmail,
+        otpCode: forgotPasswordOtp,
+        newPassword: newPassword,
       });
-      const data = await response.json();
-      if (response.ok && data.isSuccess) {
+      const result = response.data;
+      if (result.isSuccess) {
         setForgotPasswordMode(false);
         setForgotPasswordEmail("");
         setForgotPasswordOtp("");
@@ -236,10 +231,10 @@ export default function LoginPage() {
         setPassword("");
         setError("Password reset successfully! You can now log in with your new password.");
       } else {
-        setError(data.error?.message || "Failed to reset password.");
+        setError(result.error?.message || "Failed to reset password.");
       }
-    } catch (err) {
-      setError("An unexpected network error occurred.");
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || "An unexpected network error occurred.");
     } finally {
       setIsSubmitting(false);
     }
