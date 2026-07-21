@@ -1,7 +1,5 @@
 const CACHE_NAME = "st-finance-v1";
 const ASSETS_TO_CACHE = [
-  "/",
-  "/globals.css",
   "/logo.png",
   "/logo-large.png",
 ];

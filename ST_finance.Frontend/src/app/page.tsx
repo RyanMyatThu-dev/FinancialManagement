@@ -95,10 +95,10 @@ export default function LandingPage() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as any).standalone === true;
 
-    if (isStandalone && isAuthenticated) {
+    if (isStandalone) {
       window.location.replace("/dashboard");
     }
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
