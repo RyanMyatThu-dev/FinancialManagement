@@ -86,12 +86,19 @@ export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
 
-  const openLightbox = (src: string) => {
-    const index = LIGHTBOX_IMAGES.findIndex(img => img.src.toLowerCase() === src.toLowerCase());
-    if (index !== -1) {
-      setActiveImageIndex(index);
+  // ── PWA standalone redirect ──
+  // When the user opens the app from their home screen shortcut,
+  // skip the landing page and go straight to the dashboard.
+  // This works even if the PWA was installed before the manifest start_url was updated.
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true;
+
+    if (isStandalone && isAuthenticated) {
+      window.location.replace("/dashboard");
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -129,6 +136,12 @@ export default function LandingPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeImageIndex]);
 
+  const openLightbox = (src: string) => {
+    const index = LIGHTBOX_IMAGES.findIndex(img => img.src.toLowerCase() === src.toLowerCase());
+    if (index !== -1) {
+      setActiveImageIndex(index);
+    }
+  };
 
   return (
     <div className="relative min-h-screen bg-zinc-950 text-zinc-50 overflow-x-hidden selection:bg-[hsl(var(--primary)/0.3)] selection:text-[hsl(var(--primary))] font-sans">
