@@ -344,7 +344,7 @@ namespace ST_finance.Domain.Features.Authentication
             return Result.Success();
         }
 
-        public async Task<Result> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
+        public async Task<Result> RequestPasswordChangeAsync(Guid userId, ChangePasswordRequest request)
         {
             if (request == null)
             {
@@ -355,6 +355,43 @@ namespace ST_finance.Domain.Features.Authentication
             if (user == null)
             {
                 return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))
+            {
+                return Result.Failure(CustomErrors.Auth.IncorrectPassword);
+            }
+
+            // Block old password reuse
+            var verifyResult = _userManager.PasswordHasher.VerifyHashedPassword(user, user.PasswordHash!, request.NewPassword);
+            if (verifyResult == PasswordVerificationResult.Success)
+            {
+                return Result.Failure(CustomErrors.Validation.PasswordCannotBeOld);
+            }
+
+            // Send OTP to registered email
+            await GenerateAndSendOtpAsync(user.Email!, "PasswordChange");
+            return Result.Success();
+        }
+
+        public async Task<Result> ChangePasswordAsync(Guid userId, ConfirmPasswordChangeRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            // Validate OTP code
+            var otpValid = await ValidateOtpAsync(user.Email!, request.OtpCode, "PasswordChange");
+            if (!otpValid)
+            {
+                return Result.Failure(CustomErrors.Auth.InvalidOtp);
             }
 
             if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))

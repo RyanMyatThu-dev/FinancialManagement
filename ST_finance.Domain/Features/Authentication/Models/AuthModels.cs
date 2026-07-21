@@ -108,3 +108,9 @@ public record VerifyCurrentEmailRequest(
     [Required][EmailAddress] string NewEmail,
     [Required] string OtpCode
 );
+
+public record ConfirmPasswordChangeRequest(
+    [Required] string CurrentPassword,
+    [Required][MinLength(6)] string NewPassword,
+    [Required] string OtpCode
+);

@@ -77,6 +77,9 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [passwordStep, setPasswordStep] = useState<"input" | "verify">("input");
+  const [passwordOtp, setPasswordOtp] = useState("");
+  const [passwordOtpDigits, setPasswordOtpDigits] = useState<string[]>(Array(6).fill(""));
 
   // 2FA State
   const [show2FaConfirm, setShow2FaConfirm] = useState(false);
@@ -257,8 +260,8 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle Password Reset
-  const handleResetPassword = async (e: React.FormEvent) => {
+  // Handle Password Reset Request
+  const handleRequestPasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       setPasswordMessage({ type: "error", text: "New passwords do not match." });
@@ -268,9 +271,81 @@ export default function ProfilePage() {
     setPasswordMessage(null);
 
     try {
+      const response = await apiClient.post("/api/auth/profile/request-password-change", {
+        currentPassword,
+        newPassword,
+      });
+      const result = response.data;
+      if (result.isSuccess) {
+        setPasswordStep("verify");
+        setPasswordOtp("");
+        setPasswordOtpDigits(Array(6).fill(""));
+        setPasswordMessage({ type: "success", text: "Verification code sent to your registered email." });
+      } else {
+        setPasswordMessage({ type: "error", text: result.error?.message || "Password change request failed." });
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || "Failed to initiate password change.";
+      setPasswordMessage({ type: "error", text: msg });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // Password OTP inputs helpers
+  const handlePasswordOtpChange = (value: string, index: number) => {
+    if (value && !/^\d+$/.test(value)) return;
+    const newDigits = [...passwordOtpDigits];
+    newDigits[index] = value.substring(value.length - 1);
+    setPasswordOtpDigits(newDigits);
+    setPasswordOtp(newDigits.join(""));
+    if (value && index < 5) {
+      document.getElementById(`password-otp-${index + 1}`)?.focus();
+    }
+  };
+
+  const handlePasswordOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === "Backspace") {
+      if (!passwordOtpDigits[index] && index > 0) {
+        const newDigits = [...passwordOtpDigits];
+        newDigits[index - 1] = "";
+        setPasswordOtpDigits(newDigits);
+        setPasswordOtp(newDigits.join(""));
+        document.getElementById(`password-otp-${index - 1}`)?.focus();
+      } else {
+        const newDigits = [...passwordOtpDigits];
+        newDigits[index] = "";
+        setPasswordOtpDigits(newDigits);
+        setPasswordOtp(newDigits.join(""));
+      }
+    }
+  };
+
+  const handlePasswordOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim();
+    if (!/^\d{6}$/.test(pastedData)) return;
+    const digits = pastedData.split("");
+    setPasswordOtpDigits(digits);
+    setPasswordOtp(pastedData);
+    document.getElementById(`password-otp-5`)?.focus();
+  };
+
+  // Handle Password Reset Confirm (Verify OTP)
+  const handleConfirmPasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordOtp.length !== 6) {
+      setPasswordMessage({ type: "error", text: "Verification code is required." });
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordMessage(null);
+
+    try {
       const response = await apiClient.post("/api/auth/profile/change-password", {
         currentPassword,
         newPassword,
+        otpCode: passwordOtp,
       });
       const result = response.data;
       if (result.isSuccess) {
@@ -278,11 +353,14 @@ export default function ProfilePage() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+        setPasswordOtp("");
+        setPasswordOtpDigits(Array(6).fill(""));
+        setPasswordStep("input");
       } else {
         setPasswordMessage({ type: "error", text: result.error?.message || "Password change failed." });
       }
     } catch (err: any) {
-      const msg = err.response?.data?.error?.message || "Failed to change password.";
+      const msg = err.response?.data?.error?.message || "Failed to verify and update password.";
       setPasswordMessage({ type: "error", text: msg });
     } finally {
       setPasswordLoading(false);
@@ -831,83 +909,140 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <form onSubmit={handleResetPassword} className="space-y-4" autoComplete="off">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label
-                    htmlFor="current-password"
-                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
-                  >
-                    Current Password
-                  </label>
-                  <input
-                    id="current-password"
-                    type="password"
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="ds-input w-full px-3 py-2.5 text-sm"
-                    autoComplete="off"
-                  />
+            {passwordStep === "input" ? (
+              <form onSubmit={handleRequestPasswordChange} className="space-y-4" autoComplete="off">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label
+                      htmlFor="current-password"
+                      className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                    >
+                      Current Password
+                    </label>
+                    <input
+                      id="current-password"
+                      type="password"
+                      required
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="ds-input w-full px-3 py-2.5 text-sm"
+                      autoComplete="off"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="new-password"
+                      className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                    >
+                      New Password
+                    </label>
+                    <input
+                      id="new-password"
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="ds-input w-full px-3 py-2.5 text-sm"
+                      autoComplete="off"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="confirm-password"
+                      className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                    >
+                      Confirm New Password
+                    </label>
+                    <input
+                      id="confirm-password"
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="ds-input w-full px-3 py-2.5 text-sm"
+                      autoComplete="off"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="new-password"
-                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
+                    className="ds-btn-primary px-5 py-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider"
                   >
-                    New Password
-                  </label>
-                  <input
-                    id="new-password"
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="ds-input w-full px-3 py-2.5 text-sm"
-                    autoComplete="off"
-                  />
+                    {passwordLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <KeyRound className="h-3.5 w-3.5" />
+                        Change Password
+                      </>
+                    )}
+                  </button>
                 </div>
+              </form>
+            ) : (
+              <form onSubmit={handleConfirmPasswordChange} className="space-y-4" autoComplete="off">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest text-center mb-3 font-mono">
+                      Enter 6-Digit OTP Sent to registered email address
+                    </label>
 
-                <div>
-                  <label
-                    htmlFor="confirm-password"
-                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
-                  >
-                    Confirm New Password
-                  </label>
-                  <input
-                    id="confirm-password"
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="ds-input w-full px-3 py-2.5 text-sm"
-                    autoComplete="off"
-                  />
+                    {/* 6 Square Box OTP Inputs */}
+                    <div className="flex justify-center gap-2.5">
+                      {Array(6).fill(0).map((_, idx) => (
+                        <input
+                          key={idx}
+                          id={`password-otp-${idx}`}
+                          type="text"
+                          maxLength={1}
+                          value={passwordOtpDigits[idx] || ""}
+                          onChange={(e) => handlePasswordOtpChange(e.target.value, idx)}
+                          onKeyDown={(e) => handlePasswordOtpKeyDown(e, idx)}
+                          onPaste={idx === 0 ? handlePasswordOtpPaste : undefined}
+                          className="w-11 h-12 text-center text-lg font-bold rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all outline-none font-mono"
+                          autoFocus={idx === 0}
+                          autoComplete="off"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2.5 justify-center max-w-sm mx-auto">
+                    <button
+                      type="submit"
+                      disabled={passwordLoading || passwordOtp.length !== 6}
+                      className="ds-btn-primary flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider"
+                    >
+                      {passwordLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        "Verify & Update"
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPasswordStep("input");
+                        setPasswordOtp("");
+                        setPasswordOtpDigits(Array(6).fill(""));
+                        setPasswordMessage(null);
+                      }}
+                      className="ds-btn-outline px-4 py-2.5 text-xs font-bold uppercase tracking-wider"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
-                  className="ds-btn-primary px-5 py-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider"
-                >
-                  {passwordLoading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <>
-                      <KeyRound className="h-3.5 w-3.5" />
-                      Reset Password
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
 
           {/* Section 4: 2FA Security */}

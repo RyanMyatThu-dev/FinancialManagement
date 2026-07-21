@@ -148,8 +148,25 @@ namespace ST_finance.Domain.Features.Authentication
         }
 
         [Authorize]
+        [HttpPost("profile/request-password-change")]
+        public async Task<IActionResult> RequestPasswordChange([FromBody] ChangePasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join("; ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure(CustomErrors.Validation.InvalidInput(errors)));
+            }
+
+            var userId = GetUserId();
+            var result = await _authService.RequestPasswordChangeAsync(userId, request);
+            return HandleResult(result);
+        }
+
+        [Authorize]
         [HttpPost("profile/change-password")]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        public async Task<IActionResult> ChangePassword([FromBody] ConfirmPasswordChangeRequest request)
         {
             if (!ModelState.IsValid)
             {
