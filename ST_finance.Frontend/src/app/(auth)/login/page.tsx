@@ -578,30 +578,12 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label
-                      htmlFor="login-password"
-                      className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest font-mono"
-                    >
-                      Password
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForgotPasswordMode(true);
-                        setForgotPasswordStep(1);
-                        setForgotPasswordEmail("");
-                        setForgotPasswordOtp("");
-                        setForgotPasswordOtpDigits(Array(6).fill(""));
-                        setNewPassword("");
-                        setConfirmNewPassword("");
-                        setError(null);
-                      }}
-                      className="text-[10px] font-bold text-[hsl(var(--primary))] hover:text-white transition-all font-mono uppercase tracking-wider cursor-pointer"
-                    >
-                      Forgot?
-                    </button>
-                  </div>
+                  <label
+                    htmlFor="login-password"
+                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                  >
+                    Password
+                  </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
                     <input
@@ -624,6 +606,24 @@ export default function LoginPage() {
                       ) : (
                         <Eye className="h-4 w-4" />
                       )}
+                    </button>
+                  </div>
+                  <div className="flex justify-end mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotPasswordMode(true);
+                        setForgotPasswordStep(1);
+                        setForgotPasswordEmail("");
+                        setForgotPasswordOtp("");
+                        setForgotPasswordOtpDigits(Array(6).fill(""));
+                        setNewPassword("");
+                        setConfirmNewPassword("");
+                        setError(null);
+                      }}
+                      className="text-[10px] font-bold text-[hsl(var(--primary))] hover:text-white transition-all font-mono uppercase tracking-wider cursor-pointer"
+                    >
+                      Forgot password?
                     </button>
                   </div>
                 </div>
