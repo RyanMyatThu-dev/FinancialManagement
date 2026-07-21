@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "ST-Finance",
     short_name: "ST-Finance",
     description: "Futuristic budget tracker, rolling safe-to-spend quotas, and savings goals tracking.",
-    start_url: "/",
+    start_url: "/dashboard",
     display: "standalone",
     background_color: "#09090b",
     theme_color: "#09090b",

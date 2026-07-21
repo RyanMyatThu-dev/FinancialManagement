@@ -6,6 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import { Logo } from "@/components/ui/Logo";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { PWAInstallToast } from "@/components/PWAInstallToast";
 import {
   Shield,
   ArrowRight,
@@ -22,6 +24,7 @@ import {
   X,
   ChevronLeft,
   ZoomIn,
+  Download,
 } from "lucide-react";
 
 const LIGHTBOX_IMAGES = [
@@ -79,6 +82,7 @@ const LIGHTBOX_IMAGES = [
 
 export default function LandingPage() {
   const { isAuthenticated, user } = useAuth();
+  const { canInstall, isInstalled, triggerInstall } = usePWAInstall();
   const [scrollY, setScrollY] = useState(0);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
 
@@ -158,7 +162,21 @@ export default function LandingPage() {
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* PWA Install Button — only shown when the app can be installed and isn't already */}
+          {canInstall && !isInstalled && (
+            <button
+              onClick={triggerInstall}
+              id="pwa-navbar-install-btn"
+              aria-label="Install ST-Finance app"
+              title="Install app"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[hsl(var(--primary)/0.3)] bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))] text-[10px] font-bold hover:bg-[hsl(var(--primary)/0.15)] hover:shadow-[0_0_10px_rgba(57,255,20,0.2)] transition-all"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
+          )}
+
           {isAuthenticated ? (
             <Link
               href="/dashboard"
@@ -185,6 +203,9 @@ export default function LandingPage() {
           )}
         </div>
       </header>
+
+      {/* ─── PWA Install Toast ─── */}
+      <PWAInstallToast />
 
       {/* ─── Hero Section ─── */}
       <main className="relative pt-32 pb-24 px-4 md:px-8 max-w-7xl mx-auto z-10 space-y-32">
