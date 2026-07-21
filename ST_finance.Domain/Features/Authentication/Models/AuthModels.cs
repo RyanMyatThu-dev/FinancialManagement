@@ -93,3 +93,13 @@ public record Toggle2FaRequest(
     bool Enable,
     string? OtpCode = null
 );
+
+public record ForgotPasswordSendOtpRequest(
+    [Required][EmailAddress] string Email
+);
+
+public record ResetPasswordRequest(
+    [Required][EmailAddress] string Email,
+    [Required] string OtpCode,
+    [Required][MinLength(6)] string NewPassword
+);

@@ -38,6 +38,7 @@ namespace ST_finance.Shared
             public static readonly Error EmailInUse = new("Auth.EmailInUse", "This email address is already in use.");
             public static readonly Error UsernameInUse = new("Auth.UsernameInUse", "This username is already taken.");
             public static readonly Error IncorrectPassword = new("Auth.IncorrectPassword", "Current password is incorrect.");
+            public static readonly Error PasswordCannotBeOld = new("Auth.PasswordCannotBeOld", "New password cannot be the same as your old password.");
         }
     }
 }

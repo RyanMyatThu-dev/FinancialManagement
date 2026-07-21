@@ -500,6 +500,51 @@ namespace ST_finance.Domain.Features.Authentication
             return Result.Success();
         }
 
+        public async Task<Result> SendForgotPasswordOtpAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            await GenerateAndSendOtpAsync(email, "ForgotPassword");
+            return Result.Success();
+        }
+
+        public async Task<Result> ResetPasswordAsync(ResetPasswordRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            var otpValid = await ValidateOtpAsync(request.Email, request.OtpCode, "ForgotPassword");
+            if (!otpValid)
+            {
+                return Result.Failure(CustomErrors.Auth.InvalidOtp);
+            }
+
+            // Verify that the new password does not match the old one
+            var verificationResult = _userManager.PasswordHasher.VerifyHashedPassword(user, user.PasswordHash!, request.NewPassword);
+            if (verificationResult == PasswordVerificationResult.Success)
+            {
+                return Result.Failure(CustomErrors.Auth.PasswordCannotBeOld);
+            }
+
+            // Reset the password
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                return Result.Failure(new Error("Auth.ResetPasswordFailed", errors));
+            }
+
+            return Result.Success();
+        }
+
         private async Task GenerateAndSendOtpAsync(string email, string purpose)
         {
             var existingOtps = await _context.TblOtpVerifications

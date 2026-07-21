@@ -224,6 +224,38 @@ namespace ST_finance.Domain.Features.Authentication
             return HandleResult(result);
         }
 
+        [HttpPost("forgot-password/send-otp")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SendForgotPasswordOtp([FromBody] ForgotPasswordSendOtpRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join("; ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure(CustomErrors.Validation.InvalidInput(errors)));
+            }
+
+            var result = await _authService.SendForgotPasswordOtpAsync(request.Email);
+            return HandleResult(result);
+        }
+
+        [HttpPost("forgot-password/reset")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join("; ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure(CustomErrors.Validation.InvalidInput(errors)));
+            }
+
+            var result = await _authService.ResetPasswordAsync(request);
+            return HandleResult(result);
+        }
+
         private Guid GetUserId()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");

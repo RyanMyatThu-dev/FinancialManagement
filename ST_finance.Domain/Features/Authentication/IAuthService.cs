@@ -20,5 +20,7 @@ namespace ST_finance.Domain.Features.Authentication
         Task<Result> ConfirmEmailChangeAsync(Guid userId, ConfirmEmailChangeRequest request);
         Task<Result> ToggleTwoFactorAsync(Guid userId, Toggle2FaRequest request);
         Task<Result> DeleteUserAsync(Guid userId);
+        Task<Result> SendForgotPasswordOtpAsync(string email);
+        Task<Result> ResetPasswordAsync(ResetPasswordRequest request);
     }
 }

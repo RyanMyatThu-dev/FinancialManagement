@@ -22,6 +22,7 @@ public class EmailService : IEmailService
             "Register" => "Verify your ST-Finance registration",
             "EmailChange" => "Confirm your new email address",
             "TwoFactor" => "Your ST-Finance verification code",
+            "ForgotPassword" => "Reset your ST-Finance password",
             _ => "Your ST-Finance verification code"
         };
 
