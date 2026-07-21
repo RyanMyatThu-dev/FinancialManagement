@@ -396,7 +396,44 @@ namespace ST_finance.Domain.Features.Authentication
                 return Result.Failure(CustomErrors.Auth.EmailInUse);
             }
 
-            await GenerateAndSendOtpAsync(newEmail, "EmailChange");
+            // Step 1: Send OTP to current email address
+            await GenerateAndSendOtpAsync(user.Email!, "EmailChangeCurrent");
+            return Result.Success();
+        }
+
+        public async Task<Result> VerifyCurrentEmailAsync(Guid userId, VerifyCurrentEmailRequest request)
+        {
+            if (request == null)
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("Request cannot be null."));
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return Result.Failure(CustomErrors.Auth.UserNotFound);
+            }
+
+            if (string.Equals(user.Email, request.NewEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                return Result.Failure(CustomErrors.Validation.InvalidInput("New email must be different from your current email."));
+            }
+
+            var existing = await _userManager.FindByEmailAsync(request.NewEmail);
+            if (existing != null && existing.Id != userId)
+            {
+                return Result.Failure(CustomErrors.Auth.EmailInUse);
+            }
+
+            // Step 2: Validate OTP sent to current email address
+            var otpValid = await ValidateOtpAsync(user.Email!, request.OtpCode, "EmailChangeCurrent");
+            if (!otpValid)
+            {
+                return Result.Failure(CustomErrors.Auth.InvalidOtp);
+            }
+
+            // Step 3: Trigger OTP to new email address
+            await GenerateAndSendOtpAsync(request.NewEmail, "EmailChangeNew");
             return Result.Success();
         }
 
@@ -413,7 +450,8 @@ namespace ST_finance.Domain.Features.Authentication
                 return Result.Failure(CustomErrors.Auth.UserNotFound);
             }
 
-            var otpValid = await ValidateOtpAsync(request.NewEmail, request.OtpCode, "EmailChange");
+            // Step 4: Validate OTP sent to new email address
+            var otpValid = await ValidateOtpAsync(request.NewEmail, request.OtpCode, "EmailChangeNew");
             if (!otpValid)
             {
                 return Result.Failure(CustomErrors.Auth.InvalidOtp);

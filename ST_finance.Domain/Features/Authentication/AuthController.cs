@@ -182,6 +182,23 @@ namespace ST_finance.Domain.Features.Authentication
         }
 
         [Authorize]
+        [HttpPost("profile/verify-current-email")]
+        public async Task<IActionResult> VerifyCurrentEmail([FromBody] VerifyCurrentEmailRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join("; ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                return BadRequest(Result.Failure(CustomErrors.Validation.InvalidInput(errors)));
+            }
+
+            var userId = GetUserId();
+            var result = await _authService.VerifyCurrentEmailAsync(userId, request);
+            return HandleResult(result);
+        }
+
+        [Authorize]
         [HttpPost("profile/confirm-email-change")]
         public async Task<IActionResult> ConfirmEmailChange([FromBody] ConfirmEmailChangeRequest request)
         {

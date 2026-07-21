@@ -17,6 +17,7 @@ namespace ST_finance.Domain.Features.Authentication
         Task<Result> UpdateUsernameAsync(Guid userId, string newUsername);
         Task<Result> ChangePasswordAsync(Guid userId, ChangePasswordRequest request);
         Task<Result> RequestEmailChangeAsync(Guid userId, string newEmail);
+        Task<Result> VerifyCurrentEmailAsync(Guid userId, VerifyCurrentEmailRequest request);
         Task<Result> ConfirmEmailChangeAsync(Guid userId, ConfirmEmailChangeRequest request);
         Task<Result> ToggleTwoFactorAsync(Guid userId, Toggle2FaRequest request);
         Task<Result> DeleteUserAsync(Guid userId);

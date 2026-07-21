@@ -103,3 +103,8 @@ public record ResetPasswordRequest(
     [Required] string OtpCode,
     [Required][MinLength(6)] string NewPassword
 );
+
+public record VerifyCurrentEmailRequest(
+    [Required][EmailAddress] string NewEmail,
+    [Required] string OtpCode
+);

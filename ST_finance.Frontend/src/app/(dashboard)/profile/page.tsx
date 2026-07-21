@@ -67,7 +67,7 @@ export default function ProfilePage() {
   const [newEmail, setNewEmail] = useState("");
   const [emailOtp, setEmailOtp] = useState("");
   const [emailOtpDigits, setEmailOtpDigits] = useState<string[]>(Array(6).fill(""));
-  const [emailStep, setEmailStep] = useState<"input" | "verify">("input");
+  const [emailStep, setEmailStep] = useState<"input" | "verify-current" | "verify-new">("input");
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailMessage, setEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -137,10 +137,10 @@ export default function ProfilePage() {
       const response = await apiClient.post("/api/auth/profile/request-email-change", { newEmail });
       const result = response.data;
       if (result.isSuccess) {
-        setEmailStep("verify");
+        setEmailStep("verify-current");
         setEmailOtpDigits(Array(6).fill(""));
         setEmailOtp("");
-        setEmailMessage({ type: "success", text: "Verification code sent to your new email." });
+        setEmailMessage({ type: "success", text: "Verification code sent to your current email address." });
       } else {
         setEmailMessage({ type: "error", text: result.error?.message || "Failed to send verification code." });
       }
@@ -191,8 +191,40 @@ export default function ProfilePage() {
     document.getElementById(`email-otp-5`)?.focus();
   };
 
-  // Handle Email Change Confirm
-  const handleVerifyEmail = async (e: React.FormEvent) => {
+  // Handle Verify Current Email OTP
+  const handleVerifyCurrentEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (emailOtp.length !== 6) {
+      setEmailMessage({ type: "error", text: "Verification code is required." });
+      return;
+    }
+    setEmailLoading(true);
+    setEmailMessage(null);
+
+    try {
+      const response = await apiClient.post("/api/auth/profile/verify-current-email", {
+        newEmail,
+        otpCode: emailOtp,
+      });
+      const result = response.data;
+      if (result.isSuccess) {
+        setEmailStep("verify-new");
+        setEmailOtp("");
+        setEmailOtpDigits(Array(6).fill(""));
+        setEmailMessage({ type: "success", text: "Current email verified! Verification code sent to your new email address." });
+      } else {
+        setEmailMessage({ type: "error", text: result.error?.message || "Verification of current email failed." });
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || "Failed to verify current email.";
+      setEmailMessage({ type: "error", text: msg });
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  // Handle Email Change Confirm (Verify New Email OTP)
+  const handleVerifyNewEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (emailOtp.length !== 6) {
       setEmailMessage({ type: "error", text: "Verification code is required." });
@@ -215,10 +247,10 @@ export default function ProfilePage() {
         setEmailStep("input");
         await refreshProfile();
       } else {
-        setEmailMessage({ type: "error", text: result.error?.message || "Verification failed." });
+        setEmailMessage({ type: "error", text: result.error?.message || "Verification of new email failed." });
       }
     } catch (err: any) {
-      const msg = err.response?.data?.error?.message || "Failed to verify email change.";
+      const msg = err.response?.data?.error?.message || "Failed to verify new email.";
       setEmailMessage({ type: "error", text: msg });
     } finally {
       setEmailLoading(false);
@@ -623,7 +655,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {emailStep === "input" ? (
+            {emailStep === "input" && (
               <form onSubmit={handleSendEmailOtp} className="space-y-4" autoComplete="off">
                 <div>
                   <label
@@ -633,7 +665,7 @@ export default function ProfilePage() {
                     New Email Address
                   </label>
                   <p className="text-[9px] text-[hsl(var(--muted-foreground))] font-mono mb-2">
-                    A confirmation code will be sent to the new email address.
+                    Verification codes will be sent sequentially to both your current email and new email address.
                   </p>
                   <div className="flex gap-2">
                     <input
@@ -660,12 +692,71 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </form>
-            ) : (
-              <form onSubmit={handleVerifyEmail} className="space-y-4" autoComplete="off">
+            )}
+
+            {emailStep === "verify-current" && (
+              <form onSubmit={handleVerifyCurrentEmail} className="space-y-4" autoComplete="off">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest text-center mb-3 font-mono">
-                      Enter 6-Digit OTP Sent to {newEmail}
+                      Step 1: Enter 6-Digit OTP Sent to Current Email ({user?.email})
+                    </label>
+
+                    {/* 6 Square Box Email OTP Inputs */}
+                    <div className="flex justify-center gap-2.5">
+                      {Array(6).fill(0).map((_, idx) => (
+                        <input
+                          key={idx}
+                          id={`email-otp-${idx}`}
+                          type="text"
+                          maxLength={1}
+                          value={emailOtpDigits[idx] || ""}
+                          onChange={(e) => handleEmailOtpChange(e.target.value, idx)}
+                          onKeyDown={(e) => handleEmailOtpKeyDown(e, idx)}
+                          onPaste={idx === 0 ? handleEmailOtpPaste : undefined}
+                          className="w-11 h-12 text-center text-lg font-bold rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all outline-none font-mono"
+                          autoFocus={idx === 0}
+                          autoComplete="off"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2.5">
+                    <button
+                      type="submit"
+                      disabled={emailLoading || emailOtp.length !== 6}
+                      className="ds-btn-primary flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider"
+                    >
+                      {emailLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        "Verify Current Email"
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailStep("input");
+                        setEmailOtp("");
+                        setEmailOtpDigits(Array(6).fill(""));
+                        setEmailMessage(null);
+                      }}
+                      className="ds-btn-outline px-4 py-2.5 text-xs font-bold uppercase tracking-wider"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {emailStep === "verify-new" && (
+              <form onSubmit={handleVerifyNewEmail} className="space-y-4" autoComplete="off">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest text-center mb-3 font-mono">
+                      Step 2: Enter 6-Digit OTP Sent to New Email ({newEmail})
                     </label>
 
                     {/* 6 Square Box Email OTP Inputs */}
