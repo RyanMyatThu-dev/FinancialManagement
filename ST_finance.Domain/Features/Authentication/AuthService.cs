@@ -366,7 +366,7 @@ namespace ST_finance.Domain.Features.Authentication
             var verifyResult = _userManager.PasswordHasher.VerifyHashedPassword(user, user.PasswordHash!, request.NewPassword);
             if (verifyResult == PasswordVerificationResult.Success)
             {
-                return Result.Failure(CustomErrors.Validation.PasswordCannotBeOld);
+                return Result.Failure(CustomErrors.Validation.InvalidInput("New password cannot be the same as the current password."));
             }
 
             // Send OTP to registered email
