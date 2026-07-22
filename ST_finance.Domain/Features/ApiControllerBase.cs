@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ST_finance.Shared;
 
 namespace ST_finance.Domain.Features
 {
     [ApiController]
+    [EnableRateLimiting("api-general")]
     public abstract class ApiControllerBase : ControllerBase
     {
         protected IActionResult HandleResult(Result result)

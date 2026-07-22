@@ -2,11 +2,13 @@ using Amazon.Lambda.AspNetCoreServer.Hosting;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
 using ST_finance.Domain;
 using ST_finance.Domain.Features.RecurringSchedules;
+using System.Threading.RateLimiting;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,7 +55,7 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""
     });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement       
     {
         {
             new OpenApiSecurityScheme
@@ -93,7 +95,66 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, ST_finance.Domain.Features.Authentication.PermissionPolicyProvider>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ST_finance.Domain.Features.Authentication.PermissionAuthorizationHandler>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        var errorResponse = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            isSuccess = false,
+            isFailure = true,
+            error = new
+            {
+                code = "RateLimit.Exceeded",
+                message = "Too many requests. Please try again later."
+            },
+            value = (object?)null
+        });
+        await context.HttpContext.Response.WriteAsync(errorResponse, token);
+    };
 
+    // Helper method to resolve Client IP correctly behind AWS API Gateway / Reverse Proxy
+    static string GetClientIp(HttpContext httpContext)
+    {
+        var forwardedFor = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(forwardedFor))
+        {
+            return forwardedFor.Split(',')[0].Trim();
+        }
+        return httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
+
+    // 1. Strict Sliding Window policy for Auth & OTP endpoints (Anti Brute-Force)
+    options.AddPolicy("auth-strict", httpContext =>
+    {
+        var ip = GetClientIp(httpContext);
+        return RateLimitPartition.GetSlidingWindowLimiter(ip, _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 2,
+            QueueLimit = 0
+        });
+    });
+
+    // 2. General Sliding Window policy for API endpoints (Partitioned by User ID or IP)
+    options.AddPolicy("api-general", httpContext =>
+    {
+        var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                     ?? httpContext.User.FindFirst("sub")?.Value;
+        var partitionKey = !string.IsNullOrEmpty(userId) ? $"user:{userId}" : $"ip:{GetClientIp(httpContext)}";
+
+        return RateLimitPartition.GetSlidingWindowLimiter(partitionKey, _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 100,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 2,
+            QueueLimit = 0
+        });
+    });
+});
 
 var connectionString = builder.Configuration.GetConnectionString("DbConnection");
 builder.Services.AddHangfire(config => config
@@ -161,6 +222,7 @@ else
 }
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 // Hangfire dashboard and recurring jobs only register in local development.

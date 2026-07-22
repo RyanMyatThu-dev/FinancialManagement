@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Authentication.Models;
 using ST_finance.Shared;
@@ -13,6 +14,7 @@ namespace ST_finance.Domain.Features.Authentication
 {
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("auth-strict")]
     public class AuthController : ApiControllerBase
     {
         private readonly IAuthService _authService;
@@ -106,6 +108,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpGet("profile")]
+        [EnableRateLimiting("api-general")]
         public async Task<IActionResult> GetProfile()
         {
             var userId = GetUserId();
@@ -115,6 +118,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpPut("profile")]
+        [EnableRateLimiting("api-general")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
             if (!ModelState.IsValid)

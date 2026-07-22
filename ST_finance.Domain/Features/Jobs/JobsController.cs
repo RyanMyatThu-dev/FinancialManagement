@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using ST_finance.Domain.Features.Dashboard;
 using ST_finance.Domain.Features.RecurringSchedules;
@@ -12,6 +13,7 @@ namespace ST_finance.Domain.Features.Jobs
     /// These endpoints replace Hangfire's polling mechanism for serverless environments.
     /// </summary>
     [Route("api/[controller]")]
+    [DisableRateLimiting]
     public class JobsController : ApiControllerBase
     {
         private readonly RecurringJobService _recurringJobService;
