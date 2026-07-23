@@ -57,8 +57,8 @@ namespace ST_finance.UnitTests
                 Amount = 15000m,
                 Frequency = "Monthly",
                 TransactionType = "Income",
-                StartDate = DateTime.UtcNow.Date,
-                NextOccurrenceDate = DateTime.UtcNow.Date.AddDays(10),
+                StartDate = DateTime.UtcNow.AddHours(7).Date.AddHours(-7),
+                NextOccurrenceDate = DateTime.UtcNow.AddHours(7).Date.AddDays(10).AddHours(-7),
                 DeleteFlag = false,
                 AccountId = account.Id
             };
