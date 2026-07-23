@@ -1,0 +1,68 @@
+name: CI — Build & Test
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [staging]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Setup .NET SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # 3. Restore NuGet dependencies
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      # 4. Build with warnings treated as errors
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      # 5. Run unit tests with code coverage
+      - name: Run Tests
+        run: |
+          dotnet test --no-build --configuration Release \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage
+
+      # 6. Upload coverage report as artifact
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/**/coverage.cobertura.xml
+          retention-days: 14
+
+  # Formatting check — ensures code style consistency
+  format-check:
+    name: Code Style Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Check Formatting
+        run: dotnet format --verify-no-changes --verbosity diagnostic
