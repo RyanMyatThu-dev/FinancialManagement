@@ -13,7 +13,7 @@ jobs:
   build-test-deploy:
     name: Build, Test & Deploy to Production
     runs-on: ubuntu-latest
-    environment: production
+    environment: Production
 
     steps:
     # 1. Checkout the repository code
