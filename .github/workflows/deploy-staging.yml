@@ -1,17 +1,19 @@
-name: Deploy Web API to AWS Lambda (Staging)
+name: Deploy to Staging (AWS Lambda)
 
 on:
   push:
     branches:
-      - main  # Triggers deployment whenever you push to main
+      - staging
 
 permissions:
   id-token: write # Required for requesting the JWT OIDC token from AWS
   contents: read  # Required to checkout repository content
 
 jobs:
-  build-and-deploy:
+  build-test-deploy:
+    name: Build, Test & Deploy to Staging
     runs-on: ubuntu-latest
+    environment: staging
 
     steps:
     # 1. Checkout the repository code
@@ -39,11 +41,13 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-        aws-region: ap-southeast-1  # Target deployment region
+        aws-region: ap-southeast-1
         audience: sts.amazonaws.com
 
-    # 6. Deploy Serverless Stack (Uses the CloudFormation template)
-    - name: Deploy API to Lambda
+    # 6. Deploy to Staging Lambda Stack
+    - name: Deploy API to Staging Lambda
       run: |
         cd ST_finance.Api
-        dotnet lambda deploy-serverless --s3-bucket ${{ secrets.AWS_DEPLOYMENT_S3_BUCKET }}
+        dotnet lambda deploy-serverless \
+          --stack-name st-finance-staging-stack \
+          --s3-bucket ${{ secrets.AWS_DEPLOYMENT_S3_BUCKET }}
