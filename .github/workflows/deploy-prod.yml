@@ -40,7 +40,7 @@ jobs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::295092558246:role/github-actions-lambda-deployer
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
         aws-region: ap-southeast-1
         audience: sts.amazonaws.com
 
@@ -50,6 +50,7 @@ jobs:
         cd ST_finance.Api
         dotnet lambda deploy-serverless \
           --stack-name st-finance-prod-stack \
-          --s3-bucket ${{ secrets.AWS_DEPLOYMENT_S3_BUCKET || vars.AWS_DEPLOYMENT_S3_BUCKET || 'st-finance-deployments-prod-2026' }}
+          --s3-bucket ${{ secrets.AWS_DEPLOYMENT_S3_BUCKET }}
+
 
 
