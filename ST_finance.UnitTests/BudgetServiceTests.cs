@@ -14,7 +14,7 @@ namespace ST_finance.UnitTests
         private readonly AppDbContext _context;
         private readonly BudgetService _service;
         private readonly Guid _userId = Guid.NewGuid();
-        private Guid _categoryId;
+        private readonly Guid _categoryId;
 
         public BudgetServiceTests()
         {

@@ -146,8 +146,11 @@ namespace ST_finance.Domain.Features.Dashboard
             {
                 var balanceForQuota = disposableBalance - remainingBills - remainingGoalNeeds;
                 quota = balanceForQuota / daysRemaining;
-                if (quota < 0) quota = 0m; // Avoid negative quotas
-                
+                if (quota < 0)
+                {
+                    quota = 0m; // Avoid negative quotas
+                }
+
                 // 7. Chula Canteen Index
                 canteenIndex = (int)Math.Floor(Math.Max(0, quota - spentToday) / 50m);
             }
@@ -304,7 +307,11 @@ namespace ST_finance.Domain.Features.Dashboard
 
         private static string GetDaySuffix(int day)
         {
-            if (day >= 11 && day <= 13) return "th";
+            if (day >= 11 && day <= 13)
+            {
+                return "th";
+            }
+
             return (day % 10) switch
             {
                 1 => "st",

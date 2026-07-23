@@ -55,7 +55,7 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""
     });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement       
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
@@ -142,7 +142,7 @@ builder.Services.AddRateLimiter(options =>
     // 2. General Sliding Window policy for API endpoints (Partitioned by User ID or IP)
     options.AddPolicy("api-general", httpContext =>
     {
-        var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+        var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                      ?? httpContext.User.FindFirst("sub")?.Value;
         var partitionKey = !string.IsNullOrEmpty(userId) ? $"user:{userId}" : $"ip:{GetClientIp(httpContext)}";
 

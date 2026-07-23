@@ -23,7 +23,7 @@ namespace ST_finance.Domain.Features.Accounts
         [HttpGet]
         public async Task<IActionResult> GetAccounts(
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize   = 20,
+            [FromQuery] int pageSize = 20,
             [FromQuery] GetAccountsRequest? request = null)
         {
             var userId = GetUserId();

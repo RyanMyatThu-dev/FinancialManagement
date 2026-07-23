@@ -42,10 +42,10 @@ namespace ST_finance.Domain.Features.Authentication
                         .Join(_dbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
                         .Where(name => name != null)
                         .ToListAsync();
-                    
-                    #pragma warning disable CS8604
+
+#pragma warning disable CS8604
                     roles.AddRange(userRoles);
-                    #pragma warning restore CS8604
+#pragma warning restore CS8604
                 }
             }
 

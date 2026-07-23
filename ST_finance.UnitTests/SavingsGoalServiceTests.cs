@@ -172,7 +172,7 @@ namespace ST_finance.UnitTests
             // Seed a completed goal with 3000 THB contributions
             var completedGoal = new TblSavingsGoal { UserId = _userId, GoalName = "Completed Goal", TargetAmount = 3000m, IsCompleted = true };
             _context.TblSavingsGoals.Add(completedGoal);
-            
+
             var contribution = new TblSavingsContribution { Id = Guid.NewGuid(), SavingsGoalId = completedGoal.Id, Amount = 3000m, Date = DateTime.UtcNow };
             _context.TblSavingsContributions.Add(contribution);
 

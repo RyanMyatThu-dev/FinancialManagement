@@ -17,8 +17,8 @@ namespace ST_finance.UnitTests
         private readonly AccountService _accountService;
         private readonly TransactionService _service;
         private readonly Guid _userId = Guid.NewGuid();
-        private Guid _accountId;
-        private Guid _categoryId;
+        private readonly Guid _accountId;
+        private readonly Guid _categoryId;
 
         public TransactionServiceTests()
         {

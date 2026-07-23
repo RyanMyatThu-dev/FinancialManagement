@@ -46,8 +46,8 @@ namespace ST_finance.Domain.Features.Admin
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var lowerSearch = search.ToLower();
-                query = query.Where(u => 
-                    (u.UserName != null && u.UserName.ToLower().Contains(lowerSearch)) || 
+                query = query.Where(u =>
+                    (u.UserName != null && u.UserName.ToLower().Contains(lowerSearch)) ||
                     (u.Email != null && u.Email.ToLower().Contains(lowerSearch)) ||
                     (u.FullName != null && u.FullName.ToLower().Contains(lowerSearch)));
             }

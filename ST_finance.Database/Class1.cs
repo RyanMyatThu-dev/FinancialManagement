@@ -1,4 +1,4 @@
-﻿namespace ST_finance.Database;
+namespace ST_finance.Database;
 
 public class Class1
 {

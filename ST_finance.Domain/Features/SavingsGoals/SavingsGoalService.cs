@@ -20,9 +20,20 @@ namespace ST_finance.Domain.Features.SavingsGoals
 
         public async Task<Result<PagedResponse<SavingsGoalResponse>>> GetGoalsAsync(Guid userId, int pageNumber, int pageSize)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize  < 1) pageSize  = 12;
-            if (pageSize  > 100) pageSize = 100;
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 12;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
 
             var query = _context.TblSavingsGoals
                 .Include(g => g.TblSavingsContributions)
@@ -153,11 +164,11 @@ namespace ST_finance.Domain.Features.SavingsGoals
                 Amount = request.Amount,
                 Date = DateTime.UtcNow,
                 Note = request.Note,
-                TransactionId = null 
+                TransactionId = null
             };
 
             _context.TblSavingsContributions.Add(contribution);
-            
+
             var newTotal = currentGoalSavings + request.Amount;
 
             await _context.SaveChangesAsync();
@@ -177,9 +188,20 @@ namespace ST_finance.Domain.Features.SavingsGoals
 
         public async Task<Result<PagedResponse<SavingsGoalResponse>>> GetCompletedGoalsAsync(Guid userId, int pageNumber, int pageSize, string sortBy)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize  < 1) pageSize  = 12;
-            if (pageSize  > 100) pageSize = 100;
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 12;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
 
             IQueryable<TblSavingsGoal> query = _context.TblSavingsGoals
                 .Include(g => g.TblSavingsContributions)

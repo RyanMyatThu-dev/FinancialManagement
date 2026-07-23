@@ -44,7 +44,7 @@ namespace ST_finance.Domain.Features
             {
                 var existingPerms = await context.TblRolePermissions.Where(rp => rp.RoleId == adminRole.Id).ToListAsync();
                 context.TblRolePermissions.RemoveRange(existingPerms);
-                
+
                 foreach (var perm in adminPermissions)
                 {
                     context.TblRolePermissions.Add(new TblRolePermission
@@ -85,13 +85,13 @@ namespace ST_finance.Domain.Features
                 // Create Alex Mercer
                 var alex = new TblUser
                 {
-                    Id               = Guid.NewGuid(),
-                    UserName         = "alex",
-                    Email            = "alex.mercer@studentmail.com",
-                    FullName         = "Alex Mercer",
-                    EmailConfirmed   = true,
-                    SecurityStamp    = Guid.NewGuid().ToString(),
-                    DeleteFlag       = false
+                    Id = Guid.NewGuid(),
+                    UserName = "alex",
+                    Email = "alex.mercer@studentmail.com",
+                    FullName = "Alex Mercer",
+                    EmailConfirmed = true,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    DeleteFlag = false
                 };
                 var createResult = await userManager.CreateAsync(alex, "Password123!");
                 if (!createResult.Succeeded)
@@ -105,13 +105,13 @@ namespace ST_finance.Domain.Features
                 // Create default Admin user for local dev testing
                 var adminUser = new TblUser
                 {
-                    Id               = Guid.NewGuid(),
-                    UserName         = "admin",
+                    Id = Guid.NewGuid(),
+                    UserName = "admin",
                     Email = "admin@st-finance.com",
-                    FullName         = "System Administrator",
-                    EmailConfirmed   = true,
-                    SecurityStamp    = Guid.NewGuid().ToString(),
-                    DeleteFlag       = false
+                    FullName = "System Administrator",
+                    EmailConfirmed = true,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    DeleteFlag = false
                 };
                 var createAdminResult = await userManager.CreateAsync(adminUser, "AdminPassword123!");
                 if (createAdminResult.Succeeded)
@@ -176,52 +176,52 @@ namespace ST_finance.Domain.Features
             // ── User Profile ─────────────────────────────────────────────
             context.TblUserProfiles.Add(new TblUserProfile
             {
-                Id                    = Guid.NewGuid(),
-                UserId                = userId,
+                Id = Guid.NewGuid(),
+                UserId = userId,
                 MonthlyAllowanceAmount = 20000m,
-                AllowanceDayOfMonth   = 25,
-                TargetMonthlySavings  = 4000m,
-                Currency              = "THB",
-                UpdatedAt             = now
+                AllowanceDayOfMonth = 25,
+                TargetMonthlySavings = 4000m,
+                Currency = "THB",
+                UpdatedAt = now
             });
 
             // ── 12 Accounts ─────────────────────────────────────────────
             // Starting balances are deliberately high so 2 years of expenses never go negative.
-            var acMain    = MakeAccount(userId, "Main Checking",        AccountType.Bank,        120_000m, "#3b82f6", "Wallet",      now.AddMonths(-24));
-            var acSavBank = MakeAccount(userId, "Savings Account",      AccountType.Bank,         80_000m, "#0ea5e9", "PiggyBank",   now.AddMonths(-24));
-            var acWallet  = MakeAccount(userId, "Pay Wallet",           AccountType.EWallet,       8_000m, "#ef4444", "Smartphone",  now.AddMonths(-24));
-            var acGPay    = MakeAccount(userId, "GPay",                 AccountType.EWallet,       5_000m, "#f97316", "Nfc",         now.AddMonths(-22));
-            var acShop    = MakeAccount(userId, "Shopping E-Wallet",    AccountType.EWallet,       6_000m, "#ec4899", "ShoppingBag", now.AddMonths(-20));
-            var acTransit = MakeAccount(userId, "Metro Transit Card",   AccountType.TransitCard,   3_000m, "#10b981", "Train",       now.AddMonths(-24));
-            var acBus     = MakeAccount(userId, "City Bus Card",        AccountType.TransitCard,   1_500m, "#14b8a6", "Bus",         now.AddMonths(-18));
-            var acCash    = MakeAccount(userId, "Cash on Hand",         AccountType.Cash,          5_000m, "#f59e0b", "Coins",       now.AddMonths(-24));
-            var acCash2   = MakeAccount(userId, "Emergency Cash",       AccountType.Cash,         10_000m, "#84cc16", "Banknote",    now.AddMonths(-20));
-            var acStudLoan= MakeAccount(userId, "Student Loan Buffer",  AccountType.Bank,         50_000m, "#8b5cf6", "GraduationCap", now.AddMonths(-24));
-            var acFreelance= MakeAccount(userId, "Freelance Account",   AccountType.Bank,         15_000m, "#d946ef", "Briefcase",   now.AddMonths(-16));
-            var acInvest  = MakeAccount(userId, "Investment Savings",   AccountType.Bank,         25_000m, "#a78bfa", "TrendingUp",  now.AddMonths(-12));
+            var acMain = MakeAccount(userId, "Main Checking", AccountType.Bank, 120_000m, "#3b82f6", "Wallet", now.AddMonths(-24));
+            var acSavBank = MakeAccount(userId, "Savings Account", AccountType.Bank, 80_000m, "#0ea5e9", "PiggyBank", now.AddMonths(-24));
+            var acWallet = MakeAccount(userId, "Pay Wallet", AccountType.EWallet, 8_000m, "#ef4444", "Smartphone", now.AddMonths(-24));
+            var acGPay = MakeAccount(userId, "GPay", AccountType.EWallet, 5_000m, "#f97316", "Nfc", now.AddMonths(-22));
+            var acShop = MakeAccount(userId, "Shopping E-Wallet", AccountType.EWallet, 6_000m, "#ec4899", "ShoppingBag", now.AddMonths(-20));
+            var acTransit = MakeAccount(userId, "Metro Transit Card", AccountType.TransitCard, 3_000m, "#10b981", "Train", now.AddMonths(-24));
+            var acBus = MakeAccount(userId, "City Bus Card", AccountType.TransitCard, 1_500m, "#14b8a6", "Bus", now.AddMonths(-18));
+            var acCash = MakeAccount(userId, "Cash on Hand", AccountType.Cash, 5_000m, "#f59e0b", "Coins", now.AddMonths(-24));
+            var acCash2 = MakeAccount(userId, "Emergency Cash", AccountType.Cash, 10_000m, "#84cc16", "Banknote", now.AddMonths(-20));
+            var acStudLoan = MakeAccount(userId, "Student Loan Buffer", AccountType.Bank, 50_000m, "#8b5cf6", "GraduationCap", now.AddMonths(-24));
+            var acFreelance = MakeAccount(userId, "Freelance Account", AccountType.Bank, 15_000m, "#d946ef", "Briefcase", now.AddMonths(-16));
+            var acInvest = MakeAccount(userId, "Investment Savings", AccountType.Bank, 25_000m, "#a78bfa", "TrendingUp", now.AddMonths(-12));
 
             var accounts = new[] { acMain, acSavBank, acWallet, acGPay, acShop, acTransit, acBus, acCash, acCash2, acStudLoan, acFreelance, acInvest };
             context.TblAccounts.AddRange(accounts);
 
             // ── Categories ───────────────────────────────────────────────
-            var catFood    = MakeCat(userId, "Food & Drinks",    "Expense", "Utensils",    "#ef4444");
-            var catRent    = MakeCat(userId, "Rent & Utilities", "Expense", "Home",        "#3b82f6");
-            var catTransit = MakeCat(userId, "Transit",          "Expense", "Train",       "#10b981");
-            var catEdu     = MakeCat(userId, "Education",        "Expense", "BookOpen",    "#8b5cf6");
-            var catShop    = MakeCat(userId, "Shopping",         "Expense", "ShoppingBag", "#ec4899");
-            var catEntertain = MakeCat(userId, "Entertainment",  "Expense", "Film",        "#f97316");
-            var catHealth  = MakeCat(userId, "Health",           "Expense", "HeartPulse",  "#f43f5e");
-            var catIncome  = MakeCat(userId, "Scholarship",      "Income",  "Award",       "#22c55e");
-            var catFreelance= MakeCat(userId, "Freelance Income","Income",  "Briefcase",   "#a855f7");
+            var catFood = MakeCat(userId, "Food & Drinks", "Expense", "Utensils", "#ef4444");
+            var catRent = MakeCat(userId, "Rent & Utilities", "Expense", "Home", "#3b82f6");
+            var catTransit = MakeCat(userId, "Transit", "Expense", "Train", "#10b981");
+            var catEdu = MakeCat(userId, "Education", "Expense", "BookOpen", "#8b5cf6");
+            var catShop = MakeCat(userId, "Shopping", "Expense", "ShoppingBag", "#ec4899");
+            var catEntertain = MakeCat(userId, "Entertainment", "Expense", "Film", "#f97316");
+            var catHealth = MakeCat(userId, "Health", "Expense", "HeartPulse", "#f43f5e");
+            var catIncome = MakeCat(userId, "Scholarship", "Income", "Award", "#22c55e");
+            var catFreelance = MakeCat(userId, "Freelance Income", "Income", "Briefcase", "#a855f7");
             context.TblCategories.AddRange(catFood, catRent, catTransit, catEdu, catShop, catEntertain, catHealth, catIncome, catFreelance);
 
             // ── Tags ─────────────────────────────────────────────────────
-            var tagCafe     = MakeTag(userId, "Cafe",          "#f59e0b");
-            var tagGrocery  = MakeTag(userId, "Grocery",       "#84cc16");
-            var tagTransit  = MakeTag(userId, "Transit",       "#10b981");
-            var tagSub      = MakeTag(userId, "Subscription",  "#3b82f6");
-            var tagUni      = MakeTag(userId, "University",    "#8b5cf6");
-            var tagMedical  = MakeTag(userId, "Medical",       "#f43f5e");
+            var tagCafe = MakeTag(userId, "Cafe", "#f59e0b");
+            var tagGrocery = MakeTag(userId, "Grocery", "#84cc16");
+            var tagTransit = MakeTag(userId, "Transit", "#10b981");
+            var tagSub = MakeTag(userId, "Subscription", "#3b82f6");
+            var tagUni = MakeTag(userId, "University", "#8b5cf6");
+            var tagMedical = MakeTag(userId, "Medical", "#f43f5e");
             context.TblTags.AddRange(tagCafe, tagGrocery, tagTransit, tagSub, tagUni, tagMedical);
 
             // ── Savings Goals ─────────────────────────────────────────────
@@ -260,28 +260,32 @@ namespace ST_finance.Domain.Features
 
             foreach (var (Name, Target, StartMonthsAgo, CompletedMonthsAgo) in completedGoals)
             {
-                var created     = now.AddMonths(-StartMonthsAgo);
+                var created = now.AddMonths(-StartMonthsAgo);
                 var completedAt = now.AddMonths(-CompletedMonthsAgo)
                                      .AddDays(rnd.Next(-10, 0));   // completed a few days before month cutoff
-                var targetDate  = created.AddMonths(StartMonthsAgo / 2 + rnd.Next(1, 4));
+                var targetDate = created.AddMonths(StartMonthsAgo / 2 + rnd.Next(1, 4));
 
                 var goal = new TblSavingsGoal
                 {
-                    Id          = Guid.NewGuid(),
-                    UserId      = userId,
-                    GoalName    = Name,
-                    TargetAmount= Target,
-                    TargetDate  = targetDate,
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    GoalName = Name,
+                    TargetAmount = Target,
+                    TargetDate = targetDate,
                     IsCompleted = true,
                     CompletedAt = completedAt,
-                    CreatedAt   = created,
-                    DeleteFlag  = false
+                    CreatedAt = created,
+                    DeleteFlag = false
                 };
                 context.TblSavingsGoals.Add(goal);
 
                 // Distribute contributions evenly over the lifetime
                 var lifetimeMonths = StartMonthsAgo - CompletedMonthsAgo;
-                if (lifetimeMonths < 1) lifetimeMonths = 1;
+                if (lifetimeMonths < 1)
+                {
+                    lifetimeMonths = 1;
+                }
+
                 var perMonth = Math.Round(Target / lifetimeMonths, 2);
 
                 for (int cm = 0; cm < lifetimeMonths; cm++)
@@ -289,11 +293,11 @@ namespace ST_finance.Domain.Features
                     var contribDate = created.AddMonths(cm).AddDays(rnd.Next(1, 5));
                     goalContributions.Add(new TblSavingsContribution
                     {
-                        Id           = Guid.NewGuid(),
-                        SavingsGoalId= goal.Id,
-                        Amount       = perMonth,
-                        Date         = contribDate,
-                        Note         = "Regular saving contribution"
+                        Id = Guid.NewGuid(),
+                        SavingsGoalId = goal.Id,
+                        Amount = perMonth,
+                        Date = contribDate,
+                        Note = "Regular saving contribution"
                     });
                 }
             }
@@ -302,44 +306,52 @@ namespace ST_finance.Domain.Features
             var activeGoalRunningTotals = new Dictionary<Guid, decimal>();
             foreach (var (Name, Target, StartMonthsAgo, TargetMonthsAhead) in activeGoals)
             {
-                var created    = now.AddMonths(-StartMonthsAgo);
+                var created = now.AddMonths(-StartMonthsAgo);
                 var targetDate = TargetMonthsAhead.HasValue ? (DateTime?)now.AddMonths(TargetMonthsAhead.Value) : null;
 
                 // Save roughly 40-70% of target as "current amount"
                 var savedFraction = 0.40m + (decimal)rnd.Next(0, 30) / 100m;
-                var totalSaved    = Math.Round(Target * savedFraction, 2);
+                var totalSaved = Math.Round(Target * savedFraction, 2);
 
                 var goal = new TblSavingsGoal
                 {
-                    Id          = Guid.NewGuid(),
-                    UserId      = userId,
-                    GoalName    = Name,
-                    TargetAmount= Target,
-                    TargetDate  = targetDate,
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    GoalName = Name,
+                    TargetAmount = Target,
+                    TargetDate = targetDate,
                     IsCompleted = false,
                     CompletedAt = null,
-                    CreatedAt   = created,
-                    DeleteFlag  = false
+                    CreatedAt = created,
+                    DeleteFlag = false
                 };
                 context.TblSavingsGoals.Add(goal);
                 activeGoalRunningTotals[goal.Id] = totalSaved;
 
                 // Spread contributions monthly
                 var lifetimeMonths = StartMonthsAgo;
-                if (lifetimeMonths < 1) lifetimeMonths = 1;
+                if (lifetimeMonths < 1)
+                {
+                    lifetimeMonths = 1;
+                }
+
                 var perMonth = Math.Round(totalSaved / lifetimeMonths, 2);
 
                 for (int cm = 0; cm < lifetimeMonths; cm++)
                 {
                     var contribDate = created.AddMonths(cm).AddDays(rnd.Next(1, 5));
-                    if (contribDate > now) break;
+                    if (contribDate > now)
+                    {
+                        break;
+                    }
+
                     goalContributions.Add(new TblSavingsContribution
                     {
-                        Id            = Guid.NewGuid(),
+                        Id = Guid.NewGuid(),
                         SavingsGoalId = goal.Id,
-                        Amount        = perMonth,
-                        Date          = contribDate,
-                        Note          = "Monthly savings allocation"
+                        Amount = perMonth,
+                        Date = contribDate,
+                        Note = "Monthly savings allocation"
                     });
                 }
             }
@@ -355,22 +367,30 @@ namespace ST_finance.Domain.Features
             // Helper to add expense (only if balance allows, else skip/reduce)
             TblTransaction? TryAddExpense(Guid accId, Guid catId, decimal amount, DateTime date, string desc, TblTag? tag = null)
             {
-                if (balances[accId] < amount) return null; // guard: would go negative
+                if (balances[accId] < amount)
+                {
+                    return null; // guard: would go negative
+                }
+
                 balances[accId] -= amount;
                 var tx = new TblTransaction
                 {
-                    Id              = Guid.NewGuid(),
-                    UserId          = userId,
-                    AccountId       = accId,
-                    CategoryId      = catId,
-                    Amount          = amount,
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    AccountId = accId,
+                    CategoryId = catId,
+                    Amount = amount,
                     TransactionType = "Expense",
-                    Date            = date,
-                    Description     = desc,
-                    CreatedAt       = date,
-                    DeleteFlag      = false
+                    Date = date,
+                    Description = desc,
+                    CreatedAt = date,
+                    DeleteFlag = false
                 };
-                if (tag != null) tx.Tags.Add(tag);
+                if (tag != null)
+                {
+                    tx.Tags.Add(tag);
+                }
+
                 return tx;
             }
 
@@ -379,36 +399,40 @@ namespace ST_finance.Domain.Features
                 balances[accId] += amount;
                 transactions.Add(new TblTransaction
                 {
-                    Id              = Guid.NewGuid(),
-                    UserId          = userId,
-                    AccountId       = accId,
-                    CategoryId      = catId,
-                    Amount          = amount,
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    AccountId = accId,
+                    CategoryId = catId,
+                    Amount = amount,
                     TransactionType = "Income",
-                    Date            = date,
-                    Description     = desc,
-                    CreatedAt       = date,
-                    DeleteFlag      = false
+                    Date = date,
+                    Description = desc,
+                    CreatedAt = date,
+                    DeleteFlag = false
                 });
             }
 
             void AddTransfer(Guid fromId, Guid toId, decimal amount, DateTime date, string desc)
             {
-                if (balances[fromId] < amount) return; // guard
+                if (balances[fromId] < amount)
+                {
+                    return; // guard
+                }
+
                 balances[fromId] -= amount;
-                balances[toId]   += amount;
+                balances[toId] += amount;
                 transactions.Add(new TblTransaction
                 {
-                    Id              = Guid.NewGuid(),
-                    UserId          = userId,
-                    AccountId       = fromId,
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    AccountId = fromId,
                     TargetAccountId = toId,
-                    Amount          = amount,
+                    Amount = amount,
                     TransactionType = "Transfer",
-                    Date            = date,
-                    Description     = desc,
-                    CreatedAt       = date,
-                    DeleteFlag      = false
+                    Date = date,
+                    Description = desc,
+                    CreatedAt = date,
+                    DeleteFlag = false
                 });
             }
 
@@ -444,7 +468,10 @@ namespace ST_finance.Domain.Features
                 // Rent / utilities
                 var rentTx = TryAddExpense(acMain.Id, catRent.Id, 6_500m,
                     monthStart.AddDays(1).AddHours(9), "Monthly Dorm Rent & Utilities");
-                if (rentTx != null) transactions.Add(rentTx);
+                if (rentTx != null)
+                {
+                    transactions.Add(rentTx);
+                }
 
                 // Phone plan
                 var phoneTx = TryAddExpense(acMain.Id, catRent.Id, 399m,
@@ -499,30 +526,39 @@ namespace ST_finance.Domain.Features
                 for (int d = 1; d <= daysInMonth; d++)
                 {
                     var dayUtc = new DateTime(y, mo, d, 12, 0, 0, DateTimeKind.Utc);
-                    if (dayUtc > now) break;
+                    if (dayUtc > now)
+                    {
+                        break;
+                    }
 
                     // Breakfast (cash or wallet, alternating)
                     var breakfastCost = (decimal)rnd.Next(50, 90);
-                    var breakfastAcc  = d % 3 == 0 ? acGPay.Id : (d % 2 == 0 ? acWallet.Id : acCash.Id);
+                    var breakfastAcc = d % 3 == 0 ? acGPay.Id : (d % 2 == 0 ? acWallet.Id : acCash.Id);
                     var bfTx = TryAddExpense(breakfastAcc, catFood.Id, breakfastCost,
                         dayUtc.AddHours(-4), "Breakfast");
                     if (bfTx != null) { bfTx.Tags.Add(tagCafe); transactions.Add(bfTx); }
 
                     // Lunch (campus cafeteria or nearby restaurant)
                     var lunchCost = (decimal)rnd.Next(80, 150);
-                    var lunchAcc  = d % 2 == 0 ? acCash.Id : acWallet.Id;
+                    var lunchAcc = d % 2 == 0 ? acCash.Id : acWallet.Id;
                     var lunchTx = TryAddExpense(lunchAcc, catFood.Id, lunchCost,
                         dayUtc, "Lunch at Campus Cafeteria");
-                    if (lunchTx != null) transactions.Add(lunchTx);
+                    if (lunchTx != null)
+                    {
+                        transactions.Add(lunchTx);
+                    }
 
                     // Dinner (most days)
                     if (d % 7 != 0) // skip one day a week (ate at home for free)
                     {
                         var dinnerCost = (decimal)rnd.Next(100, 200);
-                        var dinnerAcc  = d % 3 == 0 ? acCash.Id : acGPay.Id;
+                        var dinnerAcc = d % 3 == 0 ? acCash.Id : acGPay.Id;
                         var dinnerTx = TryAddExpense(dinnerAcc, catFood.Id, dinnerCost,
                             dayUtc.AddHours(6), "Dinner");
-                        if (dinnerTx != null) transactions.Add(dinnerTx);
+                        if (dinnerTx != null)
+                        {
+                            transactions.Add(dinnerTx);
+                        }
                     }
 
                     // Coffee / snack (every other day)
@@ -556,10 +592,13 @@ namespace ST_finance.Domain.Features
                     if (dayOfWeek == DayOfWeek.Friday || dayOfWeek == DayOfWeek.Saturday)
                     {
                         var entCost = (decimal)rnd.Next(150, 500);
-                        var entAcc  = dayOfWeek == DayOfWeek.Friday ? acWallet.Id : acShop.Id;
+                        var entAcc = dayOfWeek == DayOfWeek.Friday ? acWallet.Id : acShop.Id;
                         var entTx = TryAddExpense(entAcc, catEntertain.Id, entCost,
                             dayUtc.AddHours(5), "Weekend Entertainment");
-                        if (entTx != null) transactions.Add(entTx);
+                        if (entTx != null)
+                        {
+                            transactions.Add(entTx);
+                        }
                     }
 
                     // Monthly grocery run (every ~7 days)
@@ -591,12 +630,12 @@ namespace ST_finance.Domain.Features
 
                 // ── Monthly Category Budgets ──────────────────────────────
                 context.TblCategoryBudgets.AddRange(
-                    MakeBudget(userId, catFood.Id,      8_000m, mo, y, monthBase),
-                    MakeBudget(userId, catRent.Id,      7_000m, mo, y, monthBase),
-                    MakeBudget(userId, catTransit.Id,   2_000m, mo, y, monthBase),
-                    MakeBudget(userId, catShop.Id,      3_000m, mo, y, monthBase),
+                    MakeBudget(userId, catFood.Id, 8_000m, mo, y, monthBase),
+                    MakeBudget(userId, catRent.Id, 7_000m, mo, y, monthBase),
+                    MakeBudget(userId, catTransit.Id, 2_000m, mo, y, monthBase),
+                    MakeBudget(userId, catShop.Id, 3_000m, mo, y, monthBase),
                     MakeBudget(userId, catEntertain.Id, 2_500m, mo, y, monthBase),
-                    MakeBudget(userId, catHealth.Id,    1_000m, mo, y, monthBase)
+                    MakeBudget(userId, catHealth.Id, 1_000m, mo, y, monthBase)
                 );
             }
 
@@ -604,12 +643,12 @@ namespace ST_finance.Domain.Features
 
             // ── Recurring Schedules ───────────────────────────────────────
             context.TblRecurringSchedules.AddRange(
-                MakeSchedule(userId, acMain.Id,    "Monthly Scholarship Stipend",  20_000m, "Income",   "Monthly", now, 25),
-                MakeSchedule(userId, acMain.Id,    "Monthly Dorm Rent & Utilities",  6_500m, "Expense",  "Monthly", now, 1),
-                MakeSchedule(userId, acMain.Id,    "Mobile Data Plan",               399m, "Expense",   "Monthly", now, 2),
-                MakeSchedule(userId, acMain.Id,    "Savings Transfer",             4_000m, "Transfer",  "Monthly", now, 1),
-                MakeSchedule(userId, acStudLoan.Id,"Tuition Fee (Biannual)",      18_000m, "Expense",   "BiAnnual", now, 1),
-                MakeSchedule(userId, acFreelance.Id,"Web Dev Freelance Retainer",  6_500m, "Income",    "BiMonthly", now, 3)
+                MakeSchedule(userId, acMain.Id, "Monthly Scholarship Stipend", 20_000m, "Income", "Monthly", now, 25),
+                MakeSchedule(userId, acMain.Id, "Monthly Dorm Rent & Utilities", 6_500m, "Expense", "Monthly", now, 1),
+                MakeSchedule(userId, acMain.Id, "Mobile Data Plan", 399m, "Expense", "Monthly", now, 2),
+                MakeSchedule(userId, acMain.Id, "Savings Transfer", 4_000m, "Transfer", "Monthly", now, 1),
+                MakeSchedule(userId, acStudLoan.Id, "Tuition Fee (Biannual)", 18_000m, "Expense", "BiAnnual", now, 1),
+                MakeSchedule(userId, acFreelance.Id, "Web Dev Freelance Retainer", 6_500m, "Income", "BiMonthly", now, 3)
             );
 
             // ── 60-Day Daily Quota Logs (past 60 days, ending yesterday) ─
@@ -618,7 +657,7 @@ namespace ST_finance.Domain.Features
             {
                 var logDate = now.AddDays(d);
                 var dateStart = DateTime.SpecifyKind(logDate.Date, DateTimeKind.Utc);
-                var dateEnd   = dateStart.AddDays(1);
+                var dateEnd = dateStart.AddDays(1);
 
                 var actualSpent = transactions
                     .Where(t => t.TransactionType == "Expense"
@@ -627,16 +666,18 @@ namespace ST_finance.Domain.Features
                     .Sum(t => t.Amount);
 
                 if (actualSpent == 0m)
+                {
                     actualSpent = (decimal)rnd.Next(200, 650);
+                }
 
                 quotaLogs.Add(new TblDailyQuotaLog
                 {
-                    Id          = Guid.NewGuid(),
-                    UserId      = userId,
-                    Date        = DateOnly.FromDateTime(logDate),
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Date = DateOnly.FromDateTime(logDate),
                     TargetQuota = Math.Round(700m + (decimal)rnd.Next(-150, 150), 2),
                     ActualSpent = Math.Round(actualSpent, 2),
-                    CreatedAt   = logDate
+                    CreatedAt = logDate
                 });
             }
             context.TblDailyQuotaLogs.AddRange(quotaLogs);
@@ -654,65 +695,65 @@ namespace ST_finance.Domain.Features
         private static TblAccount MakeAccount(Guid userId, string name, AccountType type, decimal startBalance, string color, string icon, DateTime created) =>
             new TblAccount
             {
-                Id          = Guid.NewGuid(),
-                UserId      = userId,
-                Name        = name,
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Name = name,
                 AccountType = type,
-                Balance     = startBalance,
-                Color       = color,
-                Icon        = icon,
-                CreatedAt   = created,
-                DeleteFlag  = false
+                Balance = startBalance,
+                Color = color,
+                Icon = icon,
+                CreatedAt = created,
+                DeleteFlag = false
             };
 
         private static TblCategory MakeCat(Guid userId, string name, string type, string icon, string color) =>
             new TblCategory
             {
-                Id         = Guid.NewGuid(),
-                UserId     = userId,
-                Name       = name,
-                Type       = type,
-                Icon       = icon,
-                Color      = color,
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Name = name,
+                Type = type,
+                Icon = icon,
+                Color = color,
                 DeleteFlag = false
             };
 
         private static TblTag MakeTag(Guid userId, string name, string color) =>
             new TblTag
             {
-                Id         = Guid.NewGuid(),
-                UserId     = userId,
-                Name       = name,
-                Color      = color,
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Name = name,
+                Color = color,
                 DeleteFlag = false
             };
 
         private static TblCategoryBudget MakeBudget(Guid userId, Guid catId, decimal limit, int month, int year, DateTime created) =>
             new TblCategoryBudget
             {
-                Id          = Guid.NewGuid(),
-                UserId      = userId,
-                CategoryId  = catId,
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                CategoryId = catId,
                 LimitAmount = limit,
-                Month       = month,
-                Year        = year,
-                CreatedAt   = created,
-                DeleteFlag  = false
+                Month = month,
+                Year = year,
+                CreatedAt = created,
+                DeleteFlag = false
             };
 
         private static TblRecurringSchedule MakeSchedule(Guid userId, Guid accId, string name, decimal amount, string txType, string freq, DateTime now, int dayOfMonth) =>
             new TblRecurringSchedule
             {
-                Id                  = Guid.NewGuid(),
-                UserId              = userId,
-                AccountId           = accId,
-                Name                = name,
-                Amount              = amount,
-                TransactionType     = txType,
-                Frequency           = freq,
-                StartDate           = now.AddMonths(-24),
-                NextOccurrenceDate  = new DateTime(now.Year, now.Month, dayOfMonth, 0, 0, 0, DateTimeKind.Utc).AddMonths(1),
-                DeleteFlag          = false
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                AccountId = accId,
+                Name = name,
+                Amount = amount,
+                TransactionType = txType,
+                Frequency = freq,
+                StartDate = now.AddMonths(-24),
+                NextOccurrenceDate = new DateTime(now.Year, now.Month, dayOfMonth, 0, 0, 0, DateTimeKind.Utc).AddMonths(1),
+                DeleteFlag = false
             };
     }
 }

@@ -19,7 +19,7 @@ namespace ST_finance.UnitTests
         private readonly RecurringJobService _jobService;
         private readonly TransactionService _transactionService;
         private readonly Guid _userId = Guid.NewGuid();
-        private Guid _accountId;
+        private readonly Guid _accountId;
 
         public RecurringScheduleTests()
         {

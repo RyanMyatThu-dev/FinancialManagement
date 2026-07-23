@@ -23,7 +23,7 @@ namespace ST_finance.Domain.Features.SavingsGoals
         [HttpGet]
         public async Task<IActionResult> GetGoals(
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize   = 12)
+            [FromQuery] int pageSize = 12)
         {
             var userId = GetUserId();
             var result = await _savingsGoalService.GetGoalsAsync(userId, pageNumber, pageSize);
@@ -33,7 +33,7 @@ namespace ST_finance.Domain.Features.SavingsGoals
         [HttpGet("completed")]
         public async Task<IActionResult> GetCompletedGoals(
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize   = 12,
+            [FromQuery] int pageSize = 12,
             [FromQuery] string sortBy = "CompletedAt")
         {
             var userId = GetUserId();

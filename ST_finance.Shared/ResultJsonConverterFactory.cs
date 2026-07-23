@@ -35,14 +35,14 @@ public class ResultJsonConverter : JsonConverter<Result>
     public override void Write(Utf8JsonWriter writer, Result value, JsonSerializerOptions options)
     {
         writer.WriteStartObject();
-        
+
         var namingPolicy = options.PropertyNamingPolicy;
         writer.WriteBoolean(namingPolicy?.ConvertName(nameof(Result.IsSuccess)) ?? nameof(Result.IsSuccess), value.IsSuccess);
         writer.WriteBoolean(namingPolicy?.ConvertName(nameof(Result.IsFailure)) ?? nameof(Result.IsFailure), value.IsFailure);
-        
+
         writer.WritePropertyName(namingPolicy?.ConvertName(nameof(Result.Error)) ?? nameof(Result.Error));
         JsonSerializer.Serialize(writer, value.Error, options);
-        
+
         writer.WriteEndObject();
     }
 }
@@ -57,14 +57,14 @@ public class ResultOfTJsonConverter<TValue> : JsonConverter<Result<TValue>>
     public override void Write(Utf8JsonWriter writer, Result<TValue> value, JsonSerializerOptions options)
     {
         writer.WriteStartObject();
-        
+
         var namingPolicy = options.PropertyNamingPolicy;
         writer.WriteBoolean(namingPolicy?.ConvertName(nameof(Result.IsSuccess)) ?? nameof(Result.IsSuccess), value.IsSuccess);
         writer.WriteBoolean(namingPolicy?.ConvertName(nameof(Result.IsFailure)) ?? nameof(Result.IsFailure), value.IsFailure);
-        
+
         writer.WritePropertyName(namingPolicy?.ConvertName(nameof(Result.Error)) ?? nameof(Result.Error));
         JsonSerializer.Serialize(writer, value.Error, options);
-        
+
         writer.WritePropertyName(namingPolicy?.ConvertName(nameof(Result<TValue>.Value)) ?? nameof(Result<TValue>.Value));
         if (value.IsSuccess)
         {
@@ -74,7 +74,7 @@ public class ResultOfTJsonConverter<TValue> : JsonConverter<Result<TValue>>
         {
             writer.WriteNullValue();
         }
-        
+
         writer.WriteEndObject();
     }
 }

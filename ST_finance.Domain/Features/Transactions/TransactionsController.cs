@@ -23,18 +23,18 @@ namespace ST_finance.Domain.Features.Transactions
         [HttpGet]
         public async Task<IActionResult> GetTransactions(
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize   = 20,
+            [FromQuery] int pageSize = 20,
             [FromQuery] Guid? categoryId = null,
-            [FromQuery] Guid? tagId      = null,
+            [FromQuery] Guid? tagId = null,
             [FromQuery] decimal? minAmount = null,
             [FromQuery] decimal? maxAmount = null,
-            [FromQuery] string? search     = null,
-            [FromQuery] string? timeframe  = null,
-            [FromQuery] Guid? accountId    = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? timeframe = null,
+            [FromQuery] Guid? accountId = null,
             [FromQuery] Guid? sourceAccountId = null,
             [FromQuery] Guid? targetAccountId = null,
-            [FromQuery] string? startDate     = null,
-            [FromQuery] string? endDate       = null,
+            [FromQuery] string? startDate = null,
+            [FromQuery] string? endDate = null,
             [FromQuery] string? transactionType = null)
         {
             var userId = GetUserId();
@@ -47,16 +47,16 @@ namespace ST_finance.Domain.Features.Transactions
         [HttpGet("summary")]
         public async Task<IActionResult> GetTransactionSummary(
             [FromQuery] Guid? categoryId = null,
-            [FromQuery] Guid? tagId      = null,
+            [FromQuery] Guid? tagId = null,
             [FromQuery] decimal? minAmount = null,
             [FromQuery] decimal? maxAmount = null,
-            [FromQuery] string? search     = null,
-            [FromQuery] string? timeframe  = null,
-            [FromQuery] Guid? accountId    = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? timeframe = null,
+            [FromQuery] Guid? accountId = null,
             [FromQuery] Guid? sourceAccountId = null,
             [FromQuery] Guid? targetAccountId = null,
-            [FromQuery] string? startDate     = null,
-            [FromQuery] string? endDate       = null,
+            [FromQuery] string? startDate = null,
+            [FromQuery] string? endDate = null,
             [FromQuery] string? transactionType = null)
         {
             var userId = GetUserId();
@@ -139,7 +139,7 @@ namespace ST_finance.Domain.Features.Transactions
         [HttpGet("categories")]
         public async Task<IActionResult> GetCategories(
             [FromQuery] int pageNumber = 0,
-            [FromQuery] int pageSize   = 0,
+            [FromQuery] int pageSize = 0,
             [FromQuery] string? search = null)
         {
             var userId = GetUserId();
@@ -172,7 +172,7 @@ namespace ST_finance.Domain.Features.Transactions
         [HttpGet("tags")]
         public async Task<IActionResult> GetTags(
             [FromQuery] int pageNumber = 0,
-            [FromQuery] int pageSize   = 0,
+            [FromQuery] int pageSize = 0,
             [FromQuery] string? search = null)
         {
             var userId = GetUserId();

@@ -68,7 +68,10 @@ namespace ST_finance.Domain.Features.Jobs
         private bool IsAuthorizedScheduler()
         {
             var expectedKey = _configuration["SchedulerApiKey"];
-            if (string.IsNullOrEmpty(expectedKey)) return false;
+            if (string.IsNullOrEmpty(expectedKey))
+            {
+                return false;
+            }
 
             var providedKey = Request.Headers["x-scheduler-api-key"].FirstOrDefault();
             return string.Equals(providedKey, expectedKey, StringComparison.Ordinal);

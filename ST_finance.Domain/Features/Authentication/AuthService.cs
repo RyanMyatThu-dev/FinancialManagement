@@ -183,7 +183,7 @@ namespace ST_finance.Domain.Features.Authentication
             {
                 var principal = _tokenService.GetPrincipalFromExpiredToken(request.AccessToken);
                 var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier) ?? principal.FindFirst("sub");
-                
+
                 if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
                 {
                     return Result.Failure<AuthResponse>(CustomErrors.Auth.RefreshTokenExpired);

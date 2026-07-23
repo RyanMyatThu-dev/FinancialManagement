@@ -20,9 +20,20 @@ namespace ST_finance.Domain.Features.RecurringSchedules
 
         public async Task<Result<PagedResponse<RecurringScheduleResponse>>> GetSchedulesAsync(Guid userId, int pageNumber, int pageSize)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize  < 1) pageSize  = 20;
-            if (pageSize  > 100) pageSize = 100;
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
 
             var query = _context.TblRecurringSchedules
                 .Where(s => s.UserId == userId)
@@ -50,14 +61,14 @@ namespace ST_finance.Domain.Features.RecurringSchedules
                 return Result.Failure<RecurringScheduleResponse>(CustomErrors.Transaction.NegativeAmount);
             }
 
-           
+
             var sourceExists = await _context.TblAccounts.AnyAsync(a => a.Id == request.AccountId && a.UserId == userId);
             if (!sourceExists)
             {
                 return Result.Failure<RecurringScheduleResponse>(CustomErrors.Account.NotFound);
             }
 
-           
+
             if (request.TransactionType == "Transfer")
             {
                 if (request.TargetAccountId == null)

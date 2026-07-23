@@ -39,9 +39,20 @@ namespace ST_finance.Domain.Features.Transactions
             string? transactionType = null
         )
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize  < 1) pageSize  = 20;
-            if (pageSize  > 100) pageSize = 100;
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
 
             var query = _context.TblTransactions
                 .Include(t => t.Tags)
@@ -539,7 +550,10 @@ namespace ST_finance.Domain.Features.Transactions
                     ? await _accountService.DebitAccountAsync(userId, accountId, amount)
                     : await _accountService.CreditAccountAsync(userId, accountId, amount);
 
-                if (result.IsFailure) return result;
+                if (result.IsFailure)
+                {
+                    return result;
+                }
             }
             else if (transactionType == "Expense")
             {
@@ -547,7 +561,10 @@ namespace ST_finance.Domain.Features.Transactions
                     ? await _accountService.CreditAccountAsync(userId, accountId, amount)
                     : await _accountService.DebitAccountAsync(userId, accountId, amount);
 
-                if (result.IsFailure) return result;
+                if (result.IsFailure)
+                {
+                    return result;
+                }
             }
             else if (transactionType == "Transfer")
             {
@@ -563,18 +580,30 @@ namespace ST_finance.Domain.Features.Transactions
                 if (isRevert)
                 {
                     var creditRes = await _accountService.CreditAccountAsync(userId, accountId, amount);
-                    if (creditRes.IsFailure) return creditRes;
+                    if (creditRes.IsFailure)
+                    {
+                        return creditRes;
+                    }
 
                     var debitRes = await _accountService.DebitAccountAsync(userId, targetAccountId.Value, amount);
-                    if (debitRes.IsFailure) return debitRes;
+                    if (debitRes.IsFailure)
+                    {
+                        return debitRes;
+                    }
                 }
                 else
                 {
                     var debitRes = await _accountService.DebitAccountAsync(userId, accountId, amount);
-                    if (debitRes.IsFailure) return debitRes;
+                    if (debitRes.IsFailure)
+                    {
+                        return debitRes;
+                    }
 
                     var creditRes = await _accountService.CreditAccountAsync(userId, targetAccountId.Value, amount);
-                    if (creditRes.IsFailure) return creditRes;
+                    if (creditRes.IsFailure)
+                    {
+                        return creditRes;
+                    }
                 }
             }
 
@@ -689,9 +718,20 @@ namespace ST_finance.Domain.Features.Transactions
 
         public async Task<Result<PagedResponse<CategoryResponse>>> GetCategoriesPagedAsync(Guid userId, int pageNumber, int pageSize, string? search)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 10;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
 
             var query = _context.TblCategories
                 .Where(c => c.UserId == userId && !c.DeleteFlag);
@@ -715,9 +755,20 @@ namespace ST_finance.Domain.Features.Transactions
 
         public async Task<Result<PagedResponse<TagResponse>>> GetTagsPagedAsync(Guid userId, int pageNumber, int pageSize, string? search)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 10;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
 
             var query = _context.TblTags
                 .Where(t => t.UserId == userId && !t.DeleteFlag);
@@ -808,9 +859,9 @@ namespace ST_finance.Domain.Features.Transactions
                 var endOfDateBkk = startOfDateBkk.AddDays(1);
 
                 var actualSpent = await _context.TblTransactions
-                    .Where(t => t.UserId == userId 
-                             && t.TransactionType == "Expense" 
-                             && t.Date >= startOfDateBkk 
+                    .Where(t => t.UserId == userId
+                             && t.TransactionType == "Expense"
+                             && t.Date >= startOfDateBkk
                              && t.Date < endOfDateBkk)
                     .SumAsync(t => t.Amount);
 

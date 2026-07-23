@@ -21,9 +21,20 @@ namespace ST_finance.Domain.Features.Accounts
 
         public async Task<Result<PagedResponse<AccountResponse>>> GetAccountsAsync(Guid userId, int pageNumber, int pageSize, GetAccountsRequest request)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize  < 1) pageSize  = 20;
-            if (pageSize  > 100) pageSize = 100;
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
 
             var query = _context.TblAccounts
                 .Where(a => a.UserId == userId);
@@ -93,7 +104,7 @@ namespace ST_finance.Domain.Features.Accounts
             // 2. Validate unique account name per user
             var nameExists = await _context.TblAccounts
                 .AnyAsync(a => a.UserId == userId && a.Name.ToLower() == request.Name.ToLower());
-            
+
             if (nameExists)
             {
                 return Result.Failure<AccountResponse>(CustomErrors.Account.DuplicateName);

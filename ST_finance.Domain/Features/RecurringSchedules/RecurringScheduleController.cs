@@ -23,7 +23,7 @@ namespace ST_finance.Domain.Features.RecurringSchedules
         [HttpGet]
         public async Task<IActionResult> GetSchedules(
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize   = 20)
+            [FromQuery] int pageSize = 20)
         {
             var userId = GetUserId();
             var result = await _recurringScheduleService.GetSchedulesAsync(userId, pageNumber, pageSize);
