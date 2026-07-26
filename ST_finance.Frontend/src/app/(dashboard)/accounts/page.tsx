@@ -92,7 +92,6 @@ export default function AccountsPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [search, setSearch] = useState("");
   const [tempSearch, setTempSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -332,8 +331,7 @@ export default function AccountsPage() {
                 return (
                   <div
                     key={account.id ?? `account-${idx}`}
-                    className="ds-card ds-card-interactive p-5 flex flex-col gap-4 cursor-pointer"
-                    onClick={() => setSelectedAccount(account)}
+                    className="ds-card p-5 flex flex-col gap-4"
                   >
                     <div className="flex items-center justify-between">
                       <div className={`h-10 w-10 rounded-xl border flex items-center justify-center ${colorClass}`}>
@@ -347,15 +345,25 @@ export default function AccountsPage() {
                         {typeLabel} Account
                       </p>
                     </div>
-                    <div className="pt-3 border-t border-[hsl(var(--border))]">
-                      <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1">
-                        Balance
-                      </p>
-                      <CurrencyDisplay
-                        amount={account.balance}
-                        currency={account.currency || currency}
-                        size="md"
-                      />
+                    <div className="pt-3 border-t border-[hsl(var(--border))] flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-0.5">
+                          Balance
+                        </p>
+                        <CurrencyDisplay
+                          amount={account.balance}
+                          currency={account.currency || currency}
+                          size="md"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/transactions?accountId=${account.id}`)}
+                        className="ds-btn-outline px-3 py-1.5 text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 min-h-[36px] hover:border-[hsl(var(--primary)/0.5)] hover:text-[hsl(var(--primary))]"
+                        title="View transaction history for this account"
+                      >
+                        <Clock className="h-3.5 w-3.5" /> History
+                      </button>
                     </div>
                   </div>
                 );
@@ -365,7 +373,7 @@ export default function AccountsPage() {
             <div className="w-full overflow-x-auto no-scrollbar sm:border sm:border-[hsl(var(--border))] sm:bg-[hsl(var(--card))] sm:rounded-xl bg-transparent border-0 rounded-none">
               <div className="w-full">
                 {/* Table Header */}
-                <div className="grid grid-cols-[30px_1fr_85px_100px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
+                <div className="grid grid-cols-[30px_1fr_85px_100px_80px] sm:grid-cols-[50px_1fr_120px_150px_130px_100px] px-5 py-2.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.4)]">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
                     No.
                   </span>
@@ -381,6 +389,9 @@ export default function AccountsPage() {
                   <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-right">
                     Balance
                   </span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] text-right">
+                    Action
+                  </span>
                 </div>
 
                 {/* Table Rows */}
@@ -391,10 +402,9 @@ export default function AccountsPage() {
                   return (
                     <div
                       key={account.id ?? `account-${idx}`}
-                      className={`ds-table-row grid grid-cols-[30px_1fr_85px_100px] sm:grid-cols-[50px_1fr_120px_150px_130px] px-5 py-3.5 items-center cursor-pointer ${
+                      className={`ds-table-row grid grid-cols-[30px_1fr_85px_100px_80px] sm:grid-cols-[50px_1fr_120px_150px_130px_100px] px-5 py-3.5 items-center ${
                         idx !== 0 ? "border-t border-[hsl(var(--border))]" : ""
                       }`}
-                      onClick={() => setSelectedAccount(account)}
                     >
                       {/* Number index */}
                       <span className="text-[11px] font-mono text-[hsl(var(--muted-foreground))]">
@@ -427,6 +437,18 @@ export default function AccountsPage() {
                           currency={account.currency || currency}
                           size="sm"
                         />
+                      </div>
+
+                      {/* Action */}
+                      <div className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/transactions?accountId=${account.id}`)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] hover:bg-[hsl(var(--primary)/0.12)] hover:border-[hsl(var(--primary)/0.4)] text-[11px] font-mono font-bold text-[hsl(var(--foreground))] transition-all min-h-[32px]"
+                          title="View transaction history"
+                        >
+                          <Clock className="h-3 w-3 text-[hsl(var(--primary))]" /> History
+                        </button>
                       </div>
                     </div>
                   );
@@ -483,99 +505,6 @@ export default function AccountsPage() {
       )}
 
       {showCreateModal && <CreateAccountModal onClose={() => setShowCreateModal(false)} />}
-      {selectedAccount && (
-        <AccountDetailsModal
-          account={selectedAccount}
-          onClose={() => setSelectedAccount(null)}
-        />
-      )}
     </div>
-  );
-}
-
-/** Account Details Modal */
-function AccountDetailsModal({
-  account,
-  onClose,
-}: {
-  account: Account;
-  onClose: () => void;
-}) {
-  const { user } = useAuth();
-  const currency = user?.currency || "THB";
-  const router = useRouter();
-  const typeLabel = getAccountTypeLabel(account.accountType);
-  const typeStr = String(account.accountType);
-  const colorClass = ACCOUNT_COLORS[typeStr] ?? ACCOUNT_COLORS.default;
-  const icon = ACCOUNT_ICONS[typeStr] ?? ACCOUNT_ICONS.default;
-
-  return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="ds-card w-full max-w-md p-6 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 ds-btn-icon h-7 w-7"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="mb-5">
-          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest ${colorClass} mb-2`}>
-            {icon}
-            {typeLabel}
-          </div>
-          <h2 className="text-xl font-bold tracking-tight">{account.name}</h2>
-        </div>
-
-        <div className="space-y-4 font-sans">
-          {/* Balance Block */}
-          <div className="bg-[hsl(var(--secondary)/0.5)] border border-[hsl(var(--border))] rounded-xl p-4 flex justify-between items-center">
-            <div>
-              <span className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1 font-mono">
-                Current Balance
-              </span>
-              <CurrencyDisplay amount={account.balance} currency={currency} size="md" />
-            </div>
-          </div>
-
-          {/* Metadata Grid */}
-          <div className="border border-[hsl(var(--border))] rounded-xl p-4 space-y-3 text-xs font-mono text-[hsl(var(--muted-foreground))]">
-            <div className="flex justify-between items-center">
-              <span>Account Type:</span>
-              <span className="text-[hsl(var(--foreground))] font-semibold">{typeLabel}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                Date Created:
-              </span>
-              <span className="text-[hsl(var(--foreground))] font-semibold">
-                {new Date(account.createdAt).toLocaleDateString(undefined, {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-          </div>
-
-          {/* Shortcut CTA Button */}
-          <button
-            onClick={() => {
-              onClose();
-              router.push(`/transactions?accountId=${account.id}`);
-            }}
-            className="w-full ds-btn-primary py-2.5 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider"
-          >
-            <Clock className="h-4 w-4" />
-            View Transaction History
-          </button>
-        </div>
-      </div>
-    </div>
-    </ModalPortal>
   );
 }

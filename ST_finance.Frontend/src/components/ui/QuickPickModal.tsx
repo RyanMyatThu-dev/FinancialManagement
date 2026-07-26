@@ -223,7 +223,7 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
                   </span>
                   Quick Add
                 </h2>
-                <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono mt-0.5">
+                <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono mt-1.5">
                   {step === "account"
                     ? "Step 1: Select Source Wallet Account"
                     : `Step 2: Pick Shortcut for ${activeAccount?.name || "Account"}`}
