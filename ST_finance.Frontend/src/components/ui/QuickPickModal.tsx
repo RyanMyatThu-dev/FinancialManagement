@@ -345,7 +345,7 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
                               }`}
                               aria-label={`Log ${preset.label} for ${preset.amount} ${currency}`}
                             >
-                              {/* Top row: Category Icon + Frequency badge */}
+                              {/* Top row: Category Icon */}
                               <div className="flex items-center justify-between w-full mb-2">
                                 <span className="h-7 w-7 rounded-lg bg-[hsl(var(--background))] border border-[hsl(var(--border))] flex items-center justify-center shrink-0 text-[hsl(var(--primary))]">
                                   {catObj?.icon ? (
@@ -353,9 +353,6 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
                                   ) : (
                                     <Wallet className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))]" />
                                   )}
-                                </span>
-                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-[hsl(var(--background))] border border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))]">
-                                  ×{preset.count}
                                 </span>
                               </div>
 
