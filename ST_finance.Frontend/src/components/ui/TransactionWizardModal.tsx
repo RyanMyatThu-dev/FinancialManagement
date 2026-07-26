@@ -337,42 +337,44 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
             </button>
           </div>
 
-          {/* ── 4-Step Progress Bar ── */}
+          {/* ── Step Indicator: circles ON the connecting line ── */}
           <div
             role="progressbar"
             aria-valuenow={currentStep}
             aria-valuemin={1}
             aria-valuemax={4}
             aria-label={`Step ${currentStep} of 4: ${STEP_LABELS[currentStep - 1]}`}
-            className="w-full bg-[hsl(var(--secondary))] h-1.5 rounded-full my-4 overflow-hidden"
+            className="relative flex items-start justify-between mt-5 mb-5 px-0"
           >
+            {/* Background track line — runs through circle centres (top-3 = half of h-6 circle) */}
+            <div className="absolute top-3 left-3 right-3 h-0.5 bg-[hsl(var(--secondary))]" aria-hidden="true" />
+            {/* Filled progress line */}
             <div
-              className="bg-[hsl(var(--primary))] h-full transition-all duration-300 ease-out"
-              style={{ width: `${(currentStep / 4) * 100}%` }}
+              className="absolute top-3 left-3 h-0.5 bg-[hsl(var(--primary))] transition-all duration-500 ease-out"
+              style={{ width: `calc(${((currentStep - 1) / 3) * 100}% - ${currentStep === 1 ? 0 : currentStep === 4 ? 24 : 0}px)`, right: "auto" }}
+              aria-hidden="true"
             />
-          </div>
-
-          {/* ── Step Indicators ── */}
-          <div className="flex items-center justify-between mb-4 px-0.5">
             {STEP_LABELS.map((label, idx) => {
               const step = idx + 1;
               const isDone = step < currentStep;
               const isCurrent = step === currentStep;
               return (
-                <div key={label} className="flex flex-col items-center gap-1 flex-1">
+                <div key={label} className="relative z-10 flex flex-col items-center gap-1.5" style={{ flex: "0 0 auto" }}>
                   <span
-                    className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                    className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-300 ${
                       isDone
-                        ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
+                        ? "bg-[hsl(var(--primary))] border-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
                         : isCurrent
-                        ? "bg-[hsl(var(--primary)/0.2)] text-[hsl(var(--primary))] ring-2 ring-[hsl(var(--primary)/0.5)]"
-                        : "bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))]"
+                        ? "bg-[hsl(var(--card))] border-[hsl(var(--primary))] text-[hsl(var(--primary))] shadow-[0_0_0_3px_hsl(var(--primary)/0.2)]"
+                        : "bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))]"
                     }`}
                     aria-hidden="true"
                   >
                     {isDone ? <Check className="h-3.5 w-3.5" /> : step}
                   </span>
-                  <span className={`text-[9px] font-mono text-center leading-tight hidden sm:block ${isCurrent ? "text-[hsl(var(--foreground))] font-bold" : "text-[hsl(var(--muted-foreground))]"}`}>
+                  <span className={`text-[9px] font-mono text-center leading-tight hidden sm:block max-w-[64px] ${
+                    isCurrent ? "text-[hsl(var(--foreground))] font-bold" : "text-[hsl(var(--muted-foreground))]"
+                  }`}>
                     {label}
                   </span>
                 </div>
