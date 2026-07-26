@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import {
   X, Loader2, AlertTriangle, Plus, Check, Sparkles, SlidersHorizontal,
-  History, ArrowRight, Wallet,
+  History, ArrowLeft, Wallet, ChevronRight,
 } from "lucide-react";
 import { CategoryIcon } from "@/app/(dashboard)/categories/page";
 import { useAuth } from "@/context/AuthContext";
@@ -73,9 +73,11 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
   const qc = useQueryClient();
   const { user } = useAuth();
   const currency = user?.currency || "THB";
+
+  const [step, setStep] = useState<"account" | "presets">("account");
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [loggingKey, setLoggingKey] = useState<string | null>(null);
   const [loggedKey, setLoggedKey] = useState<string | null>(null);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
   // Fetch accounts
   const { data: accounts = [], isFetched: isAccountsFetched } = useQuery<Account[]>({
@@ -89,6 +91,14 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
       return [];
     },
   });
+
+  // If user only has 1 account, auto-select it and skip to presets
+  useEffect(() => {
+    if (isAccountsFetched && accounts.length === 1 && !selectedAccountId) {
+      setSelectedAccountId(accounts[0].id);
+      setStep("presets");
+    }
+  }, [isAccountsFetched, accounts, selectedAccountId]);
 
   // Fetch categories (for icon lookup)
   const { data: categoriesData } = useQuery<Category[]>({
@@ -125,9 +135,7 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
   const recentTransactions = recentTransactionsData || [];
   const smartPresets: SmartPreset[] = isRecentFetched ? deriveSmartPresets(recentTransactions) : [];
 
-  // Default to first account when accounts load
-  const activeAccountId = selectedAccountId ?? accounts[0]?.id ?? null;
-  const activeAccount = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
+  const activeAccount = accounts.find((a) => a.id === selectedAccountId) || null;
 
   // Quick log mutation
   const quickLogMutation = useMutation({
@@ -154,9 +162,14 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
     },
   });
 
+  const handleSelectAccount = (acc: Account) => {
+    setSelectedAccountId(acc.id);
+    setStep("presets");
+  };
+
   const handlePickPreset = (preset: SmartPreset) => {
     if (!activeAccount) {
-      showToast("No account available. Please create an account first.", "error");
+      showToast("No account selected. Please pick a source account.", "error");
       return;
     }
     if (parseFloat(preset.amount) > activeAccount.balance) {
@@ -187,184 +200,247 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-3 sm:p-4 overflow-y-auto"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
-        <div className="ds-card w-full max-w-md rounded-2xl p-5 sm:p-6 shadow-2xl border-[hsl(var(--primary)/0.2)] animate-fadeIn max-h-[85vh] overflow-y-auto no-scrollbar">
+        <div className="ds-card w-full max-w-lg rounded-2xl p-5 sm:p-6 shadow-2xl border-[hsl(var(--primary)/0.2)] animate-fadeIn max-h-[88vh] overflow-y-auto no-scrollbar">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 id="quick-pick-title" className="text-base font-black tracking-tight flex items-center gap-2">
-              <span className="h-7 w-7 rounded-lg bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))] flex items-center justify-center">
-                <Sparkles className="h-3.5 w-3.5" />
-              </span>
-              Quick Add
-            </h2>
-            <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5 font-mono">
-              {smartPresets.length > 0 ? "Pick a frequent transaction or add a new one" : "Log a transaction quickly"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-9 w-9 rounded-xl flex items-center justify-center text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--secondary))] transition-colors focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-            aria-label="Close quick add"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Zero-account guard */}
-        {isAccountsFetched && accounts.length === 0 ? (
-          <div className="py-6 text-center space-y-3 border border-dashed border-[hsl(var(--warning)/0.4)] rounded-2xl bg-[hsl(var(--warning)/0.04)] mb-4">
-            <div className="mx-auto h-10 w-10 rounded-full bg-[hsl(var(--warning)/0.15)] flex items-center justify-center text-[hsl(var(--warning))]">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <p className="text-sm font-bold">No accounts created yet</p>
-            <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono">You need at least one wallet account before logging transactions.</p>
-          </div>
-        ) : (
-          <>
-            {/* Account selector */}
-            {accounts.length > 0 && (
-              <div className="mb-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-mono mb-2 flex items-center gap-1">
-                  <Wallet className="h-3 w-3" /> Source Account
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-[hsl(var(--border))]">
+            <div className="flex items-center gap-2">
+              {step === "presets" && accounts.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStep("account")}
+                  className="h-8 w-8 rounded-lg flex items-center justify-center text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--secondary))] transition-colors focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                  aria-label="Change source account"
+                  title="Change source account"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+              )}
+              <div>
+                <h2 id="quick-pick-title" className="text-base font-black tracking-tight flex items-center gap-2">
+                  <span className="h-7 w-7 rounded-lg bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))] flex items-center justify-center">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </span>
+                  Quick Add
+                </h2>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono mt-0.5">
+                  {step === "account"
+                    ? "Step 1: Select Source Wallet Account"
+                    : `Step 2: Pick Shortcut for ${activeAccount?.name || "Account"}`}
                 </p>
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Select source account">
-                  {accounts.map((a) => {
-                    const isSelected = activeAccountId === a.id;
-                    return (
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-9 w-9 rounded-xl flex items-center justify-center text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--secondary))] transition-colors focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+              aria-label="Close quick add modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Zero-account guard */}
+          {isAccountsFetched && accounts.length === 0 ? (
+            <div className="py-8 text-center space-y-3 border border-dashed border-[hsl(var(--warning)/0.4)] rounded-2xl bg-[hsl(var(--warning)/0.04)] mb-2">
+              <div className="mx-auto h-11 w-11 rounded-full bg-[hsl(var(--warning)/0.15)] flex items-center justify-center text-[hsl(var(--warning))]">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <p className="text-sm font-bold">No accounts created yet</p>
+              <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono max-w-xs mx-auto">
+                You need at least one wallet account before logging transactions.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* ═══════════════════════════════════════════════════════════ */}
+              {/* STEP 1: Select Source Account                              */}
+              {/* ═══════════════════════════════════════════════════════════ */}
+              {step === "account" && (
+                <div className="space-y-3 py-1">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-mono mb-2 flex items-center gap-1.5">
+                    <Wallet className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
+                    Which account are you spending from?
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup" aria-label="Select source wallet account">
+                    {accounts.map((acc) => (
                       <button
-                        key={a.id}
+                        key={acc.id}
                         type="button"
-                        aria-pressed={isSelected}
-                        onClick={() => setSelectedAccountId(a.id)}
-                        className={`inline-flex flex-col items-start px-3 py-2 rounded-xl border text-left transition-all min-h-[52px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
-                          isSelected
-                            ? "bg-[hsl(var(--primary)/0.12)] border-[hsl(var(--primary)/0.5)] text-[hsl(var(--primary))]"
-                            : "bg-[hsl(var(--secondary))] border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:border-[hsl(var(--primary)/0.3)]"
+                        role="radio"
+                        aria-checked={selectedAccountId === acc.id}
+                        onClick={() => handleSelectAccount(acc)}
+                        className={`p-4 rounded-xl border flex flex-col justify-between text-left transition-all min-h-[72px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] group ${
+                          selectedAccountId === acc.id
+                            ? "bg-[hsl(var(--primary)/0.12)] border-[hsl(var(--primary))] text-[hsl(var(--primary))]"
+                            : "bg-[hsl(var(--secondary))] border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:border-[hsl(var(--primary)/0.4)]"
                         }`}
                       >
-                        <span className="text-xs font-bold leading-tight">{a.name}</span>
-                        <span className={`text-[10px] font-mono tabular-nums ${isSelected ? "text-[hsl(var(--primary)/0.8)]" : "text-[hsl(var(--muted-foreground))]"}` }>
-                          {formatCurrency(a.balance, currency)}
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className="text-sm font-bold truncate pr-2">{acc.name}</span>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--primary))] transition-colors" />
+                        </div>
+                        <span className="text-xs font-mono font-black tabular-nums opacity-90">
+                          {formatCurrency(acc.balance, currency)}
                         </span>
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Frequent Transaction Cards */}
-            {smartPresets.length > 0 ? (
-              <div className="space-y-2 mb-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-mono flex items-center gap-1">
-                  <History className="h-3 w-3" /> Your Frequent Transactions
-                </p>
-                <div className="space-y-2">
-                  {smartPresets.map((preset) => {
-                    const key = `${preset.label}__${preset.amount}`;
-                    const isLogging = loggingKey === key;
-                    const isLogged = loggedKey === key;
-                    const catObj = preset.categoryId ? categories.find((c) => c.id === preset.categoryId) : null;
-
-                    return (
+              {/* ═══════════════════════════════════════════════════════════ */}
+              {/* STEP 2: 6 Most Frequent Transactions Grid + Other           */}
+              {/* ═══════════════════════════════════════════════════════════ */}
+              {step === "presets" && activeAccount && (
+                <div className="space-y-4 py-1">
+                  {/* Selected Account Banner */}
+                  <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[hsl(var(--secondary))] border border-[hsl(var(--border))]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Wallet className="h-4 w-4 text-[hsl(var(--primary))] shrink-0" />
+                      <div className="min-w-0 text-xs font-mono">
+                        <span className="text-[hsl(var(--muted-foreground))]">Spending from: </span>
+                        <strong className="text-[hsl(var(--foreground))] truncate">{activeAccount.name}</strong>
+                        <span className="text-[hsl(var(--muted-foreground))]"> ({formatCurrency(activeAccount.balance, currency)})</span>
+                      </div>
+                    </div>
+                    {accounts.length > 1 && (
                       <button
-                        key={key}
                         type="button"
-                        onClick={() => handlePickPreset(preset)}
-                        disabled={!!loggingKey || !!loggedKey}
-                        className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all min-h-[60px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] group ${
-                          isLogged
-                            ? "bg-[hsl(var(--primary)/0.1)] border-[hsl(var(--primary)/0.4)]"
-                            : "bg-[hsl(var(--secondary))] border-[hsl(var(--border))] hover:bg-[hsl(var(--primary)/0.06)] hover:border-[hsl(var(--primary)/0.3)]"
-                        }`}
-                        aria-label={`Log ${preset.label} for ${preset.amount} ${currency}`}
+                        onClick={() => setStep("account")}
+                        className="text-[10px] font-mono font-bold text-[hsl(var(--primary))] hover:underline shrink-0 ml-2 focus-visible:ring-1 focus-visible:ring-[hsl(var(--ring))] rounded"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          {/* Category icon or fallback */}
-                          <span className="h-9 w-9 rounded-xl bg-[hsl(var(--background))] border border-[hsl(var(--border))] flex items-center justify-center shrink-0 text-[hsl(var(--primary))]">
-                            {catObj?.icon ? (
-                              <CategoryIcon name={catObj.icon} className="h-4.5 w-4.5" />
-                            ) : (
-                              <Wallet className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
-                            )}
-                          </span>
-                          <div className="min-w-0 text-left">
-                            <p className="text-sm font-semibold truncate">{preset.label}</p>
-                            <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))]">
-                              {catObj?.name ?? "No category"} · ×{preset.count} logged
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Amount + action */}
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className={`text-sm font-black font-mono tabular-nums ${
-                            isLogged ? "text-[hsl(var(--primary))]" : "text-[hsl(var(--destructive))]"
-                          }`}>
-                            −{currency} {preset.amount}
-                          </span>
-                          <span className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
-                            isLogged
-                              ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
-                              : "bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))] group-hover:bg-[hsl(var(--primary))] group-hover:text-[hsl(var(--primary-foreground))]"
-                          }`}>
-                            {isLogging ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : isLogged ? (
-                              <Check className="h-3.5 w-3.5" />
-                            ) : (
-                              <Plus className="h-3.5 w-3.5" />
-                            )}
-                          </span>
-                        </div>
+                        Change
                       </button>
-                    );
-                  })}
+                    )}
+                  </div>
+
+                  {/* 6 Most Frequent Transactions Grid */}
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-mono flex items-center gap-1.5 mb-2.5">
+                      <History className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
+                      Frequent Shortcuts
+                    </p>
+
+                    {smartPresets.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                        {smartPresets.map((preset) => {
+                          const key = `${preset.label}__${preset.amount}`;
+                          const isLogging = loggingKey === key;
+                          const isLogged = loggedKey === key;
+                          const catObj = preset.categoryId ? categories.find((c) => c.id === preset.categoryId) : null;
+
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handlePickPreset(preset)}
+                              disabled={!!loggingKey || !!loggedKey}
+                              className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all min-h-[100px] text-left focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] group relative ${
+                                isLogged
+                                  ? "bg-[hsl(var(--primary)/0.15)] border-[hsl(var(--primary))]"
+                                  : "bg-[hsl(var(--secondary))] border-[hsl(var(--border))] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--primary)/0.05)]"
+                              }`}
+                              aria-label={`Log ${preset.label} for ${preset.amount} ${currency}`}
+                            >
+                              {/* Top row: Category Icon + Frequency badge */}
+                              <div className="flex items-center justify-between w-full mb-2">
+                                <span className="h-7 w-7 rounded-lg bg-[hsl(var(--background))] border border-[hsl(var(--border))] flex items-center justify-center shrink-0 text-[hsl(var(--primary))]">
+                                  {catObj?.icon ? (
+                                    <CategoryIcon name={catObj.icon} className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Wallet className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))]" />
+                                  )}
+                                </span>
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-[hsl(var(--background))] border border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))]">
+                                  ×{preset.count}
+                                </span>
+                              </div>
+
+                              {/* Label & Category */}
+                              <div className="min-w-0 mb-2">
+                                <p className="text-xs font-bold leading-snug truncate group-hover:text-[hsl(var(--primary))] transition-colors">
+                                  {preset.label}
+                                </p>
+                                <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))] truncate">
+                                  {catObj?.name ?? "General"}
+                                </p>
+                              </div>
+
+                              {/* Bottom row: Amount + Instant submit indicator */}
+                              <div className="flex items-center justify-between w-full pt-1 border-t border-[hsl(var(--border)/0.5)]">
+                                <span className={`text-xs font-black font-mono tabular-nums ${
+                                  isLogged ? "text-[hsl(var(--primary))]" : "text-[hsl(var(--destructive))]"
+                                }`}>
+                                  −{currency} {preset.amount}
+                                </span>
+                                <span className={`h-6 w-6 rounded-lg flex items-center justify-center transition-colors ${
+                                  isLogged
+                                    ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
+                                    : "bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] group-hover:bg-[hsl(var(--primary))] group-hover:text-[hsl(var(--primary-foreground))]"
+                                }`}>
+                                  {isLogging ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : isLogged ? (
+                                    <Check className="h-3 w-3" />
+                                  ) : (
+                                    <Plus className="h-3 w-3" />
+                                  )}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : isRecentFetched ? (
+                      <div className="py-6 text-center border border-dashed border-[hsl(var(--border))] rounded-xl">
+                        <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono italic">
+                          Your frequent shortcuts will appear here automatically after your first few expense entries.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="py-6 flex justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-[hsl(var(--muted-foreground))]" />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : isRecentFetched ? (
-              <div className="mb-4 py-4 text-center border border-dashed border-[hsl(var(--border))] rounded-xl">
-                <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono italic">
-                  Your frequent transactions will appear here after your first few entries.
-                </p>
-              </div>
-            ) : (
-              <div className="mb-4 py-4 flex justify-center">
-                <Loader2 className="h-5 w-5 animate-spin text-[hsl(var(--muted-foreground))]" />
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
 
-        {/* Divider */}
-        <div className="relative flex items-center gap-3 my-3">
-          <div className="flex-1 h-px bg-[hsl(var(--border))]" />
-          <span className="text-[10px] font-mono text-[hsl(var(--muted-foreground))] uppercase tracking-wider">or</span>
-          <div className="flex-1 h-px bg-[hsl(var(--border))]" />
-        </div>
-
-        {/* Other Transaction → opens Wizard */}
-        <button
-          type="button"
-          onClick={() => { onClose(); onOpenWizard(); }}
-          className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--primary)/0.04)] transition-all min-h-[52px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] group"
-          aria-label="Open full transaction wizard for a new transaction"
-        >
-          <div className="flex items-center gap-3">
-            <span className="h-9 w-9 rounded-xl bg-[hsl(var(--primary)/0.1)] flex items-center justify-center text-[hsl(var(--primary))]">
-              <SlidersHorizontal className="h-4 w-4" />
-            </span>
-            <div className="text-left">
-              <p className="text-sm font-semibold">Other Transaction</p>
-              <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))]">Full wizard with all options</p>
-            </div>
+          {/* Divider */}
+          <div className="relative flex items-center gap-3 my-3">
+            <div className="flex-1 h-px bg-[hsl(var(--border))]" />
+            <span className="text-[10px] font-mono text-[hsl(var(--muted-foreground))] uppercase tracking-wider">or custom entry</span>
+            <div className="flex-1 h-px bg-[hsl(var(--border))]" />
           </div>
-          <ArrowRight className="h-4 w-4 text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--primary))] transition-colors" />
-        </button>
+
+          {/* Other Transaction → opens Wizard */}
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onOpenWizard(activeAccount ? { accountId: activeAccount.id } : undefined);
+            }}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--primary)/0.04)] transition-all min-h-[48px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] group"
+            aria-label="Open full transaction wizard for custom entry"
+          >
+            <div className="flex items-center gap-3">
+              <span className="h-8 w-8 rounded-lg bg-[hsl(var(--primary)/0.1)] flex items-center justify-center text-[hsl(var(--primary))]">
+                <SlidersHorizontal className="h-4 w-4" />
+              </span>
+              <div className="text-left">
+                <p className="text-xs font-bold">Other Transaction</p>
+                <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))]">Open full 4-step wizard for detailed control</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--primary))] transition-colors" />
+          </button>
+        </div>
       </div>
-    </div>
     </ModalPortal>
   );
 }
