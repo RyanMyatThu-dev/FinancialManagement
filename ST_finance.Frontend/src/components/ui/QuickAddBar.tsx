@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useId } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
-import { Plus, Zap, SlidersHorizontal, Loader2, Check, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Plus, Zap, SlidersHorizontal, Loader2, Check, Sparkles, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { CreateAccountModal } from "@/components/ui/CreateAccountModal";
 
 interface Account {
   id: string;
@@ -47,9 +49,10 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
   const [accountId, setAccountId] = useState("");
   const [detectedCategory, setDetectedCategory] = useState<Category | null>(null);
   const [isSuccessFeedback, setIsSuccessFeedback] = useState(false);
+  const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
 
   // 1. Fetch Accounts
-  const { data: accountsData } = useQuery<{ items: Account[] }>({
+  const { data: accountsData, isLoading: isAccountsLoading } = useQuery<{ items: Account[] }>({
     queryKey: ["accounts", "all"],
     queryFn: async () => {
       const res = await apiClient.get("/api/accounts?pageSize=100");
@@ -149,6 +152,55 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
     setAmount(preset.amount);
     setDescription(preset.label);
   };
+
+  if (!isAccountsLoading && accounts.length === 0) {
+    return (
+      <section aria-label="Express Quick Transaction Bar" className="mb-6">
+        <div className="ds-card p-4 sm:p-5 border-[hsl(var(--warning)/0.4)] bg-[hsl(var(--warning)/0.06)] shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))] shrink-0 mt-0.5 sm:mt-0">
+                <AlertTriangle className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-xs sm:text-sm font-bold tracking-tight text-[hsl(var(--foreground))]">
+                  No accounts created yet
+                </h2>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5 font-mono">
+                  You need at least one wallet account before logging transactions.{" "}
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateAccountModal(true)}
+                    className="text-[hsl(var(--primary))] font-bold underline underline-offset-2 hover:opacity-80 inline-flex items-center gap-1 font-sans"
+                  >
+                    Create a new one here
+                  </button>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0">
+              <button
+                type="button"
+                onClick={() => setShowCreateAccountModal(true)}
+                className="ds-btn-primary px-3.5 py-2 flex items-center justify-center gap-1.5 text-xs font-bold w-full sm:w-auto min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+              >
+                <Plus className="h-4 w-4" /> + New Account
+              </button>
+              <Link
+                href="/accounts"
+                className="ds-btn-outline px-3 py-2 text-xs font-mono text-center w-full sm:w-auto min-h-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+              >
+                Wallets Page
+              </Link>
+            </div>
+          </div>
+        </div>
+        {showCreateAccountModal && (
+          <CreateAccountModal onClose={() => setShowCreateAccountModal(false)} />
+        )}
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Express Quick Transaction Bar" className="mb-6">

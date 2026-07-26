@@ -8,6 +8,7 @@ import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { useToast } from "@/context/ToastContext";
+import { CreateAccountModal } from "@/components/ui/CreateAccountModal";
 
 interface TransactionWizardModalProps {
   onClose: () => void;
@@ -66,6 +67,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
   const [isRecurring, setIsRecurring] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showOverdraftModal, setShowOverdraftModal] = useState<boolean>(false);
+  const [showCreateAccountModal, setShowCreateAccountModal] = useState<boolean>(false);
 
   // Inline Category & Tag Creation states
   const [showAddCategory, setShowAddCategory] = useState<boolean>(false);
@@ -80,7 +82,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
   const [tagError, setTagError] = useState<string | null>(null);
 
   // 1. Fetch Accounts
-  const { data: accountsData } = useQuery<{ items: Account[] }>({
+  const { data: accountsData, isLoading: isAccountsLoading } = useQuery<{ items: Account[] }>({
     queryKey: ["accounts", "all"],
     queryFn: async () => {
       const res = await apiClient.get("/api/accounts?pageSize=100");
@@ -367,6 +369,44 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
             <div role="alert" className="ds-alert-error flex items-start gap-2 p-3 mb-4 text-xs font-mono rounded-lg">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <p>{error}</p>
+            </div>
+          )}
+
+          {!isAccountsLoading && accounts.length === 0 && (
+            <div role="alert" className="p-4 rounded-xl border border-[hsl(var(--warning)/0.4)] bg-[hsl(var(--warning)/0.08)] text-xs text-[hsl(var(--foreground))] space-y-3 font-mono my-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-[hsl(var(--warning))] mt-0.5" />
+                <div>
+                  <p className="font-bold uppercase tracking-wider text-[10px] text-[hsl(var(--warning))]">
+                    No Accounts Found
+                  </p>
+                  <p className="mt-1 leading-relaxed text-[hsl(var(--muted-foreground))] font-sans">
+                    No accounts created yet. You need at least one wallet account before creating transactions.{" "}
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateAccountModal(true)}
+                      className="text-[hsl(var(--primary))] font-bold underline underline-offset-2 hover:opacity-80 inline-flex items-center gap-1 font-sans"
+                    >
+                      Create a new one here
+                    </button>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t border-[hsl(var(--border))] font-sans">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAccountModal(true)}
+                  className="ds-btn-primary px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 min-h-[44px]"
+                >
+                  <Plus className="h-4 w-4" /> + Create Account Now
+                </button>
+                <a
+                  href="/accounts"
+                  className="ds-btn-outline px-3 py-2 text-xs font-mono min-h-[44px] flex items-center justify-center"
+                >
+                  Go to Wallets Page
+                </a>
+              </div>
             </div>
           )}
 
@@ -660,6 +700,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
             <button
               type="button"
               onClick={validateAndNextStep}
+              disabled={accounts.length === 0}
               className="ds-btn-primary px-5 py-2.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
             >
               Next <ArrowRight className="h-4 w-4" />
@@ -668,7 +709,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={mutation.isPending || isOverdraft}
+              disabled={mutation.isPending || isOverdraft || accounts.length === 0}
               className="ds-btn-primary px-6 py-2.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
             >
               {mutation.isPending ? (
@@ -684,6 +725,10 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
           )}
         </div>
       </div>
+
+      {showCreateAccountModal && (
+        <CreateAccountModal onClose={() => setShowCreateAccountModal(false)} />
+      )}
     </div>
   );
 }
