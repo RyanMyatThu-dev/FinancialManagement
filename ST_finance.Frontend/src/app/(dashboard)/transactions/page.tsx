@@ -8,7 +8,6 @@ import { useAuth } from "@/context/AuthContext";
 import { TimeframeFilter, type Timeframe } from "@/components/ui/TimeframeFilter";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
 import { CreateTransactionModal } from "@/components/ui/CreateTransactionModal";
-import { QuickAddBar } from "@/components/ui/QuickAddBar";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -307,8 +306,6 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Express Quick Add Bar */}
-      <QuickAddBar onOpenWizard={handleOpenWizardWithData} />
       <div className="grid grid-cols-2 gap-4">
         <div className="ds-card p-4">
           <div className="flex items-center gap-2 mb-2">

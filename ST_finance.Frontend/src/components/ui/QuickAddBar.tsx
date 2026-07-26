@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useId } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
-import { Plus, Zap, SlidersHorizontal, Loader2, Check, Sparkles, AlertTriangle, History } from "lucide-react";
+import { Plus, Zap, SlidersHorizontal, Loader2, Check, Sparkles, AlertTriangle, History, ChevronRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { formatCurrency } from "@/components/ui/CurrencyDisplay";
@@ -86,9 +86,12 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [accountId, setAccountId] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [detectedCategory, setDetectedCategory] = useState<Category | null>(null);
   const [isSuccessFeedback, setIsSuccessFeedback] = useState(false);
   const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
+  // Whether the category row is expanded (true once user has typed)
+  const [categoryRowVisible, setCategoryRowVisible] = useState(false);
 
   // 1. Fetch Accounts with robust array/object parsing
   const { data: accounts = [], isLoading: isAccountsLoading, isFetched: isAccountsFetched } = useQuery<Account[]>({
@@ -157,7 +160,7 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
   const recentTransactions = recentTransactionsData || [];
   const smartPresets: SmartPreset[] = isRecentFetched ? deriveSmartPresets(recentTransactions) : [];
 
-  // Smart Auto-Categorisation engine
+  // Smart Auto-Categorisation engine — auto-selects & highlights chip
   useEffect(() => {
     if (!description.trim() || categories.length === 0) {
       setDetectedCategory(null);
@@ -174,6 +177,10 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
       return false;
     });
     setDetectedCategory(match || null);
+    // Auto-highlight detected category only if user hasn't manually overridden
+    if (match) setSelectedCategoryId((prev) => prev ?? match.id);
+    // Expand category row once user starts typing
+    if (!categoryRowVisible) setCategoryRowVisible(true);
   }, [description, categories]);
 
   // Quick submit mutation
@@ -194,6 +201,8 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
       qc.invalidateQueries({ queryKey: ["accounts"] });
       setDescription("");
       setAmount("");
+      setSelectedCategoryId(null);
+      setCategoryRowVisible(false);
     },
     onError: (err: Error) => {
       showToast(err.message || "Could not log transaction", "error");
@@ -222,7 +231,7 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
     quickLogMutation.mutate({
       accountId,
       targetAccountId: null,
-      categoryId: detectedCategory ? detectedCategory.id : null,
+      categoryId: selectedCategoryId ?? (detectedCategory ? detectedCategory.id : null),
       transactionType: "Expense",
       isRecurring: false,
       date: new Date().toISOString(),
@@ -235,6 +244,9 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
   const handlePresetClick = (preset: SmartPreset) => {
     setAmount(preset.amount);
     setDescription(preset.label);
+    // Pre-select the category from the preset if available
+    if (preset.categoryId) setSelectedCategoryId(preset.categoryId);
+    setCategoryRowVisible(true);
   };
 
   // ── ZERO-ACCOUNT GUARDRAIL ──────────────────────────────────────────────────
@@ -370,10 +382,10 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
               className="ds-input w-full px-3 py-2 text-sm min-h-[44px] pr-28 focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               autoComplete="off"
             />
-            {detectedCategory ? (
+          {detectedCategory && !selectedCategoryId ? (
               <span
                 className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))] text-[10px] font-bold font-mono animate-fadeIn"
-                title={`Auto-detected category: ${detectedCategory.name}`}
+                title={`Auto-detected: ${detectedCategory.name}`}
               >
                 <Sparkles className="h-3 w-3" />
                 {detectedCategory.name}
@@ -428,6 +440,61 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
             <span>
               <strong>Guardrail:</strong> Amount ({parsedAmount.toFixed(2)} {currency}) exceeds balance of {selectedAccount.name} ({formatCurrency(selectedAccount.balance, currency)}).
             </span>
+          </div>
+        )}
+
+        {/* Inline Category Chip Row — expands once user starts typing */}
+        {categoryRowVisible && categories.filter((c) => c.type === "Expense").length > 0 && (
+          <div className="mt-3 pt-3 border-t border-[hsl(var(--border))] animate-fadeIn">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Sparkles className="h-3 w-3 text-[hsl(var(--primary))]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-mono">
+                Category
+              </span>
+              {selectedCategoryId && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryId(null)}
+                  className="ml-auto text-[10px] font-mono text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors focus-visible:ring-1 focus-visible:ring-[hsl(var(--ring))] rounded"
+                  aria-label="Clear category selection"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div
+              className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth"
+              role="group"
+              aria-label="Select expense category"
+            >
+              {categories
+                .filter((c) => c.type === "Expense")
+                .map((cat) => {
+                  const isSelected = selectedCategoryId === cat.id;
+                  const isAutoDetected = detectedCategory?.id === cat.id && !selectedCategoryId;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() =>
+                        setSelectedCategoryId((prev) => (prev === cat.id ? null : cat.id))
+                      }
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-mono shrink-0 transition-all min-h-[36px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
+                        isSelected
+                          ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] border-[hsl(var(--primary))]"
+                          : isAutoDetected
+                          ? "bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] border-[hsl(var(--primary)/0.4)] font-bold"
+                          : "bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--border))] hover:border-[hsl(var(--primary)/0.3)]"
+                      }`}
+                    >
+                      {isSelected && <Check className="h-3 w-3" />}
+                      {isAutoDetected && !isSelected && <Sparkles className="h-3 w-3" />}
+                      <span>{cat.name}</span>
+                    </button>
+                  );
+                })}
+            </div>
           </div>
         )}
       </div>
