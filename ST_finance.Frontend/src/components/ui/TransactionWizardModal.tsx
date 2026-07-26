@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef, useId } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
-import { X, Loader2, AlertTriangle, Plus, Tag, ArrowRight, ArrowLeft, Check, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { X, Loader2, AlertTriangle, Plus, Tag, ArrowRight, ArrowLeft, Check, Sparkles, Wallet } from "lucide-react";
 import { CategoryIcon, STUDENT_ICONS } from "@/app/(dashboard)/categories/page";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/components/ui/CurrencyDisplay";
@@ -81,18 +82,27 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
   const [newTagColor, setNewTagColor] = useState<string>("#6B7280");
   const [tagError, setTagError] = useState<string | null>(null);
 
-  // 1. Fetch Accounts
-  const { data: accountsData, isLoading: isAccountsLoading } = useQuery<{ items: Account[] }>({
+  // 1. Fetch Accounts with robust parsing
+  const { data: accounts = [], isLoading: isAccountsLoading, isFetched: isAccountsFetched } = useQuery<Account[]>({
     queryKey: ["accounts", "all"],
     queryFn: async () => {
       const res = await apiClient.get("/api/accounts?pageSize=100");
-      return res.data.value || { items: [] };
+      if (res.data?.isSuccess) {
+        if (Array.isArray(res.data.value)) {
+          return res.data.value;
+        }
+        if (res.data.value?.items && Array.isArray(res.data.value.items)) {
+          return res.data.value.items;
+        }
+      }
+      return [];
     },
   });
-  const accounts = accountsData?.items || [];
 
+  const selectedAccount = accounts.find((a) => a.id === accountId) || accounts[0] || null;
   const currentNetBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
   const txAmount = parseFloat(amount) || 0;
+  const isInsufficientBalance = selectedAccount && transactionType === "Expense" ? txAmount > selectedAccount.balance : false;
   const proposedNetBalance =
     transactionType === "Expense" ? currentNetBalance - txAmount :
     transactionType === "Income" ? currentNetBalance + txAmount :
@@ -104,7 +114,10 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
     queryKey: ["categories"],
     queryFn: async () => {
       const res = await apiClient.get("/api/transactions/categories");
-      return res.data.value || [];
+      if (res.data?.isSuccess) {
+        return Array.isArray(res.data.value) ? res.data.value : res.data.value?.items || [];
+      }
+      return [];
     },
   });
   const categories = categoriesData || [];
@@ -114,14 +127,17 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
     queryKey: ["tags"],
     queryFn: async () => {
       const res = await apiClient.get("/api/transactions/tags");
-      return res.data.value || [];
+      if (res.data?.isSuccess) {
+        return Array.isArray(res.data.value) ? res.data.value : res.data.value?.items || [];
+      }
+      return [];
     },
   });
   const tags = tagsData || [];
 
   // Set default account when accounts load
   useEffect(() => {
-    if (accounts.length > 0 && !accountId) {
+    if (accounts.length > 0 && (!accountId || !accounts.some((a) => a.id === accountId))) {
       setAccountId(accounts[0].id);
     }
   }, [accounts, accountId]);
@@ -137,7 +153,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
     }
   }, [transactionType, categories, initialData?.categoryId]);
 
-  // Focus Trapping & Accessibility (Escape Key to close, Tab navigation wrap)
+  // Focus Trapping & Accessibility
   useEffect(() => {
     closeBtnRef.current?.focus();
 
@@ -192,26 +208,6 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
     }
   });
 
-  // Create Tag Mutation
-  const createTagMutation = useMutation({
-    mutationFn: async (body: { name: string; color: string }) => {
-      const res = await apiClient.post("/api/transactions/tags", body);
-      if (res.data.isSuccess && res.data.value) return res.data.value;
-      throw new Error(res.data.error?.message || "Failed to create tag");
-    },
-    onSuccess: (newTag) => {
-      showToast("Tag created successfully", "success");
-      qc.invalidateQueries({ queryKey: ["tags"] });
-      setSelectedTagIds((prev) => [...prev, newTag.id]);
-      setNewTagName("");
-      setShowAddTag(false);
-      setTagError(null);
-    },
-    onError: (err: any) => {
-      setTagError(err.message || "Failed to create tag");
-    }
-  });
-
   // Create Transaction Mutation
   const mutation = useMutation({
     mutationFn: async (body: any) => {
@@ -240,10 +236,19 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
   const validateAndNextStep = () => {
     setError(null);
 
+    if (accounts.length === 0) {
+      setError("No accounts created yet. Please create an account before proceeding.");
+      return;
+    }
+
     if (currentStep === 1) {
       const parsedAmount = parseFloat(amount);
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
         setError("Please enter a valid amount greater than 0.");
+        return;
+      }
+      if (isInsufficientBalance) {
+        setError(`Amount exceeds balance of ${selectedAccount?.name} (${selectedAccount?.balance.toFixed(2)} ${currency}).`);
         return;
       }
       setCurrentStep(2);
@@ -258,6 +263,10 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
       }
       if (transactionType === "Transfer" && accountId === targetAccountId) {
         setError("Source and Target accounts must be different.");
+        return;
+      }
+      if (isInsufficientBalance) {
+        setError(`Amount exceeds balance of ${selectedAccount?.name}.`);
         return;
       }
       setCurrentStep(3);
@@ -275,6 +284,11 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
     e.preventDefault();
     setError(null);
 
+    if (accounts.length === 0) {
+      setError("No accounts created yet. Please create an account first.");
+      return;
+    }
+
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       setError("Amount must be greater than zero.");
@@ -283,6 +297,11 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
 
     if (!accountId) {
       setError("Please select a source account.");
+      return;
+    }
+
+    if (isInsufficientBalance) {
+      setError(`Amount exceeds balance of ${selectedAccount?.name}.`);
       return;
     }
 
@@ -360,7 +379,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
             />
           </div>
 
-          {/* ARIA Live Region for Step Announcements & Validation Errors */}
+          {/* ARIA Live Region */}
           <div aria-live="assertive" className="sr-only">
             Step {currentStep} of 3: {currentStep === 1 ? "Type and Amount" : currentStep === 2 ? "Accounts and Category" : "Review and Details"}. {error || ""}
           </div>
@@ -372,307 +391,316 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
             </div>
           )}
 
-          {!isAccountsLoading && accounts.length === 0 && (
-            <div role="alert" className="p-4 rounded-xl border border-[hsl(var(--warning)/0.4)] bg-[hsl(var(--warning)/0.08)] text-xs text-[hsl(var(--foreground))] space-y-3 font-mono my-3">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="h-5 w-5 shrink-0 text-[hsl(var(--warning))] mt-0.5" />
-                <div>
-                  <p className="font-bold uppercase tracking-wider text-[10px] text-[hsl(var(--warning))]">
-                    No Accounts Found
-                  </p>
-                  <p className="mt-1 leading-relaxed text-[hsl(var(--muted-foreground))] font-sans">
-                    No accounts created yet. You need at least one wallet account before creating transactions.{" "}
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateAccountModal(true)}
-                      className="text-[hsl(var(--primary))] font-bold underline underline-offset-2 hover:opacity-80 inline-flex items-center gap-1 font-sans"
-                    >
-                      Create a new one here
-                    </button>
-                  </p>
-                </div>
+          {/* ZERO ACCOUNTS DEDICATED GUARDRAIL SCREEN */}
+          {isAccountsFetched && accounts.length === 0 ? (
+            <div className="py-8 px-4 text-center space-y-4 my-2 border border-dashed border-[hsl(var(--warning)/0.4)] rounded-2xl bg-[hsl(var(--warning)/0.04)]">
+              <div className="mx-auto h-12 w-12 rounded-full bg-[hsl(var(--warning)/0.15)] border border-[hsl(var(--warning)/0.3)] flex items-center justify-center text-[hsl(var(--warning))]">
+                <AlertTriangle className="h-6 w-6" />
               </div>
-              <div className="flex items-center gap-2 pt-2 border-t border-[hsl(var(--border))] font-sans">
+              <div>
+                <h3 className="text-base font-bold tracking-tight">No accounts created yet</h3>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1 font-mono max-w-sm mx-auto leading-relaxed">
+                  You need at least one wallet account before logging transactions.{" "}
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateAccountModal(true)}
+                    className="text-[hsl(var(--primary))] font-bold underline underline-offset-2 hover:opacity-80 font-sans"
+                  >
+                    create a new one here : link
+                  </button>
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateAccountModal(true)}
-                  className="ds-btn-primary px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 min-h-[44px]"
+                  className="ds-btn-primary px-5 py-2.5 text-xs font-bold w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-1.5"
                 >
-                  <Plus className="h-4 w-4" /> + Create Account Now
+                  <Plus className="h-4 w-4" /> Create Account Now
                 </button>
-                <a
+                <Link
                   href="/accounts"
-                  className="ds-btn-outline px-3 py-2 text-xs font-mono min-h-[44px] flex items-center justify-center"
+                  className="ds-btn-outline px-4 py-2.5 text-xs font-mono text-center w-full sm:w-auto min-h-[44px] flex items-center justify-center"
                 >
-                  Go to Wallets Page
-                </a>
+                  Wallets Page
+                </Link>
               </div>
             </div>
-          )}
-
-          {/* STEP 1: Type & Amount */}
-          {currentStep === 1 && (
-            <div className="space-y-5 py-2">
-              <div>
-                <label className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
-                  1. Transaction Type
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {["Expense", "Income", "Transfer"].map((t) => {
-                    const isSelected = transactionType === t;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setTransactionType(t)}
-                        className={`py-3 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
-                          isSelected
-                            ? t === "Expense"
-                              ? "bg-[hsl(var(--destructive))] text-white shadow-md"
-                              : t === "Income"
-                              ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-md"
-                              : "bg-[hsl(var(--foreground))] text-[hsl(var(--background))]"
-                            : "bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
-                        }`}
-                      >
-                        {t}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor={amountInputId} className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
-                  2. Amount ({currency})
-                </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-mono font-bold text-[hsl(var(--muted-foreground))]">
-                    {currency}
-                  </div>
-                  <input
-                    id={amountInputId}
-                    type="number"
-                    required
-                    min="0.01"
-                    step="0.01"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="ds-input w-full pl-16 pr-4 py-3 text-2xl font-mono font-black min-h-[52px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-                    autoFocus
-                    autoComplete="off"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: Accounts & Category */}
-          {currentStep === 2 && (
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="wizard-source-account" className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                    {transactionType === "Transfer" ? "Source Account" : "Account"}
-                  </label>
-                  <select
-                    id="wizard-source-account"
-                    value={accountId}
-                    onChange={(e) => setAccountId(e.target.value)}
-                    className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-                  >
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({formatCurrency(a.balance, currency)})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {transactionType === "Transfer" ? (
+          ) : (
+            <>
+              {/* STEP 1: Type & Amount */}
+              {currentStep === 1 && (
+                <div className="space-y-5 py-2">
                   <div>
-                    <label htmlFor="wizard-target-account" className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                      Target Account
+                    <label className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
+                      1. Transaction Type
                     </label>
-                    <select
-                      id="wizard-target-account"
-                      value={targetAccountId}
-                      onChange={(e) => setTargetAccountId(e.target.value)}
-                      className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-                    >
-                      <option value="">Select target...</option>
-                      {accounts.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name} ({formatCurrency(a.balance, currency)})
-                        </option>
-                      ))}
-                    </select>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["Expense", "Income", "Transfer"].map((t) => {
+                        const isSelected = transactionType === t;
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setTransactionType(t)}
+                            className={`py-3 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
+                              isSelected
+                                ? t === "Expense"
+                                  ? "bg-[hsl(var(--destructive))] text-white shadow-md"
+                                  : t === "Income"
+                                  ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-md"
+                                  : "bg-[hsl(var(--foreground))] text-[hsl(var(--background))]"
+                                : "bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                ) : null}
-              </div>
 
-              {transactionType !== "Transfer" && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest font-mono">
-                      Category
+                  <div>
+                    <label htmlFor={amountInputId} className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
+                      2. Amount ({currency})
                     </label>
-                    {!showAddCategory && (
-                      <button
-                        type="button"
-                        onClick={() => setShowAddCategory(true)}
-                        className="text-xs text-[hsl(var(--primary))] font-bold hover:underline font-mono min-h-[44px] sm:min-h-[32px] px-2"
-                      >
-                        + NEW CATEGORY
-                      </button>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-mono font-bold text-[hsl(var(--muted-foreground))]">
+                        {currency}
+                      </div>
+                      <input
+                        id={amountInputId}
+                        type="number"
+                        required
+                        min="0.01"
+                        step="0.01"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        className={`ds-input w-full pl-16 pr-4 py-3 text-2xl font-mono font-black min-h-[52px] focus-visible:ring-2 ${
+                          isInsufficientBalance ? "border-[hsl(var(--destructive))] focus-visible:ring-[hsl(var(--destructive))]" : "focus-visible:ring-[hsl(var(--ring))]"
+                        }`}
+                        autoFocus
+                        autoComplete="off"
+                      />
+                    </div>
+                    {isInsufficientBalance && selectedAccount && (
+                      <p className="mt-1.5 text-xs text-[hsl(var(--destructive))] font-mono font-bold flex items-center gap-1">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Exceeds balance of {selectedAccount.name} ({formatCurrency(selectedAccount.balance, currency)})
+                      </p>
                     )}
                   </div>
+                </div>
+              )}
 
-                  {showAddCategory ? (
-                    <div className="p-3 bg-[hsl(var(--secondary))] border border-[hsl(var(--border))] rounded-xl space-y-3">
-                      <input
-                        type="text"
-                        placeholder="Category Name"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        className="ds-input w-full px-3 py-2 text-xs min-h-[44px]"
-                        autoFocus
-                      />
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!newCategoryName.trim()) return;
-                            createCategoryMutation.mutate({
-                              name: newCategoryName.trim(),
-                              type: transactionType,
-                              icon: newCategoryIcon,
-                              color: newCategoryColor,
-                            });
-                          }}
-                          disabled={createCategoryMutation.isPending}
-                          className="ds-btn-primary px-3 py-1.5 text-xs"
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowAddCategory(false)}
-                          className="px-3 py-1.5 text-xs text-[hsl(var(--muted-foreground))]"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+              {/* STEP 2: Accounts & Category */}
+              {currentStep === 2 && (
+                <div className="space-y-4 py-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="wizard-source-account" className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                        {transactionType === "Transfer" ? "Source Account" : "Account"}
+                      </label>
+                      <select
+                        id="wizard-source-account"
+                        value={accountId}
+                        onChange={(e) => setAccountId(e.target.value)}
+                        className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                      >
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} ({formatCurrency(a.balance, currency)})
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[220px] overflow-y-auto pr-1">
-                      {categories
-                        .filter((c) => c.type === transactionType)
-                        .map((c) => {
-                          const isSelected = categoryId === c.id;
-                          return (
+
+                    {transactionType === "Transfer" ? (
+                      <div>
+                        <label htmlFor="wizard-target-account" className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                          Target Account
+                        </label>
+                        <select
+                          id="wizard-target-account"
+                          value={targetAccountId}
+                          onChange={(e) => setTargetAccountId(e.target.value)}
+                          className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                        >
+                          <option value="">Select target...</option>
+                          {accounts.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.name} ({formatCurrency(a.balance, currency)})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {transactionType !== "Transfer" && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest font-mono">
+                          Category
+                        </label>
+                        {!showAddCategory && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAddCategory(true)}
+                            className="text-xs text-[hsl(var(--primary))] font-bold hover:underline font-mono min-h-[44px] sm:min-h-[32px] px-2"
+                          >
+                            + NEW CATEGORY
+                          </button>
+                        )}
+                      </div>
+
+                      {showAddCategory ? (
+                        <div className="p-3 bg-[hsl(var(--secondary))] border border-[hsl(var(--border))] rounded-xl space-y-3">
+                          <input
+                            type="text"
+                            placeholder="Category Name"
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            className="ds-input w-full px-3 py-2 text-xs min-h-[44px]"
+                            autoFocus
+                          />
+                          <div className="flex justify-end gap-2">
                             <button
-                              key={c.id}
                               type="button"
-                              onClick={() => setCategoryId(c.id)}
-                              className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition-all min-h-[48px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
-                                isSelected
-                                  ? "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-bold"
-                                  : "border-[hsl(var(--border))] bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))] hover:border-[hsl(var(--border-hover))]"
-                              }`}
+                              onClick={() => {
+                                if (!newCategoryName.trim()) return;
+                                createCategoryMutation.mutate({
+                                  name: newCategoryName.trim(),
+                                  type: transactionType,
+                                  icon: newCategoryIcon,
+                                  color: newCategoryColor,
+                                });
+                              }}
+                              disabled={createCategoryMutation.isPending}
+                              className="ds-btn-primary px-3 py-1.5 text-xs"
                             >
-                              <span className="h-2 w-2 rounded-full bg-[hsl(var(--primary))]" />
-                              <span className="text-xs truncate">{c.name}</span>
+                              Save
                             </button>
-                          );
-                        })}
+                            <button
+                              type="button"
+                              onClick={() => setShowAddCategory(false)}
+                              className="px-3 py-1.5 text-xs text-[hsl(var(--muted-foreground))]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[220px] overflow-y-auto pr-1">
+                          {categories
+                            .filter((c) => c.type === transactionType)
+                            .map((c) => {
+                              const isSelected = categoryId === c.id;
+                              return (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => setCategoryId(c.id)}
+                                  className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition-all min-h-[48px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
+                                    isSelected
+                                      ? "border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] font-bold"
+                                      : "border-[hsl(var(--border))] bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))] hover:border-[hsl(var(--border-hover))]"
+                                  }`}
+                                >
+                                  <span className="h-2 w-2 rounded-full bg-[hsl(var(--primary))]" />
+                                  <span className="text-xs truncate">{c.name}</span>
+                                </button>
+                              );
+                            })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* STEP 3: Details, Date, Tags & Confirmation */}
-          {currentStep === 3 && (
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor={dateInputId} className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                    Transaction Date
-                  </label>
-                  <input
-                    id={dateInputId}
-                    type="date"
-                    required
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="ds-input w-full px-3 py-2.5 text-sm font-mono min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor={descInputId} className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                    Description / Note
-                  </label>
-                  <input
-                    id={descInputId}
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="e.g. Starbucks, Tuition"
-                    className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-                  />
-                </div>
-              </div>
-
-              {/* Tags Section */}
-              <div>
-                <label className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
-                  Tags (Optional)
-                </label>
-                <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto">
-                  {tags.map((tag) => {
-                    const selected = selectedTagIds.includes(tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() =>
-                          setSelectedTagIds((prev) =>
-                            prev.includes(tag.id) ? prev.filter((id) => id !== tag.id) : [...prev, tag.id]
-                          )
-                        }
-                        className={`inline-flex items-center gap-1 px-3 py-2 rounded-full border text-xs font-mono transition-all min-h-[44px] sm:min-h-[36px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
-                          selected
-                            ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
-                            : "bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))]"
-                        }`}
-                      >
-                        <Tag className="h-3.5 w-3.5" />
-                        <span>{tag.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Overdraft Alert Warning */}
-              {isOverdraft && (
-                <div role="alert" className="ds-alert-error p-3.5 rounded-xl border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.08)] text-xs text-[hsl(var(--destructive))] font-mono">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
+              {/* STEP 3: Details, Date, Tags & Confirmation */}
+              {currentStep === 3 && (
+                <div className="space-y-4 py-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <p className="font-bold uppercase tracking-wider text-[10px]">Overdraft Prevention Block</p>
-                      <p className="mt-1 leading-relaxed">
-                        Total net balance is {currentNetBalance.toFixed(2)} {currency}. Logging {txAmount.toFixed(2)} {currency} expense will exceed your balance.
-                      </p>
+                      <label htmlFor={dateInputId} className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                        Transaction Date
+                      </label>
+                      <input
+                        id={dateInputId}
+                        type="date"
+                        required
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="ds-input w-full px-3 py-2.5 text-sm font-mono min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor={descInputId} className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                        Description / Note
+                      </label>
+                      <input
+                        id={descInputId}
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="e.g. Starbucks, Tuition"
+                        className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                      />
                     </div>
                   </div>
+
+                  {/* Tags Section */}
+                  <div>
+                    <label className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
+                      Tags (Optional)
+                    </label>
+                    <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto">
+                      {tags.map((tag) => {
+                        const selected = selectedTagIds.includes(tag.id);
+                        return (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() =>
+                              setSelectedTagIds((prev) =>
+                                prev.includes(tag.id) ? prev.filter((id) => id !== tag.id) : [...prev, tag.id]
+                              )
+                            }
+                            className={`inline-flex items-center gap-1 px-3 py-2 rounded-full border text-xs font-mono transition-all min-h-[44px] sm:min-h-[36px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
+                              selected
+                                ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
+                                : "bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))]"
+                            }`}
+                          >
+                            <Tag className="h-3.5 w-3.5" />
+                            <span>{tag.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Overdraft Alert Warning */}
+                  {isOverdraft && (
+                    <div role="alert" className="ds-alert-error p-3.5 rounded-xl border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.08)] text-xs text-[hsl(var(--destructive))] font-mono">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold uppercase tracking-wider text-[10px]">Overdraft Prevention Block</p>
+                          <p className="mt-1 leading-relaxed">
+                            Total net balance is {currentNetBalance.toFixed(2)} {currency}. Logging {txAmount.toFixed(2)} {currency} expense will exceed your total balance.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
 
@@ -700,7 +728,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
             <button
               type="button"
               onClick={validateAndNextStep}
-              disabled={accounts.length === 0}
+              disabled={accounts.length === 0 || isInsufficientBalance}
               className="ds-btn-primary px-5 py-2.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
             >
               Next <ArrowRight className="h-4 w-4" />
@@ -709,7 +737,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={mutation.isPending || isOverdraft || accounts.length === 0}
+              disabled={mutation.isPending || isOverdraft || accounts.length === 0 || isInsufficientBalance}
               className="ds-btn-primary px-6 py-2.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
             >
               {mutation.isPending ? (

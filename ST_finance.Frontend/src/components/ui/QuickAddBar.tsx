@@ -4,9 +4,10 @@ import React, { useState, useEffect, useId } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import Link from "next/link";
-import { Plus, Zap, SlidersHorizontal, Loader2, Check, Sparkles, AlertTriangle } from "lucide-react";
+import { Plus, Zap, SlidersHorizontal, Loader2, Check, Sparkles, AlertTriangle, Wallet } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { CreateAccountModal } from "@/components/ui/CreateAccountModal";
 
 interface Account {
@@ -51,19 +52,33 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
   const [isSuccessFeedback, setIsSuccessFeedback] = useState(false);
   const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
 
-  // 1. Fetch Accounts
-  const { data: accountsData, isLoading: isAccountsLoading } = useQuery<{ items: Account[] }>({
+  // 1. Fetch Accounts with robust array/object parsing
+  const { data: accounts = [], isLoading: isAccountsLoading, isFetched: isAccountsFetched } = useQuery<Account[]>({
     queryKey: ["accounts", "all"],
     queryFn: async () => {
       const res = await apiClient.get("/api/accounts?pageSize=100");
-      return res.data.value || { items: [] };
+      if (res.data?.isSuccess) {
+        if (Array.isArray(res.data.value)) {
+          return res.data.value;
+        }
+        if (res.data.value?.items && Array.isArray(res.data.value.items)) {
+          return res.data.value.items;
+        }
+      }
+      return [];
     },
   });
-  const accounts = accountsData?.items || [];
+
+  // Selected account object for real-time balance checks
+  const selectedAccount = accounts.find((a) => a.id === accountId) || accounts[0] || null;
+
+  // Real-time balance guardrail check
+  const parsedAmount = parseFloat(amount) || 0;
+  const isInsufficientBalance = selectedAccount ? parsedAmount > selectedAccount.balance : false;
 
   // Set default account when loaded
   useEffect(() => {
-    if (accounts.length > 0 && !accountId) {
+    if (accounts.length > 0 && (!accountId || !accounts.some((a) => a.id === accountId))) {
       setAccountId(accounts[0].id);
     }
   }, [accounts, accountId]);
@@ -73,7 +88,10 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
     queryKey: ["categories"],
     queryFn: async () => {
       const res = await apiClient.get("/api/transactions/categories");
-      return res.data.value || [];
+      if (res.data?.isSuccess) {
+        return Array.isArray(res.data.value) ? res.data.value : res.data.value?.items || [];
+      }
+      return [];
     },
   });
   const categories = categoriesData || [];
@@ -86,7 +104,6 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
     }
     const lowerDesc = description.toLowerCase().trim();
 
-    // Find best category match
     const match = categories.find((cat) => {
       const cName = cat.name.toLowerCase();
       if (lowerDesc.includes(cName) || cName.includes(lowerDesc)) return true;
@@ -125,13 +142,20 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
 
   const handleQuickSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      showToast("Please enter a valid amount", "error");
+    if (accounts.length === 0) {
+      showToast("No account created yet. Please create an account first.", "error");
+      return;
+    }
+    if (parsedAmount <= 0) {
+      showToast("Please enter a valid amount greater than 0", "error");
       return;
     }
     if (!accountId) {
       showToast("Please select an account", "error");
+      return;
+    }
+    if (isInsufficientBalance) {
+      showToast(`Amount exceeds balance of ${selectedAccount?.name}`, "error");
       return;
     }
 
@@ -153,42 +177,43 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
     setDescription(preset.label);
   };
 
-  if (!isAccountsLoading && accounts.length === 0) {
+  // ZERO-ACCOUNT GUARDRAIL BANNER
+  if (isAccountsFetched && accounts.length === 0) {
     return (
       <section aria-label="Express Quick Transaction Bar" className="mb-6">
-        <div className="ds-card p-4 sm:p-5 border-[hsl(var(--warning)/0.4)] bg-[hsl(var(--warning)/0.06)] shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="ds-card p-4 sm:p-5 border-[hsl(var(--warning)/0.4)] bg-[hsl(var(--warning)/0.08)] shadow-md animate-fadeIn">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))] shrink-0 mt-0.5 sm:mt-0">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(var(--warning)/0.2)] text-[hsl(var(--warning))] shrink-0">
                 <AlertTriangle className="h-5 w-5" />
               </span>
               <div>
-                <h2 className="text-xs sm:text-sm font-bold tracking-tight text-[hsl(var(--foreground))]">
+                <h2 className="text-sm font-bold tracking-tight text-[hsl(var(--foreground))]">
                   No accounts created yet
                 </h2>
-                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5 font-mono">
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1 font-mono leading-relaxed">
                   You need at least one wallet account before logging transactions.{" "}
                   <button
                     type="button"
                     onClick={() => setShowCreateAccountModal(true)}
                     className="text-[hsl(var(--primary))] font-bold underline underline-offset-2 hover:opacity-80 inline-flex items-center gap-1 font-sans"
                   >
-                    Create a new one here
+                    create a new one here : link
                   </button>
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0">
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
               <button
                 type="button"
                 onClick={() => setShowCreateAccountModal(true)}
-                className="ds-btn-primary px-3.5 py-2 flex items-center justify-center gap-1.5 text-xs font-bold w-full sm:w-auto min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                className="ds-btn-primary px-4 py-2.5 flex items-center justify-center gap-1.5 text-xs font-bold w-full sm:w-auto min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               >
-                <Plus className="h-4 w-4" /> + New Account
+                <Plus className="h-4 w-4" /> Create Account Now
               </button>
               <Link
                 href="/accounts"
-                className="ds-btn-outline px-3 py-2 text-xs font-mono text-center w-full sm:w-auto min-h-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                className="ds-btn-outline px-3 py-2.5 text-xs font-mono text-center w-full sm:w-auto min-h-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               >
                 Wallets Page
               </Link>
@@ -230,7 +255,7 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
           </button>
         </div>
 
-        {/* Quick Presets Pills (Horizontal scrollable on small screens) */}
+        {/* Quick Presets Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar scroll-smooth" role="region" aria-label="One-tap expense presets">
           <span className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] shrink-0 font-mono">
             Presets:
@@ -268,7 +293,9 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="ds-input w-full pl-12 pr-3 py-2 text-sm font-mono font-bold min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+              className={`ds-input w-full pl-12 pr-3 py-2 text-sm font-mono font-bold min-h-[44px] focus-visible:ring-2 ${
+                isInsufficientBalance ? "border-[hsl(var(--destructive))] focus-visible:ring-[hsl(var(--destructive))]" : "focus-visible:ring-[hsl(var(--ring))]"
+              }`}
               autoComplete="off"
             />
           </div>
@@ -311,7 +338,7 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
             >
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name}
+                  {a.name} ({formatCurrency(a.balance, currency)})
                 </option>
               ))}
             </select>
@@ -320,7 +347,7 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
           {/* Quick Submit Button */}
           <button
             type="submit"
-            disabled={quickLogMutation.isPending}
+            disabled={quickLogMutation.isPending || isInsufficientBalance || accounts.length === 0}
             className="ds-btn-primary px-4 py-2 flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider min-h-[44px] shrink-0 focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
             aria-label="Log quick transaction"
           >
@@ -337,7 +364,21 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
             )}
           </button>
         </form>
+
+        {/* Real-time Overdraft Balance Guardrail */}
+        {isInsufficientBalance && selectedAccount && (
+          <div role="alert" className="mt-2.5 p-2 px-3 rounded-lg bg-[hsl(var(--destructive)/0.1)] border border-[hsl(var(--destructive)/0.3)] text-xs text-[hsl(var(--destructive))] font-mono flex items-center gap-2 animate-fadeIn">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              <strong>Guardrail:</strong> Amount ({parsedAmount.toFixed(2)} {currency}) exceeds balance of {selectedAccount.name} ({formatCurrency(selectedAccount.balance, currency)}).
+            </span>
+          </div>
+        )}
       </div>
+
+      {showCreateAccountModal && (
+        <CreateAccountModal onClose={() => setShowCreateAccountModal(false)} />
+      )}
     </section>
   );
 }
