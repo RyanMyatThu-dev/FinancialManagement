@@ -79,14 +79,9 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
   return (
     <>
       <section aria-label="Quick Add Transaction" className="mb-6">
-        <button
-          type="button"
-          onClick={() => setShowQuickPick(true)}
-          className="w-full ds-card p-4 sm:p-5 border-[hsl(var(--primary)/0.25)] hover:border-[hsl(var(--primary)/0.5)] bg-[hsl(var(--card))] shadow-sm transition-all hover:shadow-md group flex items-center justify-between gap-4 text-left focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-          aria-label="Open Quick Add to log a frequent transaction"
-        >
+        <div className="ds-card p-4 sm:p-5 border-[hsl(var(--primary)/0.25)] bg-[hsl(var(--card))] shadow-sm flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] group-hover:bg-[hsl(var(--primary)/0.2)] transition-colors shrink-0">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] shrink-0">
               <Zap className="h-5 w-5 fill-[hsl(var(--primary))]" />
             </span>
             <div>
@@ -94,15 +89,20 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
                 Quick Add
               </h2>
               <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono mt-0.5">
-                Log a frequent expense instantly · tap for options
+                Log a frequent expense instantly · tap Add for shortcuts
               </p>
             </div>
           </div>
 
-          <span className="ds-btn-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5 min-h-[40px] shrink-0 group-hover:opacity-90 transition-opacity pointer-events-none">
+          <button
+            type="button"
+            onClick={() => setShowQuickPick(true)}
+            className="ds-btn-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5 min-h-[40px] shrink-0 focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+            aria-label="Open Quick Add shortcuts modal"
+          >
             <Plus className="h-3.5 w-3.5" /> Add
-          </span>
-        </button>
+          </button>
+        </div>
       </section>
 
       {showQuickPick && (
