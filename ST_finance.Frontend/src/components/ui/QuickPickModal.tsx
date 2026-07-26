@@ -74,6 +74,7 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
   const currency = user?.currency || "THB";
   const [loggingKey, setLoggingKey] = useState<string | null>(null);
   const [loggedKey, setLoggedKey] = useState<string | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
   // Fetch accounts
   const { data: accounts = [], isFetched: isAccountsFetched } = useQuery<Account[]>({
@@ -122,7 +123,10 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
 
   const recentTransactions = recentTransactionsData || [];
   const smartPresets: SmartPreset[] = isRecentFetched ? deriveSmartPresets(recentTransactions) : [];
-  const defaultAccount = accounts[0] || null;
+
+  // Default to first account when accounts load
+  const activeAccountId = selectedAccountId ?? accounts[0]?.id ?? null;
+  const activeAccount = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
 
   // Quick log mutation
   const quickLogMutation = useMutation({
@@ -150,14 +154,18 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
   });
 
   const handlePickPreset = (preset: SmartPreset) => {
-    if (!defaultAccount) {
+    if (!activeAccount) {
       showToast("No account available. Please create an account first.", "error");
+      return;
+    }
+    if (parseFloat(preset.amount) > activeAccount.balance) {
+      showToast(`Amount exceeds balance of ${activeAccount.name}`, "error");
       return;
     }
     const key = `${preset.label}__${preset.amount}`;
     setLoggingKey(key);
     quickLogMutation.mutate({
-      accountId: defaultAccount.id,
+      accountId: activeAccount.id,
       targetAccountId: null,
       categoryId: preset.categoryId ?? null,
       transactionType: "Expense",
@@ -213,13 +221,35 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
           </div>
         ) : (
           <>
-            {/* Account in use */}
-            {defaultAccount && (
-              <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl bg-[hsl(var(--secondary))]">
-                <Wallet className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
-                <span className="text-xs font-mono text-[hsl(var(--muted-foreground))]">
-                  Logging to <strong className="text-[hsl(var(--foreground))]">{defaultAccount.name}</strong> · {formatCurrency(defaultAccount.balance, currency)}
-                </span>
+            {/* Account selector */}
+            {accounts.length > 0 && (
+              <div className="mb-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-mono mb-2 flex items-center gap-1">
+                  <Wallet className="h-3 w-3" /> Source Account
+                </p>
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Select source account">
+                  {accounts.map((a) => {
+                    const isSelected = activeAccountId === a.id;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => setSelectedAccountId(a.id)}
+                        className={`inline-flex flex-col items-start px-3 py-2 rounded-xl border text-left transition-all min-h-[52px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
+                          isSelected
+                            ? "bg-[hsl(var(--primary)/0.12)] border-[hsl(var(--primary)/0.5)] text-[hsl(var(--primary))]"
+                            : "bg-[hsl(var(--secondary))] border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:border-[hsl(var(--primary)/0.3)]"
+                        }`}
+                      >
+                        <span className="text-xs font-bold leading-tight">{a.name}</span>
+                        <span className={`text-[10px] font-mono tabular-nums ${isSelected ? "text-[hsl(var(--primary)/0.8)]" : "text-[hsl(var(--muted-foreground))]"}` }>
+                          {formatCurrency(a.balance, currency)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
