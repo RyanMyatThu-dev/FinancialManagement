@@ -192,31 +192,18 @@ export function QuickAddBar({ onOpenWizard }: QuickAddBarProps) {
                   No accounts created yet
                 </h2>
                 <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1 font-mono leading-relaxed">
-                  You need at least one wallet account before logging transactions.{" "}
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateAccountModal(true)}
-                    className="text-[hsl(var(--primary))] font-bold underline underline-offset-2 hover:opacity-80 inline-flex items-center gap-1 font-sans"
-                  >
-                    create a new one here : link
-                  </button>
+                  You need at least one wallet account before logging transactions.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <div className="w-full sm:w-auto shrink-0">
               <button
                 type="button"
                 onClick={() => setShowCreateAccountModal(true)}
                 className="ds-btn-primary px-4 py-2.5 flex items-center justify-center gap-1.5 text-xs font-bold w-full sm:w-auto min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               >
-                <Plus className="h-4 w-4" /> Create Account Now
+                <Plus className="h-4 w-4" /> Create Account
               </button>
-              <Link
-                href="/accounts"
-                className="ds-btn-outline px-3 py-2.5 text-xs font-mono text-center w-full sm:w-auto min-h-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-              >
-                Wallets Page
-              </Link>
             </div>
           </div>
         </div>

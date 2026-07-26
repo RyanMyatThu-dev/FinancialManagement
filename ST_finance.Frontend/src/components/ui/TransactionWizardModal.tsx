@@ -400,30 +400,17 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
               <div>
                 <h3 className="text-base font-bold tracking-tight">No accounts created yet</h3>
                 <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1 font-mono max-w-sm mx-auto leading-relaxed">
-                  You need at least one wallet account before logging transactions.{" "}
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateAccountModal(true)}
-                    className="text-[hsl(var(--primary))] font-bold underline underline-offset-2 hover:opacity-80 font-sans"
-                  >
-                    create a new one here : link
-                  </button>
+                  You need at least one wallet account before logging transactions.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <div className="flex justify-center pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateAccountModal(true)}
                   className="ds-btn-primary px-5 py-2.5 text-xs font-bold w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-1.5"
                 >
-                  <Plus className="h-4 w-4" /> Create Account Now
+                  <Plus className="h-4 w-4" /> Create Account
                 </button>
-                <Link
-                  href="/accounts"
-                  className="ds-btn-outline px-4 py-2.5 text-xs font-mono text-center w-full sm:w-auto min-h-[44px] flex items-center justify-center"
-                >
-                  Wallets Page
-                </Link>
               </div>
             </div>
           ) : (
