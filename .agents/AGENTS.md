@@ -42,3 +42,31 @@ This document defines the architectural rules and constraints for AI Agents deve
 ### 5. Strongly-Typed Enums
 *   **Rule**: Use strongly-typed C# enums for columns like `AccountType` instead of raw strings.
 *   **Requirement**: Convert to/from strings when saving to PostgreSQL by registering `.HasConversion<string>()` inside `AppDbContext.cs` to satisfy database-level `CHECK` constraints.
+
+---
+
+## 🔄 Development Process & Staging Rules
+
+### 1. Branching Strategy (Write → Test → Deploy)
+*   **`staging` Branch**: Integration & QA environment branch. All new feature branches (`feature/*`), bug fixes (`fix/*`), and refactors (`chore/*`) MUST branch from `staging` and merge into `staging` via Pull Request.
+*   **`main` Branch**: Production-ready code only. Code reaches `main` ONLY via Pull Requests from `staging` after verification on the staging environment.
+*   **Never Push Directly**: Direct pushes to `staging` or `main` are restricted. All changes require PR review and CI checks.
+
+### 2. CI/CD & Deployment Pipeline Behavior
+*   **PR Validation (`ci.yml`)**: Triggered on all PRs to `staging` or `main`. Runs `dotnet build`, `dotnet test`, code coverage collection, and formatting checks (`dotnet format whitespace` & `dotnet format style`).
+*   **Staging Deployment (`deploy-staging.yml`)**: Pushes to `staging` automatically deploy the backend to AWS Lambda stack `st-finance-staging-stack`, uploading build artifacts to the Staging S3 bucket and connecting to the **Staging Supabase Database**.
+*   **Production Deployment (`deploy-prod.yml`)**: Pushes to `main` deploy to `st-finance-prod-stack` using the Production S3 bucket and connecting to the **Production Supabase Database**.
+
+### 3. Environment Behavior & Security
+*   **Scalar & Swagger API Reference**: Enabled **ONLY** in `Development` (`IsDevelopment()`). Automatically disabled in `Staging` and `Production` environments.
+*   **Hangfire Dashboard & Recurring Jobs**: Local background queue dashboard is enabled ONLY in `Development`. In Staging/Production Lambda environments, scheduled jobs are triggered statelessly via Amazon EventBridge Scheduler endpoints.
+*   **Secrets & Credentials**: Managed strictly via GitHub Environment Secrets (`staging` and `Production`). Never hardcode secrets, role ARNs, or connection strings in `.yml` workflows or C# code.
+
+### 4. Local Pre-flight Verification
+Before pushing changes or opening a PR, always execute:
+```bash
+dotnet format whitespace --verify-no-changes
+dotnet format style --verify-no-changes
+dotnet test
+```
+
