@@ -629,7 +629,7 @@ export default function TransactionsPage() {
                   <p className="text-sm font-medium truncate">
                     {tx.description || <span className="text-[hsl(var(--muted-foreground))] italic text-xs font-mono">No description</span>}
                   </p>
-                  <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-0.5">
+                  <p className="sm:hidden text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-0.5">
                     {formatDate(tx.date)}
                   </p>
                 </div>
