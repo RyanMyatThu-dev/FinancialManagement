@@ -182,10 +182,10 @@ export function QuickPickModal({ onClose, onOpenWizard }: QuickPickModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-pick-title"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-0 sm:px-4 py-0 sm:py-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-3 sm:px-4 py-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="ds-card w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl border-[hsl(var(--primary)/0.2)] animate-fadeIn max-h-[85vh] overflow-y-auto no-scrollbar">
+      <div className="ds-card w-full max-w-md rounded-2xl p-5 sm:p-6 shadow-2xl border-[hsl(var(--primary)/0.2)] animate-fadeIn max-h-[85vh] overflow-y-auto no-scrollbar">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
