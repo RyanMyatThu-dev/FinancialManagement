@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { TimeframeFilter, type Timeframe } from "@/components/ui/TimeframeFilter";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
 import { CreateTransactionModal } from "@/components/ui/CreateTransactionModal";
+import { QuickAddBar } from "@/components/ui/QuickAddBar";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -97,6 +98,12 @@ export default function TransactionsPage() {
 
   const [showFilters,     setShowFilters]     = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [wizardInitialData, setWizardInitialData] = useState<{ amount?: string; description?: string; categoryId?: string; accountId?: string; type?: string } | undefined>(undefined);
+
+  const handleOpenWizardWithData = (data?: { amount?: string; description?: string; categoryId?: string; accountId?: string; type?: string }) => {
+    setWizardInitialData(data);
+    setShowCreateModal(true);
+  };
 
   const currency = user?.currency || "THB";
 
@@ -300,7 +307,8 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Quick Summary Tiles */}
+      {/* Express Quick Add Bar */}
+      <QuickAddBar onOpenWizard={handleOpenWizardWithData} />
       <div className="grid grid-cols-2 gap-4">
         <div className="ds-card p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -694,7 +702,15 @@ export default function TransactionsPage() {
         )}
       </div>
 
-      {showCreateModal && <CreateTransactionModal onClose={() => setShowCreateModal(false)} />}
+      {showCreateModal && (
+        <CreateTransactionModal
+          onClose={() => {
+            setShowCreateModal(false);
+            setWizardInitialData(undefined);
+          }}
+          initialData={wizardInitialData}
+        />
+      )}
       {selectedTransaction && (
         <TransactionDetailsModal
           transaction={selectedTransaction}

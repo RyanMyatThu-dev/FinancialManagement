@@ -26,7 +26,9 @@ import {
   ShieldCheck,
   MessageSquare,
   Send,
+  Plus,
 } from "lucide-react";
+import { TransactionWizardModal } from "@/components/ui/TransactionWizardModal";
 import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
 import { apiClient } from "@/api/client";
 import { useToast } from "@/context/ToastContext";
@@ -38,9 +40,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { showToast } = useToast();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen]   = useState(false);
-  const [isDarkMode, setIsDarkMode]       = useState(true);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showGlobalWizard, setShowGlobalWizard] = useState(false);
+
+  // Global Keyboard Shortcut (Alt+N or Cmd/Ctrl+K)
+  useEffect(() => {
+    const handleGlobalShortcut = (e: KeyboardEvent) => {
+      if ((e.altKey && e.key.toLowerCase() === "n") || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k")) {
+        // Only trigger if not currently typing in a text input
+        const activeEl = document.activeElement;
+        const isInput = activeEl?.tagName === "INPUT" || activeEl?.tagName === "TEXTAREA";
+        if (!isInput) {
+          e.preventDefault();
+          setShowGlobalWizard((prev) => !prev);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalShortcut);
+    return () => window.removeEventListener("keydown", handleGlobalShortcut);
+  }, []);
 
   // Feedback System States
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -496,6 +516,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
         </div>
+      )}
+
+      {/* Global Mobile Quick Floating Action Button */}
+      <button
+        onClick={() => setShowGlobalWizard(true)}
+        className="fixed bottom-5 right-5 z-40 h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-xl border border-[hsl(var(--primary-foreground)/0.2)] flex items-center justify-center hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[hsl(var(--ring)/0.5)]"
+        aria-label="Open transaction wizard (Shortcut: Alt+N)"
+        title="Add Transaction (Alt+N)"
+      >
+        <Plus className="h-6 w-6 font-black" />
+      </button>
+
+      {/* Global Guided Transaction Wizard Modal */}
+      {showGlobalWizard && (
+        <TransactionWizardModal onClose={() => setShowGlobalWizard(false)} />
       )}
     </div>
   );

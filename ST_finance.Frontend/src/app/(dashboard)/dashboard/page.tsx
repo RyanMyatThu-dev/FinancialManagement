@@ -8,6 +8,8 @@ import { useAuth } from "@/context/AuthContext";
 import { CurrencyDisplay, formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { TechProgress } from "@/components/ui/TechProgress";
 import { type Timeframe } from "@/components/ui/TimeframeFilter";
+import { QuickAddBar } from "@/components/ui/QuickAddBar";
+import { TransactionWizardModal } from "@/components/ui/TransactionWizardModal";
 import {
   TrendingUp,
   TrendingDown,
@@ -55,6 +57,13 @@ interface QuotaTrendItem {
 export default function DashboardHome() {
   const { user } = useAuth();
   const timeframe: Timeframe = "Day";
+  const [showWizardModal, setShowWizardModal] = useState(false);
+  const [wizardInitialData, setWizardInitialData] = useState<{ amount?: string; description?: string; categoryId?: string; accountId?: string; type?: string } | undefined>(undefined);
+
+  const handleOpenWizardWithData = (data?: { amount?: string; description?: string; categoryId?: string; accountId?: string; type?: string }) => {
+    setWizardInitialData(data);
+    setShowWizardModal(true);
+  };
 
   const { data: summary, isLoading: isSummaryLoading, error: summaryError } = useQuery<DashboardSummary>({
     queryKey: ["dashboardSummary", timeframe],
@@ -156,6 +165,9 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
+
+      {/* Express Quick Add Bar */}
+      <QuickAddBar onOpenWizard={handleOpenWizardWithData} />
 
       {/* ── KPI Stat Cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -435,6 +447,16 @@ export default function DashboardHome() {
           )}
         </div>
       </div>
+
+      {showWizardModal && (
+        <TransactionWizardModal
+          onClose={() => {
+            setShowWizardModal(false);
+            setWizardInitialData(undefined);
+          }}
+          initialData={wizardInitialData}
+        />
+      )}
     </div>
   );
 }
