@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useToast } from "@/context/ToastContext";
-import { Search, Ban, RotateCcw, ShieldAlert, CheckCircle2, UserCog } from "lucide-react";
+import { ShieldAlert, ShieldCheck, UserCheck, Search, Users, RotateCcw, AlertTriangle, Ban, CheckCircle2, UserCog } from "lucide-react";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 
 interface UserProfile {
   id: string;
@@ -220,55 +221,57 @@ export default function UsersPage() {
 
       {/* Purge Reset Confirmation Modal */}
       {showResetModal && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-2xl animate-scale-up">
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-3 text-[hsl(var(--destructive))]">
-                <ShieldAlert className="h-6 w-6 shrink-0" />
-                <h3 className="font-bold text-[hsl(var(--foreground))] text-lg">Confirm Account Reset</h3>
-              </div>
-              
-              <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                Are you absolutely sure you want to reset all data for <span className="font-semibold text-[hsl(var(--foreground))]">@{selectedUser.userName}</span> ({selectedUser.fullName})?
-              </p>
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
+            <div className="w-full max-w-md bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-2xl animate-scale-up">
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 text-[hsl(var(--destructive))]">
+                  <ShieldAlert className="h-6 w-6 shrink-0" />
+                  <h3 className="font-bold text-[hsl(var(--foreground))] text-lg">Confirm Account Reset</h3>
+                </div>
+                
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">
+                  Are you absolutely sure you want to reset all data for <span className="font-semibold text-[hsl(var(--foreground))]">@{selectedUser.userName}</span> ({selectedUser.fullName})?
+                </p>
 
-              <div className="bg-[hsl(var(--destructive)/0.05)] border border-[hsl(var(--destructive)/0.15)] p-3 rounded-lg text-xs text-[hsl(var(--destructive))] space-y-1">
-                <p className="font-semibold">This action will delete:</p>
-                <ul className="list-disc pl-4 space-y-0.5">
-                  <li>All accounts, transactions, and categories</li>
-                  <li>All recurring schedules and budget limits</li>
-                  <li>All savings goals and savings contributions</li>
-                  <li>All daily safe-to-spend quota logs</li>
-                </ul>
-                <p className="font-semibold pt-1 text-[hsl(var(--muted-foreground))]">The user login credentials and login access will NOT be deleted.</p>
+                <div className="bg-[hsl(var(--destructive)/0.05)] border border-[hsl(var(--destructive)/0.15)] p-3 rounded-lg text-xs text-[hsl(var(--destructive))] space-y-1">
+                  <p className="font-semibold">This action will delete:</p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    <li>All accounts, transactions, and categories</li>
+                    <li>All recurring schedules and budget limits</li>
+                    <li>All savings goals and savings contributions</li>
+                    <li>All daily safe-to-spend quota logs</li>
+                  </ul>
+                  <p className="font-semibold pt-1 text-[hsl(var(--muted-foreground))]">The user login credentials and login access will NOT be deleted.</p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center justify-end gap-3 px-6 py-4 bg-[hsl(var(--secondary)/0.15)] border-t border-[hsl(var(--border))]">
-              <button
-                onClick={() => {
-                  setShowResetModal(false);
-                  setSelectedUser(null);
-                }}
-                className="px-4 py-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => resetMutation.mutate(selectedUser.id)}
-                disabled={resetMutation.isPending}
-                className="px-4 py-2 text-xs bg-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.9)] text-[hsl(var(--destructive-foreground))] font-semibold rounded-lg hover:shadow-[0_0_12px_rgba(255,0,0,0.3)] transition-all flex items-center gap-1.5"
-              >
-                {resetMutation.isPending ? (
-                  <span className="h-3.5 w-3.5 border-2 border-[hsl(var(--destructive-foreground)/0.2)] border-t-[hsl(var(--destructive-foreground))] rounded-full animate-spin" />
-                ) : (
-                  <RotateCcw className="h-3.5 w-3.5" />
-                )}
-                Purge All Data
-              </button>
+              <div className="flex items-center justify-end gap-3 px-6 py-4 bg-[hsl(var(--secondary)/0.15)] border-t border-[hsl(var(--border))]">
+                <button
+                  onClick={() => {
+                    setShowResetModal(false);
+                    setSelectedUser(null);
+                  }}
+                  className="px-4 py-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => resetMutation.mutate(selectedUser.id)}
+                  disabled={resetMutation.isPending}
+                  className="px-4 py-2 text-xs bg-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.9)] text-[hsl(var(--destructive-foreground))] font-semibold rounded-lg hover:shadow-[0_0_12px_rgba(255,0,0,0.3)] transition-all flex items-center gap-1.5"
+                >
+                  {resetMutation.isPending ? (
+                    <span className="h-3.5 w-3.5 border-2 border-[hsl(var(--destructive-foreground)/0.2)] border-t-[hsl(var(--destructive-foreground))] rounded-full animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  )}
+                  Purge All Data
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

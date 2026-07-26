@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { TimeframeFilter, type Timeframe } from "@/components/ui/TimeframeFilter";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
 import { CreateTransactionModal } from "@/components/ui/CreateTransactionModal";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -97,6 +98,12 @@ export default function TransactionsPage() {
 
   const [showFilters,     setShowFilters]     = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [wizardInitialData, setWizardInitialData] = useState<{ amount?: string; description?: string; categoryId?: string; accountId?: string; type?: string } | undefined>(undefined);
+
+  const handleOpenWizardWithData = (data?: { amount?: string; description?: string; categoryId?: string; accountId?: string; type?: string }) => {
+    setWizardInitialData(data);
+    setShowCreateModal(true);
+  };
 
   const currency = user?.currency || "THB";
 
@@ -300,7 +307,6 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Quick Summary Tiles */}
       <div className="grid grid-cols-2 gap-4">
         <div className="ds-card p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -621,7 +627,7 @@ export default function TransactionsPage() {
                   <p className="text-sm font-medium truncate">
                     {tx.description || <span className="text-[hsl(var(--muted-foreground))] italic text-xs font-mono">No description</span>}
                   </p>
-                  <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-0.5">
+                  <p className="sm:hidden text-[10px] font-mono text-[hsl(var(--muted-foreground))] mt-0.5">
                     {formatDate(tx.date)}
                   </p>
                 </div>
@@ -694,7 +700,15 @@ export default function TransactionsPage() {
         )}
       </div>
 
-      {showCreateModal && <CreateTransactionModal onClose={() => setShowCreateModal(false)} />}
+      {showCreateModal && (
+        <CreateTransactionModal
+          onClose={() => {
+            setShowCreateModal(false);
+            setWizardInitialData(undefined);
+          }}
+          initialData={wizardInitialData}
+        />
+      )}
       {selectedTransaction && (
         <TransactionDetailsModal
           transaction={selectedTransaction}
@@ -743,7 +757,8 @@ function TransactionDetailsModal({
   const sign = isIncome ? "+" : isTransfer ? "↔" : "−";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-md p-6 relative">
         <button
           onClick={onClose}
@@ -871,5 +886,6 @@ function TransactionDetailsModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }
