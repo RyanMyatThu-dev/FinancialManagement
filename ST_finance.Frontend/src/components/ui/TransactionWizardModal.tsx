@@ -13,6 +13,7 @@ import { formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { useToast } from "@/context/ToastContext";
 import { CreateAccountModal } from "@/components/ui/CreateAccountModal";
 import { numericInputProps } from "@/lib/numericInputProps";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 
 interface TransactionWizardModalProps {
   onClose: () => void;
@@ -299,12 +300,13 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
   const STEP_LABELS = ["Type & Amount", "Account & Category", "Details & Tags", "Review & Submit"];
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="wizard-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-3 sm:px-4 py-4"
-    >
+    <ModalPortal>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wizard-modal-title"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-3 sm:p-4 overflow-y-auto"
+      >
       <div
         ref={modalRef}
         className="ds-card w-full max-w-lg p-5 sm:p-6 relative max-h-[92vh] sm:max-h-[88vh] flex flex-col gap-0 overflow-y-auto no-scrollbar shadow-2xl border-[hsl(var(--primary)/0.3)] animate-fadeIn"
@@ -1012,5 +1014,6 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
         <CreateAccountModal onClose={() => setShowCreateAccountModal(false)} />
       )}
     </div>
+    </ModalPortal>
   );
 }

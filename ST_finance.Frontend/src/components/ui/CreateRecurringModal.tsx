@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { numericInputProps } from "@/lib/numericInputProps";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import { apiClient } from "@/api/client";
 import { X, Loader2, AlertTriangle, Plus } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
@@ -184,7 +186,8 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto no-scrollbar">
         <button
           id="close-create-recurring-modal"
@@ -504,5 +507,6 @@ export function CreateRecurringModal({ onClose }: CreateRecurringModalProps) {
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }

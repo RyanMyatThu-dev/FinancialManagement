@@ -8,6 +8,7 @@ import { useToast } from "@/context/ToastContext";
 import { CurrencyDisplay, formatCurrency } from "@/components/ui/CurrencyDisplay";
 import { TechProgress } from "@/components/ui/TechProgress";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import {
   Target,
   PiggyBank,
@@ -166,7 +167,8 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-md p-6 relative">
         <button
           id="close-create-goal-modal"
@@ -262,6 +264,7 @@ function CreateGoalModal({ onClose }: { onClose: () => void }) {
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }
 
@@ -338,7 +341,8 @@ function ContributeModal({
   const remaining = goal.targetAmount - goal.currentAmount;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-md p-6 relative">
         <button
           id="close-contribute-modal"
@@ -421,6 +425,7 @@ function ContributeModal({
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }
 
@@ -453,7 +458,8 @@ function CompleteGoalModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-md p-6 relative overflow-hidden border-[hsl(var(--primary)/0.3)]">
         {/* Decorative background glow */}
         <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-[hsl(var(--primary)/0.15)] blur-3xl pointer-events-none" />
@@ -522,6 +528,7 @@ function CompleteGoalModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }
 
@@ -533,7 +540,8 @@ function ContributionsPanel({ goal, onClose }: { goal: SavingsGoalResponse; onCl
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-lg p-6 relative max-h-[80vh] flex flex-col">
         <button
           id="close-contributions-panel"
@@ -604,6 +612,7 @@ function ContributionsPanel({ goal, onClose }: { goal: SavingsGoalResponse; onCl
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }
 

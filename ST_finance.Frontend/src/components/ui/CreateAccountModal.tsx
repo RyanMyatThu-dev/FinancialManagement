@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import { X, Loader2, AlertTriangle, Wallet, CreditCard, PiggyBank, Plus } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 
@@ -81,7 +82,8 @@ export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-md p-6 relative">
         <button
           id="close-create-account-modal"
@@ -220,5 +222,6 @@ export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }

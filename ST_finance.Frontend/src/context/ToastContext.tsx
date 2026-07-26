@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { CheckCircle, AlertTriangle, Info, X, AlertCircle } from "lucide-react";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -128,31 +129,33 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Pop-up Modal Rendering */}
       {isMobile && activeMobilePopup && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/70 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-          <div 
-            className={`ds-card w-full max-w-xs p-6 text-center flex flex-col items-center gap-4 bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl animate-[scaleUp_0.25s_ease-out]`}
-          >
-            <div className="h-14 w-14 rounded-full bg-zinc-800/50 flex items-center justify-center text-center">
-              {getIcon(activeMobilePopup.type)}
-            </div>
-            
-            <div className="space-y-1.5">
-              <h3 className="text-sm font-black uppercase tracking-widest text-zinc-200">
-                {getMobileTitle(activeMobilePopup.type)}
-              </h3>
-              <p className="text-xs font-mono text-zinc-400 leading-relaxed px-1">
-                {activeMobilePopup.message}
-              </p>
-            </div>
-
-            <button
-              onClick={() => setActiveMobilePopup(null)}
-              className="ds-btn-primary w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg mt-1"
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/70 backdrop-blur-md animate-[fadeIn_0.2s_ease-out] overflow-y-auto">
+            <div 
+              className={`ds-card w-full max-w-xs p-6 text-center flex flex-col items-center gap-4 bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl animate-[scaleUp_0.25s_ease-out]`}
             >
-              Confirm
-            </button>
+              <div className="h-14 w-14 rounded-full bg-zinc-800/50 flex items-center justify-center text-center">
+                {getIcon(activeMobilePopup.type)}
+              </div>
+              
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-black uppercase tracking-widest text-zinc-200">
+                  {getMobileTitle(activeMobilePopup.type)}
+                </h3>
+                <p className="text-xs font-mono text-zinc-400 leading-relaxed px-1">
+                  {activeMobilePopup.message}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setActiveMobilePopup(null)}
+                className="ds-btn-primary w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg mt-1"
+              >
+                Confirm
+              </button>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </ToastContext.Provider>
   );

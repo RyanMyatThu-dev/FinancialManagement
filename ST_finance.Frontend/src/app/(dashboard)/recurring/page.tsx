@@ -9,6 +9,7 @@ import { useToast } from "@/context/ToastContext";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
 import { Clock, Repeat, AlertTriangle, Loader2, Calendar, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Plus, X, FolderOpen, Wallet } from "lucide-react";
 import { CreateRecurringModal } from "@/components/ui/CreateRecurringModal";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
 
 interface RecurringSchedule {
@@ -336,7 +337,8 @@ function RecurringDetailsModal({
   const sign = isIncome ? "+" : isTransfer ? "↔" : "−";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-md p-6 relative">
         <button
           onClick={onClose}
@@ -467,5 +469,6 @@ function RecurringDetailsModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

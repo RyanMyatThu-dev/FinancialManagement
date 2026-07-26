@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { TransactionWizardModal } from "@/components/ui/TransactionWizardModal";
 import { CustomConfirmModal } from "@/components/ui/CustomConfirmModal";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import { apiClient } from "@/api/client";
 import { useToast } from "@/context/ToastContext";
 
@@ -449,73 +450,75 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Feedback Modal */}
       {showFeedbackModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-2xl animate-scale-up text-left">
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-3 text-[hsl(var(--primary))]">
-                <MessageSquare className="h-6 w-6 shrink-0" />
-                <h3 className="font-bold text-[hsl(var(--foreground))] text-lg">Send Feedback / Bug Report</h3>
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
+            <div className="w-full max-w-md bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-2xl animate-scale-up text-left">
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 text-[hsl(var(--primary))]">
+                  <MessageSquare className="h-6 w-6 shrink-0" />
+                  <h3 className="font-bold text-[hsl(var(--foreground))] text-lg">Send Feedback / Bug Report</h3>
+                </div>
+                <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                  Found a bug? Have an improvement idea? Let our support team know below. We appreciate it!
+                </p>
+
+                <form onSubmit={handleFeedbackSubmit} className="space-y-4 pt-2">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Summary Title</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={150}
+                      placeholder="e.g. Transaction balance not syncing"
+                      className="w-full px-3.5 py-2 text-sm bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] text-[hsl(var(--foreground))]"
+                      value={feedbackTitle}
+                      onChange={(e) => setFeedbackTitle(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Detailed Description</label>
+                    <textarea
+                      required
+                      rows={4}
+                      maxLength={1000}
+                      placeholder="Describe the issue or feedback in detail. Include reproduction steps if it's a bug."
+                      className="w-full px-3.5 py-2.5 text-sm bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] text-[hsl(var(--foreground))] resize-none leading-relaxed"
+                      value={feedbackDesc}
+                      onChange={(e) => setFeedbackDesc(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-2 border-t border-[hsl(var(--border))] mt-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowFeedbackModal(false);
+                        setFeedbackTitle("");
+                        setFeedbackDesc("");
+                      }}
+                      className="px-4 py-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingFeedback || !feedbackTitle.trim() || !feedbackDesc.trim()}
+                      className="px-4 py-2 text-xs bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-50 font-bold rounded-lg text-[hsl(var(--primary-foreground))] hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] transition-all flex items-center gap-1.5"
+                    >
+                      {isSubmittingFeedback ? (
+                        <span className="h-3.5 w-3.5 border-2 border-[hsl(var(--primary-foreground)/0.2)] border-t-[hsl(var(--primary-foreground))] rounded-full animate-spin" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5" />
+                      )}
+                      Submit Ticket
+                    </button>
+                  </div>
+                </form>
               </div>
-              <p className="text-xs text-[hsl(var(--muted-foreground))]">
-                Found a bug? Have an improvement idea? Let our support team know below. We appreciate it!
-              </p>
-
-              <form onSubmit={handleFeedbackSubmit} className="space-y-4 pt-2">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Summary Title</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={150}
-                    placeholder="e.g. Transaction balance not syncing"
-                    className="w-full px-3.5 py-2 text-sm bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] text-[hsl(var(--foreground))]"
-                    value={feedbackTitle}
-                    onChange={(e) => setFeedbackTitle(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Detailed Description</label>
-                  <textarea
-                    required
-                    rows={4}
-                    maxLength={1000}
-                    placeholder="Describe the issue or feedback in detail. Include reproduction steps if it's a bug."
-                    className="w-full px-3.5 py-2.5 text-sm bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] text-[hsl(var(--foreground))] resize-none leading-relaxed"
-                    value={feedbackDesc}
-                    onChange={(e) => setFeedbackDesc(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-2 border-t border-[hsl(var(--border))] mt-6">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowFeedbackModal(false);
-                      setFeedbackTitle("");
-                      setFeedbackDesc("");
-                    }}
-                    className="px-4 py-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingFeedback || !feedbackTitle.trim() || !feedbackDesc.trim()}
-                    className="px-4 py-2 text-xs bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-50 font-bold rounded-lg text-[hsl(var(--primary-foreground))] hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] transition-all flex items-center gap-1.5"
-                  >
-                    {isSubmittingFeedback ? (
-                      <span className="h-3.5 w-3.5 border-2 border-[hsl(var(--primary-foreground)/0.2)] border-t-[hsl(var(--primary-foreground))] rounded-full animate-spin" />
-                    ) : (
-                      <Send className="h-3.5 w-3.5" />
-                    )}
-                    Submit Ticket
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Global Mobile Quick Floating Action Button */}

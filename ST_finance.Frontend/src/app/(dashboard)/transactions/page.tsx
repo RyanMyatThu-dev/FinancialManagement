@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { TimeframeFilter, type Timeframe } from "@/components/ui/TimeframeFilter";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
 import { CreateTransactionModal } from "@/components/ui/CreateTransactionModal";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -756,7 +757,8 @@ function TransactionDetailsModal({
   const sign = isIncome ? "+" : isTransfer ? "↔" : "−";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-md p-6 relative">
         <button
           onClick={onClose}
@@ -884,5 +886,6 @@ function TransactionDetailsModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

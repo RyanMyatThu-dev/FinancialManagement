@@ -9,6 +9,7 @@ import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
 import { Pagination, type PaginationMeta } from "@/components/ui/Pagination";
 import { Wallet, CreditCard, PiggyBank, TrendingUp, Loader2, AlertTriangle, Plus, LayoutGrid, List, Search, X, Calendar, Clock } from "lucide-react";
 import { CreateAccountModal } from "@/components/ui/CreateAccountModal";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 
 interface Account {
   id: string;
@@ -509,7 +510,8 @@ function AccountDetailsModal({
   const icon = ACCOUNT_ICONS[typeStr] ?? ACCOUNT_ICONS.default;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="ds-card w-full max-w-md p-6 relative">
         <button
           onClick={onClose}
@@ -574,5 +576,6 @@ function AccountDetailsModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }
