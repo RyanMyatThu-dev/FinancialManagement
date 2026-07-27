@@ -66,22 +66,16 @@ const getAccountTypeLabel = (type: any): string => {
   switch (String(type)) {
     case "1":
     case "Bank":
-      return "Bank";
+      return "Bank Account";
     case "2":
     case "EWallet":
-      return "E-Wallet";
+      return "Digital Wallet";
     case "3":
     case "TransitCard":
       return "Transit Card";
     case "4":
     case "Cash":
-      return "Cash";
-    case "5":
-    case "Savings":
-      return "Savings";
-    case "6":
-    case "Credit":
-      return "Credit";
+      return "Cash Pocket";
     default:
       return String(type);
   }
@@ -222,12 +216,10 @@ export default function AccountsPage() {
               className="ds-input px-3 py-2.5 text-xs font-semibold font-sans min-w-[140px]"
             >
               <option value="">All Account Types</option>
-              <option value="1">Bank Accounts</option>
-              <option value="2">E-Wallets</option>
-              <option value="3">Transit Cards</option>
-              <option value="4">Physical Cash</option>
-              <option value="5">Savings Goals</option>
-              <option value="6">Credit Lines</option>
+              <option value="1">Bank Account</option>
+              <option value="2">Digital Wallet</option>
+              <option value="3">Transit Card</option>
+              <option value="4">Cash Pocket</option>
             </select>
 
             {/* Sort Criteria */}

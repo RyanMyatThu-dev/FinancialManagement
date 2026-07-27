@@ -66,10 +66,10 @@ export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
   };
 
   const accountTypes = [
-    { value: 1, label: "Bank Account (SCB/KBank)", icon: <Wallet className="h-4 w-4" /> },
-    { value: 2, label: "E-Wallet (TrueMoney)", icon: <CreditCard className="h-4 w-4" /> },
-    { value: 3, label: "Transit Card (Rabbit)", icon: <CreditCard className="h-4 w-4" /> },
-    { value: 4, label: "Physical Cash Pocket", icon: <PiggyBank className="h-4 w-4" /> },
+    { value: 1, label: "Bank Account", icon: <Wallet className="h-4 w-4" /> },
+    { value: 2, label: "Digital Wallet", icon: <CreditCard className="h-4 w-4" /> },
+    { value: 3, label: "Transit Card", icon: <CreditCard className="h-4 w-4" /> },
+    { value: 4, label: "Cash Pocket", icon: <PiggyBank className="h-4 w-4" /> },
   ];
 
   const colors = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#EC4899", "#8B5CF6", "#06B6D4"];
@@ -124,7 +124,7 @@ export function CreateAccountModal({ onClose }: CreateAccountModalProps) {
               maxLength={100}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. SCB Savings, Cash Pocket"
+              placeholder="e.g. Savings Account, Main Wallet"
               className="ds-input w-full px-3 py-2.5 text-sm"
               autoComplete="off"
             />
