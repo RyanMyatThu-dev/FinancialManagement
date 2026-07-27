@@ -153,7 +153,7 @@ export default function TagsPage() {
                 type="text"
                 required
                 maxLength={55}
-                placeholder="e.g. Starbucks, BTS, Weekend"
+                placeholder="e.g. Coffee, Transport, Weekend"
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
                 className="ds-input w-full px-3 py-2 text-xs"

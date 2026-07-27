@@ -692,7 +692,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
                         type="text"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="e.g. Starbucks, Tuition"
+                        placeholder="e.g. Coffee, Tuition"
                         className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
                         autoComplete="off"
                       />
