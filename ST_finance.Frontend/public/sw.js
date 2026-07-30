@@ -1,4 +1,4 @@
-const CACHE_NAME = "st-finance-v2";
+const CACHE_NAME = "st-finance-v3";
 const ASSETS_TO_CACHE = [
   "/logo.png",
   "/logo-large.png",
@@ -19,7 +19,7 @@ self.addEventListener("activate", (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log("[SW] Deleting stale cache:", key);
+            console.log("[SW] Purging old cache:", key);
             return caches.delete(key);
           }
         })
@@ -30,9 +30,15 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Exclude API calls, Next.js internal assets, non-GET, and external requests
+  // DO NOT intercept:
+  // 1. Non-GET requests
+  // 2. Navigation requests (HTML pages) -> Let browser & Vercel handle routing/redirects natively
+  // 3. API endpoints
+  // 4. Next.js static asset chunks (_next) -> Handled with immutable headers by Vercel
+  // 5. External requests
   if (
     event.request.method !== "GET" ||
+    event.request.mode === "navigate" ||
     event.request.url.includes("/api/") ||
     event.request.url.includes("_next") ||
     !event.request.url.startsWith(self.location.origin)
@@ -40,10 +46,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first strategy: try network first to get fresh Vercel deployments, fallback to cache if offline
+  // Cache static public assets (images, icons)
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(event.request).then((networkResponse) => {
         if (networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -51,16 +60,9 @@ self.addEventListener("fetch", (event) => {
           });
         }
         return networkResponse;
-      })
-      .catch(() => {
-        // Fallback to cache if network fails (offline mode)
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          return caches.match("/");
-        });
-      })
+      });
+    })
   );
 });
+
 

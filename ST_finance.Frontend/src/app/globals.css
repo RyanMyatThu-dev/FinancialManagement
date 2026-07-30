@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-/* Explicit source path — ensures Tailwind v4 scans all
-   components/pages even in Vercel's build environment */
-@source "../../src";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Explicit source path relative to globals.css (src/app/globals.css -> src) */
+@source "../";
 
 /* ========================================================
    ST-Finance Design System — design.md Aligned
