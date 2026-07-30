@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Explicit source path — ensures Tailwind v4 scans all
+   components/pages even in Vercel's build environment */
+@source "../../src";
+
 /* ========================================================
    ST-Finance Design System — design.md Aligned
    Dark-mode first, neon volt green accent, rounded cards
