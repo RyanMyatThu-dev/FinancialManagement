@@ -1,4 +1,4 @@
-const CACHE_NAME = "st-finance-v1";
+const CACHE_NAME = "st-finance-v2";
 const ASSETS_TO_CACHE = [
   "/logo.png",
   "/logo-large.png",
@@ -19,6 +19,7 @@ self.addEventListener("activate", (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log("[SW] Deleting stale cache:", key);
             return caches.delete(key);
           }
         })
@@ -29,8 +30,9 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Exclude API calls, Next.js internal assets, and external requests
+  // Exclude API calls, Next.js internal assets, non-GET, and external requests
   if (
+    event.request.method !== "GET" ||
     event.request.url.includes("/api/") ||
     event.request.url.includes("_next") ||
     !event.request.url.startsWith(self.location.origin)
@@ -38,26 +40,27 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Network-first strategy: try network first to get fresh Vercel deployments, fallback to cache if offline
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request)
-        .then((response) => {
-          // Cache static assets dynamically
-          if (response.status === 200 && event.request.method === "GET") {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // Fallback to cache if network fails (offline mode)
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
           }
-          return response;
-        })
-        .catch(() => {
-          // Fallback to cached index if offline and page fetch fails
           return caches.match("/");
         });
-    })
+      })
   );
 });
+

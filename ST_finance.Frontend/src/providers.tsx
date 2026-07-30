@@ -22,7 +22,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
-        .then((reg) => console.log("Service Worker registered successfully:", reg.scope))
+        .then((reg) => {
+          console.log("Service Worker registered successfully:", reg.scope);
+          reg.update();
+        })
         .catch((err) => console.error("Service Worker registration failed:", err));
     }
   }, []);
