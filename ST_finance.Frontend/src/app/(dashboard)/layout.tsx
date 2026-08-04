@@ -439,7 +439,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Floating Feedback Trigger */}
       <button
         onClick={() => setShowFeedbackModal(true)}
-        className="fixed bottom-6 right-6 h-12 w-12 rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] flex items-center justify-center shadow-lg shadow-[hsl(var(--primary)/0.15)] hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] hover:scale-110 active:scale-95 transition-all z-40 group"
+        className="fixed bottom-20 right-5 sm:bottom-24 sm:right-[22px] h-12 w-12 rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] flex items-center justify-center shadow-lg shadow-[hsl(var(--primary)/0.15)] hover:shadow-[0_0_12px_rgba(57,255,20,0.35)] hover:scale-110 active:scale-95 transition-all z-40 group"
         title="Submit Feedback or Report Bug"
       >
         <MessageSquare className="h-5 w-5" />
