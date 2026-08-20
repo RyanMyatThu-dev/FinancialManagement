@@ -46,6 +46,8 @@ interface DashboardSummary {
   activeWarnings: string[];
   resetDayText: string;
   enableQuotaPacing: boolean;
+  daysRemaining?: number;
+  resetDate?: string;
 }
 
 interface QuotaTrendItem {
@@ -274,9 +276,17 @@ export default function DashboardHome() {
                   </>
                 ) : (
                   <>
-                    <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest">
-                      Daily Spending Allowance (Quota)
-                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-[9px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest">
+                        Daily Spending Allowance (Quota)
+                      </p>
+                      {summary?.daysRemaining !== undefined && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono uppercase tracking-wider bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))] border border-[hsl(var(--primary)/0.2)]">
+                          <Calendar className="h-2.5 w-2.5" />
+                          {summary.daysRemaining} {summary.daysRemaining === 1 ? "day" : "days"} left
+                        </span>
+                      )}
+                    </div>
                     <CurrencyDisplay
                       amount={summary?.quota ?? 0}
                       currency={currency}
@@ -302,7 +312,7 @@ export default function DashboardHome() {
               <div className="space-y-0.5">
                 <span className="font-bold text-[hsl(var(--foreground))] block">📐 Safe-to-Spend Quota Formula</span>
                 <p>
-                  Quota = (Disposable Pool - Upcoming Bills - Active Goal Needs) / Days Remaining
+                  Quota = (Disposable Pool - Upcoming Bills - Active Goal Needs) / {summary?.daysRemaining ?? "Days Remaining"} {summary?.daysRemaining === 1 ? "day" : "days"}
                 </p>
                 <p className="text-[9px] opacity-75">
                   Protects your upcoming bills and active savings goals automatically over the remaining days in your reset cycle.
@@ -317,6 +327,11 @@ export default function DashboardHome() {
                   <Calendar className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                   {summary?.resetDayText || "—"}
                 </p>
+                {summary?.daysRemaining !== undefined && (
+                  <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-0.5">
+                    {summary.daysRemaining} {summary.daysRemaining === 1 ? "day" : "days"} remaining until reset
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-[9px] uppercase font-bold tracking-wider mb-1">Spent Today</p>

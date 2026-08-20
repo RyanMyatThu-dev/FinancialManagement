@@ -14,7 +14,9 @@ namespace ST_finance.Domain.Features.Dashboard.Models
         decimal SpentToday,
         List<string> ActiveWarnings,
         string ResetDayText,
-        bool EnableQuotaPacing
+        bool EnableQuotaPacing,
+        int DaysRemaining = 1,
+        DateTime? ResetDate = null
     );
 
     public record DailyQuotaLogResponse(

@@ -29,6 +29,8 @@ export default function ProfilePage() {
   // Budget Settings State
   const [currency, setCurrency] = useState(user?.currency || "THB");
   const [enableQuotaPacing, setEnableQuotaPacing] = useState(user?.enableQuotaPacing ?? true);
+  const [resetFrequency, setResetFrequency] = useState(user?.resetFrequency || "Monthly");
+  const [allowanceDayOfMonth, setAllowanceDayOfMonth] = useState<number>(user?.allowanceDayOfMonth ?? 1);
   const [budgetLoading, setBudgetLoading] = useState(false);
   const [budgetMessage, setBudgetMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -37,6 +39,8 @@ export default function ProfilePage() {
     if (user) {
       setCurrency(user.currency || "THB");
       setEnableQuotaPacing(user.enableQuotaPacing ?? true);
+      setResetFrequency(user.resetFrequency || "Monthly");
+      setAllowanceDayOfMonth(user.allowanceDayOfMonth ?? 1);
     }
   }, [user]);
 
@@ -49,6 +53,8 @@ export default function ProfilePage() {
     const res = await updateProfile({
       currency,
       enableQuotaPacing,
+      resetFrequency,
+      allowanceDayOfMonth: resetFrequency === "None" ? undefined : allowanceDayOfMonth,
     });
 
     if (res.success) {
@@ -677,6 +683,86 @@ export default function ProfilePage() {
                     <option value="MMK">MMK (K)</option>
                   </select>
                 </div>
+                {/* Reset Frequency */}
+                <div>
+                  <label
+                    htmlFor="profile-reset-frequency"
+                    className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                  >
+                    Reset Frequency
+                  </label>
+                  <select
+                    id="profile-reset-frequency"
+                    value={resetFrequency}
+                    onChange={(e) => setResetFrequency(e.target.value)}
+                    className="ds-input w-full px-3 py-2.5 text-sm"
+                  >
+                    <option value="Monthly">Monthly (e.g. 25th of month)</option>
+                    <option value="Weekly">Weekly (e.g. every Monday)</option>
+                    <option value="None">Calendar Month (1st of month)</option>
+                  </select>
+                </div>
+
+                {/* Allowance Reset Day */}
+                {resetFrequency === "Monthly" && (
+                  <div>
+                    <label
+                      htmlFor="profile-allowance-day"
+                      className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                    >
+                      Monthly Allowance Reset Day
+                    </label>
+                    <select
+                      id="profile-allowance-day"
+                      value={allowanceDayOfMonth}
+                      onChange={(e) => setAllowanceDayOfMonth(Number(e.target.value))}
+                      className="ds-input w-full px-3 py-2.5 text-sm"
+                    >
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                        const suffix =
+                          day >= 11 && day <= 13
+                            ? "th"
+                            : day % 10 === 1
+                            ? "st"
+                            : day % 10 === 2
+                            ? "nd"
+                            : day % 10 === 3
+                            ? "rd"
+                            : "th";
+                        return (
+                          <option key={day} value={day}>
+                            {day}{suffix} of the month
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
+
+                {resetFrequency === "Weekly" && (
+                  <div>
+                    <label
+                      htmlFor="profile-allowance-weekday"
+                      className="block text-[10px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono"
+                    >
+                      Weekly Allowance Reset Day
+                    </label>
+                    <select
+                      id="profile-allowance-weekday"
+                      value={allowanceDayOfMonth}
+                      onChange={(e) => setAllowanceDayOfMonth(Number(e.target.value))}
+                      className="ds-input w-full px-3 py-2.5 text-sm"
+                    >
+                      <option value={1}>Every Monday</option>
+                      <option value={2}>Every Tuesday</option>
+                      <option value={3}>Every Wednesday</option>
+                      <option value={4}>Every Thursday</option>
+                      <option value={5}>Every Friday</option>
+                      <option value={6}>Every Saturday</option>
+                      <option value={7}>Every Sunday</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* How Pacing Works Explanation Block */}
@@ -685,10 +771,10 @@ export default function ProfilePage() {
                   ⚙️ How Budget Pacing Works
                 </span>
                 <p className="text-[10px] text-[hsl(var(--muted-foreground))] leading-relaxed">
-                  Our pacing engine automatically aligns your daily quota reset date with your <strong>largest active recurring Income schedule</strong> (e.g., your salary, allowance, or primary pocket money).
+                  Our pacing engine automatically aligns your daily quota reset date with your <strong>largest active recurring Income schedule</strong> (e.g., salary or allowance).
                 </p>
                 <p className="text-[10px] text-[hsl(var(--muted-foreground))] leading-relaxed">
-                  If you have not configured any recurring Income schedules yet, the engine falls back to a <strong>rolling 30-day window</strong> to pace your disposable balance.
+                  If no recurring Income schedules are configured, the engine paces your disposable balance using your <strong>Profile Allowance Reset Day</strong> (or calendar month-end), dynamically counting down remaining days in the cycle.
                 </p>
               </div>
 

@@ -42,7 +42,24 @@ namespace ST_finance.Domain.Features.Dashboard
                 if (primaryIncomeSchedule != null)
                 {
                     var localNextOccurrence = primaryIncomeSchedule.NextOccurrenceDate.AddHours(7);
-                    resetDate = localNextOccurrence;
+                    if (localNextOccurrence.Date <= currentBkk.Date)
+                    {
+                        var freq = primaryIncomeSchedule.Frequency ?? "Monthly";
+                        if (freq == "Weekly")
+                        {
+                            var dayOfWeekIdx = (int)localNextOccurrence.DayOfWeek == 0 ? 7 : (int)localNextOccurrence.DayOfWeek;
+                            resetDate = GetNextWeeklyResetDate(currentBkk, dayOfWeekIdx);
+                        }
+                        else
+                        {
+                            resetDate = GetNextMonthlyResetDate(currentBkk, localNextOccurrence.Day);
+                        }
+                    }
+                    else
+                    {
+                        resetDate = localNextOccurrence;
+                    }
+
                     daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
 
                     var frequency = primaryIncomeSchedule.Frequency ?? "Monthly";
@@ -50,30 +67,49 @@ namespace ST_finance.Domain.Features.Dashboard
 
                     if (frequency == "Weekly")
                     {
-                        var dayOfWeekStr = localNextOccurrence.DayOfWeek.ToString();
+                        var dayOfWeekStr = resetDate.DayOfWeek.ToString();
                         resetDayText = $"Every {dayOfWeekStr} (from {name})";
                     }
                     else if (frequency == "Monthly")
                     {
-                        var daySuffix = GetDaySuffix(localNextOccurrence.Day);
-                        resetDayText = $"{localNextOccurrence.Day}{daySuffix} of Month (from {name})";
+                        var daySuffix = GetDaySuffix(resetDate.Day);
+                        resetDayText = $"{resetDate.Day}{daySuffix} of Month (from {name})";
                     }
                     else
                     {
                         resetDayText = $"{frequency} (from {name})";
                     }
                 }
+                else if (profile != null && profile.ResetFrequency == "Weekly")
+                {
+                    int dayOfWeekIdx = profile.AllowanceDayOfMonth.HasValue && profile.AllowanceDayOfMonth.Value >= 1 && profile.AllowanceDayOfMonth.Value <= 7
+                        ? profile.AllowanceDayOfMonth.Value
+                        : 1;
+
+                    resetDate = GetNextWeeklyResetDate(currentBkk, dayOfWeekIdx);
+                    daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
+                    resetDayText = $"Every {resetDate.DayOfWeek} (from Profile)";
+                }
+                else if (profile != null && profile.ResetFrequency == "Monthly" && profile.AllowanceDayOfMonth.HasValue)
+                {
+                    int dayOfMonth = Math.Clamp(profile.AllowanceDayOfMonth.Value, 1, 31);
+                    resetDate = GetNextMonthlyResetDate(currentBkk, dayOfMonth);
+                    daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
+                    var daySuffix = GetDaySuffix(dayOfMonth);
+                    resetDayText = $"{dayOfMonth}{daySuffix} of Month (from Profile)";
+                }
                 else
                 {
-                    resetDate = currentBkk.AddDays(30);
-                    daysRemaining = 30;
-                    resetDayText = "Rolling 30 Days";
+                    // Default fallback: Calendar Month-End (1st of next month)
+                    resetDate = GetNextMonthlyResetDate(currentBkk, 1);
+                    daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
+                    resetDayText = "1st of Month (Calendar Cycle)";
                 }
             }
             else
             {
-                resetDate = currentBkk.AddDays(30);
-                daysRemaining = 30;
+                resetDate = GetNextMonthlyResetDate(currentBkk, 1);
+                daysRemaining = Math.Max(1, (resetDate.Date - currentBkk.Date).Days);
                 resetDayText = "Disabled";
             }
 
@@ -219,16 +255,6 @@ namespace ST_finance.Domain.Features.Dashboard
                 }
             }
 
-            if (enableQuotaPacing)
-            {
-                var hasIncome = await _context.TblRecurringSchedules
-                    .AnyAsync(s => s.UserId == userId && s.TransactionType == "Income" && !s.DeleteFlag);
-                if (!hasIncome)
-                {
-                    warnings.Add("Pacing-Hint: No recurring income configured. Daily quota is computed using a rolling 30-day window.");
-                }
-            }
-
             return Result.Success(new DashboardSummaryResponse(
                 Quota: quota,
                 CanteenIndex: canteenIndex,
@@ -240,7 +266,9 @@ namespace ST_finance.Domain.Features.Dashboard
                 SpentToday: spentToday,
                 ActiveWarnings: warnings,
                 ResetDayText: resetDayText,
-                EnableQuotaPacing: enableQuotaPacing
+                EnableQuotaPacing: enableQuotaPacing,
+                DaysRemaining: daysRemaining,
+                ResetDate: resetDate
             ));
         }
 
