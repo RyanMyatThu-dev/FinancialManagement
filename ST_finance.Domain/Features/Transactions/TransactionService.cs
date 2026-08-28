@@ -57,99 +57,10 @@ namespace ST_finance.Domain.Features.Transactions
                 pageSize = 100;
             }
 
-            var query = _context.TblTransactions
-                .Include(t => t.Tags)
-                .Where(t => t.UserId == userId);
-
-            if (accountId.HasValue)
-            {
-                query = query.Where(t => t.AccountId == accountId.Value || t.TargetAccountId == accountId.Value);
-            }
-
-            if (sourceAccountId.HasValue)
-            {
-                query = query.Where(t => t.AccountId == sourceAccountId.Value);
-            }
-
-            if (targetAccountId.HasValue)
-            {
-                query = query.Where(t => t.TargetAccountId == targetAccountId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(startDate) && DateTime.TryParse(startDate, out var parsedStart))
-            {
-                var utcStart = BkkTimeHelper.StartOfDayUtc(parsedStart.Year, parsedStart.Month, parsedStart.Day);
-                query = query.Where(t => t.Date >= utcStart);
-            }
-
-            if (!string.IsNullOrWhiteSpace(endDate) && DateTime.TryParse(endDate, out var parsedEnd))
-            {
-                var utcEnd = BkkTimeHelper.EndOfDayUtc(parsedEnd.Year, parsedEnd.Month, parsedEnd.Day);
-                query = query.Where(t => t.Date <= utcEnd);
-            }
-
-            if (!string.IsNullOrWhiteSpace(transactionType))
-            {
-                query = query.Where(t => t.TransactionType == transactionType);
-            }
-
-            if (!string.IsNullOrWhiteSpace(timeframe) && !timeframe.Equals("Custom", StringComparison.OrdinalIgnoreCase))
-            {
-                var currentBkk = BkkTimeHelper.ToBkk(DateTime.UtcNow);
-                DateTime tfStartDate = DateTime.MinValue;
-                DateTime tfEndDate = DateTime.MaxValue;
-
-                if (timeframe.Equals("Day", StringComparison.OrdinalIgnoreCase))
-                {
-                    tfStartDate = BkkTimeHelper.StartOfDayUtc(currentBkk);
-                    tfEndDate = tfStartDate.AddDays(1);
-                }
-                else if (timeframe.Equals("Week", StringComparison.OrdinalIgnoreCase))
-                {
-                    tfStartDate = BkkTimeHelper.StartOfWeekUtc(currentBkk);
-                    tfEndDate = tfStartDate.AddDays(7);
-                }
-                else if (timeframe.Equals("Month", StringComparison.OrdinalIgnoreCase))
-                {
-                    tfStartDate = BkkTimeHelper.StartOfMonthUtc(currentBkk.Year, currentBkk.Month);
-                    tfEndDate = tfStartDate.AddMonths(1);
-                }
-                else if (timeframe.Equals("Year", StringComparison.OrdinalIgnoreCase))
-                {
-                    tfStartDate = BkkTimeHelper.StartOfYearUtc(currentBkk.Year);
-                    tfEndDate = tfStartDate.AddYears(1);
-                }
-
-                if (tfStartDate != DateTime.MinValue)
-                {
-                    query = query.Where(t => t.Date >= tfStartDate && t.Date < tfEndDate);
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(t => t.Description != null && t.Description.ToLower().Contains(search.ToLower()));
-            }
-
-            if (categoryId.HasValue)
-            {
-                query = query.Where(t => t.CategoryId == categoryId.Value);
-            }
-
-            if (tagId.HasValue)
-            {
-                query = query.Where(t => t.Tags.Any(tag => tag.Id == tagId.Value));
-            }
-
-            if (minAmount.HasValue)
-            {
-                query = query.Where(t => t.Amount >= minAmount.Value);
-            }
-
-            if (maxAmount.HasValue)
-            {
-                query = query.Where(t => t.Amount <= maxAmount.Value);
-            }
+            IQueryable<TblTransaction> query = BuildFilteredTransactionQuery(
+                userId, categoryId, tagId, minAmount, maxAmount, search, timeframe,
+                accountId, sourceAccountId, targetAccountId, startDate, endDate, transactionType)
+                .Include(t => t.Tags);
 
             query = query.OrderByDescending(t => t.Date).ThenByDescending(t => (DateTime?)t.CreatedAt);
 
@@ -180,8 +91,37 @@ namespace ST_finance.Domain.Features.Transactions
             string? transactionType = null
         )
         {
-            var query = _context.TblTransactions
-                .Where(t => t.UserId == userId);
+            var query = BuildFilteredTransactionQuery(
+                userId, categoryId, tagId, minAmount, maxAmount, search, timeframe,
+                accountId, sourceAccountId, targetAccountId, startDate, endDate, transactionType);
+
+            var summary = await query
+                .GroupBy(t => t.TransactionType)
+                .Select(g => new { Type = g.Key, Total = g.Sum(t => t.Amount) })
+                .ToListAsync();
+
+            var inflow = summary.FirstOrDefault(s => s.Type == "Income")?.Total ?? 0m;
+            var outflow = summary.FirstOrDefault(s => s.Type == "Expense")?.Total ?? 0m;
+
+            return Result.Success(new TransactionSummaryResponse(inflow, outflow));
+        }
+
+        private IQueryable<TblTransaction> BuildFilteredTransactionQuery(
+            Guid userId,
+            Guid? categoryId,
+            Guid? tagId,
+            decimal? minAmount,
+            decimal? maxAmount,
+            string? search,
+            string? timeframe,
+            Guid? accountId,
+            Guid? sourceAccountId,
+            Guid? targetAccountId,
+            string? startDate,
+            string? endDate,
+            string? transactionType)
+        {
+            var query = _context.TblTransactions.Where(t => t.UserId == userId);
 
             if (accountId.HasValue)
             {
@@ -273,15 +213,7 @@ namespace ST_finance.Domain.Features.Transactions
                 query = query.Where(t => t.Amount <= maxAmount.Value);
             }
 
-            var summary = await query
-                .GroupBy(t => t.TransactionType)
-                .Select(g => new { Type = g.Key, Total = g.Sum(t => t.Amount) })
-                .ToListAsync();
-
-            var inflow = summary.FirstOrDefault(s => s.Type == "Income")?.Total ?? 0m;
-            var outflow = summary.FirstOrDefault(s => s.Type == "Expense")?.Total ?? 0m;
-
-            return Result.Success(new TransactionSummaryResponse(inflow, outflow));
+            return query;
         }
 
         public async Task<Result<TransactionResponse>> CreateTransactionAsync(Guid userId, TransactionRequest request)
