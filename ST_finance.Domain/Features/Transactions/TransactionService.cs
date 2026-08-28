@@ -57,106 +57,10 @@ namespace ST_finance.Domain.Features.Transactions
                 pageSize = 100;
             }
 
-            var query = _context.TblTransactions
-                .Include(t => t.Tags)
-                .Where(t => t.UserId == userId);
-
-            if (accountId.HasValue)
-            {
-                query = query.Where(t => t.AccountId == accountId.Value || t.TargetAccountId == accountId.Value);
-            }
-
-            if (sourceAccountId.HasValue)
-            {
-                query = query.Where(t => t.AccountId == sourceAccountId.Value);
-            }
-
-            if (targetAccountId.HasValue)
-            {
-                query = query.Where(t => t.TargetAccountId == targetAccountId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(startDate) && DateTime.TryParse(startDate, out var parsedStart))
-            {
-                // Align to local BKK timezone (UTC+7) start of day, then convert to UTC
-                var bkkStart = new DateTime(parsedStart.Year, parsedStart.Month, parsedStart.Day, 0, 0, 0, DateTimeKind.Utc);
-                var utcStart = bkkStart.AddHours(-7);
-                query = query.Where(t => t.Date >= utcStart);
-            }
-
-            if (!string.IsNullOrWhiteSpace(endDate) && DateTime.TryParse(endDate, out var parsedEnd))
-            {
-                // Align to local BKK timezone (UTC+7) end of day, then convert to UTC
-                var bkkEnd = new DateTime(parsedEnd.Year, parsedEnd.Month, parsedEnd.Day, 23, 59, 59, DateTimeKind.Utc).AddMilliseconds(999);
-                var utcEnd = bkkEnd.AddHours(-7);
-                query = query.Where(t => t.Date <= utcEnd);
-            }
-
-            if (!string.IsNullOrWhiteSpace(transactionType))
-            {
-                query = query.Where(t => t.TransactionType == transactionType);
-            }
-
-            if (!string.IsNullOrWhiteSpace(timeframe) && !timeframe.Equals("Custom", StringComparison.OrdinalIgnoreCase))
-            {
-                var nowUtc = DateTime.UtcNow;
-                var currentBkk = nowUtc.AddHours(7);
-                DateTime tfStartDate = DateTime.MinValue;
-                DateTime tfEndDate = DateTime.MaxValue;
-
-                if (timeframe.Equals("Day", StringComparison.OrdinalIgnoreCase))
-                {
-                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    tfEndDate = tfStartDate.AddDays(1);
-                }
-                else if (timeframe.Equals("Week", StringComparison.OrdinalIgnoreCase))
-                {
-                    int diff = (7 + (currentBkk.DayOfWeek - DayOfWeek.Monday)) % 7;
-                    var startOfWeekBkk = currentBkk.AddDays(-1 * diff);
-                    tfStartDate = DateTime.SpecifyKind(new DateTime(startOfWeekBkk.Year, startOfWeekBkk.Month, startOfWeekBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    tfEndDate = tfStartDate.AddDays(7);
-                }
-                else if (timeframe.Equals("Month", StringComparison.OrdinalIgnoreCase))
-                {
-                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    tfEndDate = tfStartDate.AddMonths(1);
-                }
-                else if (timeframe.Equals("Year", StringComparison.OrdinalIgnoreCase))
-                {
-                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
-                    tfEndDate = tfStartDate.AddYears(1);
-                }
-
-                if (tfStartDate != DateTime.MinValue)
-                {
-                    query = query.Where(t => t.Date >= tfStartDate && t.Date < tfEndDate);
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(t => t.Description != null && t.Description.ToLower().Contains(search.ToLower()));
-            }
-
-            if (categoryId.HasValue)
-            {
-                query = query.Where(t => t.CategoryId == categoryId.Value);
-            }
-
-            if (tagId.HasValue)
-            {
-                query = query.Where(t => t.Tags.Any(tag => tag.Id == tagId.Value));
-            }
-
-            if (minAmount.HasValue)
-            {
-                query = query.Where(t => t.Amount >= minAmount.Value);
-            }
-
-            if (maxAmount.HasValue)
-            {
-                query = query.Where(t => t.Amount <= maxAmount.Value);
-            }
+            IQueryable<TblTransaction> query = BuildFilteredTransactionQuery(
+                userId, categoryId, tagId, minAmount, maxAmount, search, timeframe,
+                accountId, sourceAccountId, targetAccountId, startDate, endDate, transactionType)
+                .Include(t => t.Tags);
 
             query = query.OrderByDescending(t => t.Date).ThenByDescending(t => (DateTime?)t.CreatedAt);
 
@@ -187,8 +91,37 @@ namespace ST_finance.Domain.Features.Transactions
             string? transactionType = null
         )
         {
-            var query = _context.TblTransactions
-                .Where(t => t.UserId == userId);
+            var query = BuildFilteredTransactionQuery(
+                userId, categoryId, tagId, minAmount, maxAmount, search, timeframe,
+                accountId, sourceAccountId, targetAccountId, startDate, endDate, transactionType);
+
+            var summary = await query
+                .GroupBy(t => t.TransactionType)
+                .Select(g => new { Type = g.Key, Total = g.Sum(t => t.Amount) })
+                .ToListAsync();
+
+            var inflow = summary.FirstOrDefault(s => s.Type == "Income")?.Total ?? 0m;
+            var outflow = summary.FirstOrDefault(s => s.Type == "Expense")?.Total ?? 0m;
+
+            return Result.Success(new TransactionSummaryResponse(inflow, outflow));
+        }
+
+        private IQueryable<TblTransaction> BuildFilteredTransactionQuery(
+            Guid userId,
+            Guid? categoryId,
+            Guid? tagId,
+            decimal? minAmount,
+            decimal? maxAmount,
+            string? search,
+            string? timeframe,
+            Guid? accountId,
+            Guid? sourceAccountId,
+            Guid? targetAccountId,
+            string? startDate,
+            string? endDate,
+            string? transactionType)
+        {
+            var query = _context.TblTransactions.Where(t => t.UserId == userId);
 
             if (accountId.HasValue)
             {
@@ -207,17 +140,13 @@ namespace ST_finance.Domain.Features.Transactions
 
             if (!string.IsNullOrWhiteSpace(startDate) && DateTime.TryParse(startDate, out var parsedStart))
             {
-                // Align to local BKK timezone (UTC+7) start of day, then convert to UTC
-                var bkkStart = new DateTime(parsedStart.Year, parsedStart.Month, parsedStart.Day, 0, 0, 0, DateTimeKind.Utc);
-                var utcStart = bkkStart.AddHours(-7);
+                var utcStart = BkkTimeHelper.StartOfDayUtc(parsedStart.Year, parsedStart.Month, parsedStart.Day);
                 query = query.Where(t => t.Date >= utcStart);
             }
 
             if (!string.IsNullOrWhiteSpace(endDate) && DateTime.TryParse(endDate, out var parsedEnd))
             {
-                // Align to local BKK timezone (UTC+7) end of day, then convert to UTC
-                var bkkEnd = new DateTime(parsedEnd.Year, parsedEnd.Month, parsedEnd.Day, 23, 59, 59, DateTimeKind.Utc).AddMilliseconds(999);
-                var utcEnd = bkkEnd.AddHours(-7);
+                var utcEnd = BkkTimeHelper.EndOfDayUtc(parsedEnd.Year, parsedEnd.Month, parsedEnd.Day);
                 query = query.Where(t => t.Date <= utcEnd);
             }
 
@@ -228,31 +157,28 @@ namespace ST_finance.Domain.Features.Transactions
 
             if (!string.IsNullOrWhiteSpace(timeframe) && !timeframe.Equals("Custom", StringComparison.OrdinalIgnoreCase))
             {
-                var nowUtc = DateTime.UtcNow;
-                var currentBkk = nowUtc.AddHours(7);
+                var currentBkk = BkkTimeHelper.ToBkk(DateTime.UtcNow);
                 DateTime tfStartDate = DateTime.MinValue;
                 DateTime tfEndDate = DateTime.MaxValue;
 
                 if (timeframe.Equals("Day", StringComparison.OrdinalIgnoreCase))
                 {
-                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfStartDate = BkkTimeHelper.StartOfDayUtc(currentBkk);
                     tfEndDate = tfStartDate.AddDays(1);
                 }
                 else if (timeframe.Equals("Week", StringComparison.OrdinalIgnoreCase))
                 {
-                    int diff = (7 + (currentBkk.DayOfWeek - DayOfWeek.Monday)) % 7;
-                    var startOfWeekBkk = currentBkk.AddDays(-1 * diff);
-                    tfStartDate = DateTime.SpecifyKind(new DateTime(startOfWeekBkk.Year, startOfWeekBkk.Month, startOfWeekBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfStartDate = BkkTimeHelper.StartOfWeekUtc(currentBkk);
                     tfEndDate = tfStartDate.AddDays(7);
                 }
                 else if (timeframe.Equals("Month", StringComparison.OrdinalIgnoreCase))
                 {
-                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfStartDate = BkkTimeHelper.StartOfMonthUtc(currentBkk.Year, currentBkk.Month);
                     tfEndDate = tfStartDate.AddMonths(1);
                 }
                 else if (timeframe.Equals("Year", StringComparison.OrdinalIgnoreCase))
                 {
-                    tfStartDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                    tfStartDate = BkkTimeHelper.StartOfYearUtc(currentBkk.Year);
                     tfEndDate = tfStartDate.AddYears(1);
                 }
 
@@ -287,15 +213,7 @@ namespace ST_finance.Domain.Features.Transactions
                 query = query.Where(t => t.Amount <= maxAmount.Value);
             }
 
-            var summary = await query
-                .GroupBy(t => t.TransactionType)
-                .Select(g => new { Type = g.Key, Total = g.Sum(t => t.Amount) })
-                .ToListAsync();
-
-            var inflow = summary.FirstOrDefault(s => s.Type == "Income")?.Total ?? 0m;
-            var outflow = summary.FirstOrDefault(s => s.Type == "Expense")?.Total ?? 0m;
-
-            return Result.Success(new TransactionSummaryResponse(inflow, outflow));
+            return query;
         }
 
         public async Task<Result<TransactionResponse>> CreateTransactionAsync(Guid userId, TransactionRequest request)
@@ -851,16 +769,14 @@ namespace ST_finance.Domain.Features.Transactions
 
         private async Task UpdateDailyQuotaLogForDateAsync(Guid userId, DateTime transactionDateUtc)
         {
-            var localDate = DateOnly.FromDateTime(transactionDateUtc.AddHours(7));
+            var localDate = DateOnly.FromDateTime(BkkTimeHelper.ToBkk(transactionDateUtc));
 
             var existingLog = await _context.TblDailyQuotaLogs
                 .FirstOrDefaultAsync(l => l.UserId == userId && l.Date == localDate);
 
             if (existingLog != null)
             {
-                var startOfDateBkk = DateTime.SpecifyKind(
-                    new DateTime(localDate.Year, localDate.Month, localDate.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7),
-                    DateTimeKind.Utc);
+                var startOfDateBkk = BkkTimeHelper.StartOfDayUtc(localDate.Year, localDate.Month, localDate.Day);
                 var endOfDateBkk = startOfDateBkk.AddDays(1);
 
                 var actualSpent = await _context.TblTransactions

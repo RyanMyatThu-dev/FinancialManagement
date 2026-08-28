@@ -119,7 +119,7 @@ namespace ST_finance.Domain.Features.Admin
                 return NotFound(Result.Failure(CustomErrors.Auth.UserNotFound));
             }
 
-            await DeleteUserDataAsync(id);
+            await UserDataCleanup.DeleteAllUserDataAsync(_context, id);
             return Ok(Result.Success(new { message = "User transaction and configuration data reset successfully." }));
         }
 
@@ -303,53 +303,6 @@ namespace ST_finance.Domain.Features.Admin
             await _context.SaveChangesAsync();
 
             return Ok(Result.Success());
-        }
-
-        // ── HELPER METHODS ───────────────────────────────────────────────
-
-        private async Task DeleteUserDataAsync(Guid userId)
-        {
-            var contributions = await _context.TblSavingsContributions.IgnoreQueryFilters()
-                .Where(c => c.SavingsGoal.UserId == userId).ToListAsync();
-            _context.TblSavingsContributions.RemoveRange(contributions);
-
-            var goals = await _context.TblSavingsGoals.IgnoreQueryFilters()
-                .Where(g => g.UserId == userId).ToListAsync();
-            _context.TblSavingsGoals.RemoveRange(goals);
-
-            var budgets = await _context.TblCategoryBudgets.IgnoreQueryFilters()
-                .Where(b => b.UserId == userId).ToListAsync();
-            _context.TblCategoryBudgets.RemoveRange(budgets);
-
-            var schedules = await _context.TblRecurringSchedules.IgnoreQueryFilters()
-                .Where(s => s.UserId == userId).ToListAsync();
-            _context.TblRecurringSchedules.RemoveRange(schedules);
-
-            var logs = await _context.TblDailyQuotaLogs.IgnoreQueryFilters()
-                .Where(l => l.UserId == userId).ToListAsync();
-            _context.TblDailyQuotaLogs.RemoveRange(logs);
-
-            var transactions = await _context.TblTransactions.IgnoreQueryFilters()
-                .Where(t => t.UserId == userId).ToListAsync();
-            _context.TblTransactions.RemoveRange(transactions);
-
-            var tags = await _context.TblTags.IgnoreQueryFilters()
-                .Where(t => t.UserId == userId).ToListAsync();
-            _context.TblTags.RemoveRange(tags);
-
-            var categories = await _context.TblCategories.IgnoreQueryFilters()
-                .Where(c => c.UserId == userId).ToListAsync();
-            _context.TblCategories.RemoveRange(categories);
-
-            var accounts = await _context.TblAccounts.IgnoreQueryFilters()
-                .Where(a => a.UserId == userId).ToListAsync();
-            _context.TblAccounts.RemoveRange(accounts);
-
-            var profiles = await _context.TblUserProfiles.IgnoreQueryFilters()
-                .Where(p => p.UserId == userId).ToListAsync();
-            _context.TblUserProfiles.RemoveRange(profiles);
-
-            await _context.SaveChangesAsync();
         }
     }
 

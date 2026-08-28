@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ST_finance.Database.Data;
+using ST_finance.Shared;
 
 namespace ST_finance.Domain.Features.Dashboard
 {
@@ -23,12 +24,10 @@ namespace ST_finance.Domain.Features.Dashboard
                 .Where(u => !u.DeleteFlag)
                 .ToListAsync();
 
-            var yesterdayBkk = DateTime.UtcNow.AddHours(7).AddDays(-1);
+            var yesterdayBkk = BkkTimeHelper.ToBkk(DateTime.UtcNow).AddDays(-1);
             var logDate = DateOnly.FromDateTime(yesterdayBkk);
 
-            var startOfYesterdayBkk = DateTime.SpecifyKind(
-                new DateTime(yesterdayBkk.Year, yesterdayBkk.Month, yesterdayBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7),
-                DateTimeKind.Utc);
+            var startOfYesterdayBkk = BkkTimeHelper.StartOfDayUtc(yesterdayBkk);
             var endOfYesterdayBkk = startOfYesterdayBkk.AddDays(1);
 
             foreach (var user in users)
