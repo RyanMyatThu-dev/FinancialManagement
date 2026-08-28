@@ -45,10 +45,14 @@ jobs:
         audience: sts.amazonaws.com
 
     # 6. Apply pending EF Core migrations before deploying new code
+    # Requires an Environment secret named DB_CONNECTION on the "Production"
+    # GitHub Environment (Settings -> Environments -> Production -> Secrets),
+    # holding the same Supabase connection string used for
+    # ConnectionStrings__DbConnection in the Lambda config.
     - name: Apply Database Migrations
       env:
         ASPNETCORE_ENVIRONMENT: Production
-        ConnectionStrings__DbConnection: ${{ secrets.PROD_DB_CONNECTION }}
+        ConnectionStrings__DbConnection: ${{ secrets.DB_CONNECTION }}
       run: |
         dotnet tool install --global dotnet-ef
         dotnet ef database update --project ST_finance.Database --startup-project ST_finance.Api
