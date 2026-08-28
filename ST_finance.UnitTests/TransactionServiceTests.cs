@@ -24,7 +24,7 @@ namespace ST_finance.UnitTests
         {
             _context = TestDatabaseFixture.CreateContext();
             _accountService = new AccountService(_context);
-            _service = new TransactionService(_context, _accountService);
+            _service = new TransactionService(_context, _accountService, Microsoft.Extensions.Logging.Abstractions.NullLogger<TransactionService>.Instance);
 
             // Seed initial data
             var account = new TblAccount { UserId = _userId, Name = "Main Bank", AccountType = AccountType.Bank, Balance = 1000m, Color = "#4F46E5", Icon = "Wallet" };
