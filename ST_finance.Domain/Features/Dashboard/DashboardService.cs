@@ -21,7 +21,7 @@ namespace ST_finance.Domain.Features.Dashboard
         public async Task<Result<DashboardSummaryResponse>> GetDashboardSummaryAsync(Guid userId, string timeframe = "Month")
         {
             var nowUtc = DateTime.UtcNow;
-            var currentBkk = nowUtc.AddHours(7);
+            var currentBkk = BkkTimeHelper.ToBkk(nowUtc);
 
             var profile = await _context.TblUserProfiles
                 .FirstOrDefaultAsync(p => p.UserId == userId);
@@ -41,7 +41,7 @@ namespace ST_finance.Domain.Features.Dashboard
 
                 if (primaryIncomeSchedule != null)
                 {
-                    var localNextOccurrence = primaryIncomeSchedule.NextOccurrenceDate.AddHours(7);
+                    var localNextOccurrence = BkkTimeHelper.ToBkk(primaryIncomeSchedule.NextOccurrenceDate);
                     if (localNextOccurrence.Date <= currentBkk.Date)
                     {
                         var freq = primaryIncomeSchedule.Frequency ?? "Monthly";
@@ -165,9 +165,7 @@ namespace ST_finance.Domain.Features.Dashboard
             }
 
             // 6. Spent Today (relative to Bangkok timezone boundaries, queried in UTC)
-            var startOfTodayBkk = DateTime.SpecifyKind(
-                new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7),
-                DateTimeKind.Utc);
+            var startOfTodayBkk = BkkTimeHelper.StartOfDayUtc(currentBkk);
             var endOfTodayBkk = startOfTodayBkk.AddDays(1);
 
             var spentToday = await _context.TblTransactions
@@ -197,24 +195,22 @@ namespace ST_finance.Domain.Features.Dashboard
 
             if (string.Equals(timeframe, "Day", StringComparison.OrdinalIgnoreCase))
             {
-                startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, currentBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                startDate = BkkTimeHelper.StartOfDayUtc(currentBkk);
                 endDate = startDate.AddDays(1);
             }
             else if (string.Equals(timeframe, "Week", StringComparison.OrdinalIgnoreCase))
             {
-                int diff = (7 + (currentBkk.DayOfWeek - DayOfWeek.Monday)) % 7;
-                var startOfWeekBkk = currentBkk.AddDays(-1 * diff);
-                startDate = DateTime.SpecifyKind(new DateTime(startOfWeekBkk.Year, startOfWeekBkk.Month, startOfWeekBkk.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                startDate = BkkTimeHelper.StartOfWeekUtc(currentBkk);
                 endDate = startDate.AddDays(7);
             }
             else if (string.Equals(timeframe, "Year", StringComparison.OrdinalIgnoreCase))
             {
-                startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                startDate = BkkTimeHelper.StartOfYearUtc(currentBkk.Year);
                 endDate = startDate.AddYears(1);
             }
             else // Default to Month
             {
-                startDate = DateTime.SpecifyKind(new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7), DateTimeKind.Utc);
+                startDate = BkkTimeHelper.StartOfMonthUtc(currentBkk.Year, currentBkk.Month);
                 endDate = startDate.AddMonths(1);
             }
 
@@ -233,9 +229,7 @@ namespace ST_finance.Domain.Features.Dashboard
                 warnings.Add($"You have exceeded your daily quota for today by {spentToday - quota:F2} THB!");
             }
 
-            var startOfMonthBkk = DateTime.SpecifyKind(
-                new DateTime(currentBkk.Year, currentBkk.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7),
-                DateTimeKind.Utc);
+            var startOfMonthBkk = BkkTimeHelper.StartOfMonthUtc(currentBkk.Year, currentBkk.Month);
             var endOfMonthBkk = startOfMonthBkk.AddMonths(1);
 
             var activeBudgets = await _context.TblCategoryBudgets
