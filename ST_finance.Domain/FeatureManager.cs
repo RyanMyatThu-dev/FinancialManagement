@@ -53,5 +53,6 @@ public static class FeatureManager
         builder.Services.AddScoped<ST_finance.Domain.Features.Dashboard.IDashboardService, ST_finance.Domain.Features.Dashboard.DashboardService>();
         builder.Services.AddScoped<ST_finance.Domain.Features.Jobs.IQuotaLoggingJob, ST_finance.Domain.Features.Jobs.QuotaLoggingJob>();
         builder.Services.AddScoped<ST_finance.Domain.Features.Budgets.IBudgetService, ST_finance.Domain.Features.Budgets.BudgetService>();
+        builder.Services.AddScoped<ST_finance.Domain.Features.Reports.IReportService, ST_finance.Domain.Features.Reports.ReportService>();
     }
 }
