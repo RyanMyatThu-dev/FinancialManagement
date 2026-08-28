@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Accounts;
 using ST_finance.Domain.Features.Transactions.Models;
@@ -14,11 +15,13 @@ namespace ST_finance.Domain.Features.Transactions
     {
         private readonly AppDbContext _context;
         private readonly IAccountService _accountService;
+        private readonly ILogger<TransactionService> _logger;
 
-        public TransactionService(AppDbContext context, IAccountService accountService)
+        public TransactionService(AppDbContext context, IAccountService accountService, ILogger<TransactionService> logger)
         {
             _context = context;
             _accountService = accountService;
+            _logger = logger;
         }
 
         public async Task<Result<PagedResponse<TransactionResponse>>> GetTransactionsAsync(
@@ -797,7 +800,8 @@ namespace ST_finance.Domain.Features.Transactions
                 return Result.Failure<PagedResponse<TransactionResponse>>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
             }
 
-            Console.WriteLine($"SearchTransactionsAsync: AccountId={request.AccountId}, Source={request.SourceAccountId}, Target={request.TargetAccountId}, Start={request.StartDate}, End={request.EndDate}, Timeframe={request.Timeframe}, Type={request.TransactionType}");
+            _logger.LogDebug("SearchTransactionsAsync: AccountId={AccountId}, Source={SourceAccountId}, Target={TargetAccountId}, Start={StartDate}, End={EndDate}, Timeframe={Timeframe}, Type={TransactionType}",
+                request.AccountId, request.SourceAccountId, request.TargetAccountId, request.StartDate, request.EndDate, request.Timeframe, request.TransactionType);
 
             return await GetTransactionsAsync(
                 userId,
@@ -825,7 +829,8 @@ namespace ST_finance.Domain.Features.Transactions
                 return Result.Failure<TransactionSummaryResponse>(CustomErrors.Validation.InvalidInput("Request cannot be null."));
             }
 
-            Console.WriteLine($"GetTransactionSummarySearchAsync: AccountId={request.AccountId}, Source={request.SourceAccountId}, Target={request.TargetAccountId}, Start={request.StartDate}, End={request.EndDate}, Timeframe={request.Timeframe}, Type={request.TransactionType}");
+            _logger.LogDebug("GetTransactionSummarySearchAsync: AccountId={AccountId}, Source={SourceAccountId}, Target={TargetAccountId}, Start={StartDate}, End={EndDate}, Timeframe={Timeframe}, Type={TransactionType}",
+                request.AccountId, request.SourceAccountId, request.TargetAccountId, request.StartDate, request.EndDate, request.Timeframe, request.TransactionType);
 
             return await GetTransactionSummaryAsync(
                 userId,

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Transactions;
 using ST_finance.Domain.Features.Transactions.Models;
@@ -12,11 +13,13 @@ namespace ST_finance.Domain.Features.RecurringSchedules
     {
         private readonly AppDbContext _context;
         private readonly ITransactionService _transactionService;
+        private readonly ILogger<RecurringJobService> _logger;
 
-        public RecurringJobService(AppDbContext context, ITransactionService transactionService)
+        public RecurringJobService(AppDbContext context, ITransactionService transactionService, ILogger<RecurringJobService> logger)
         {
             _context = context;
             _transactionService = transactionService;
+            _logger = logger;
         }
 
         public async Task ProcessRecurringSchedulesAsync()
@@ -50,7 +53,8 @@ namespace ST_finance.Domain.Features.RecurringSchedules
                 }
                 else
                 {
-                    Console.WriteLine($"[Hangfire] Failed to process recurring schedule '{schedule.Name}' (ID: {schedule.Id}): {result.Error.Message}");
+                    _logger.LogError("Failed to process recurring schedule '{ScheduleName}' (ID: {ScheduleId}): {ErrorMessage}",
+                        schedule.Name, schedule.Id, result.Error.Message);
                 }
             }
 

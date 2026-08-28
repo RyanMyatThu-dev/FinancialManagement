@@ -52,7 +52,10 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=ST_Finance;Username=postgres;Password=postgres;");
+            throw new InvalidOperationException(
+                "AppDbContext was resolved without a configured connection string. " +
+                "Register it via services.AddDbContext<AppDbContext>(...) using the 'DbConnection' " +
+                "connection string, or pass DbContextOptions explicitly for design-time tools.");
         }
     }
 

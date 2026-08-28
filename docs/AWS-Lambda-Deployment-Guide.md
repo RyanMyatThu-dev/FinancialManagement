@@ -96,7 +96,18 @@ aws s3api put-public-access-block --bucket st-finance-deployments-ryan-2026 --pu
 aws s3api put-bucket-lifecycle-configuration --bucket st-finance-deployments-ryan-2026 --lifecycle-configuration '{"Rules":[{"ID":"DeleteOldDeployments","Status":"Enabled","Filter":{"Prefix":""},"Expiration":{"Days":7}}]}'
 ```
 
-### B. Deploy the Serverless Stack
+### B. Database Migrations
+**Important:** The API no longer applies Entity Framework migrations automatically on Lambda cold start (they are gated to Development only). This prevents race conditions when multiple Lambda instances start concurrently.
+
+**Automated (CI):** The `deploy-staging.yml` and `deploy-prod.yml` GitHub Actions workflows run `dotnet ef database update --project ST_finance.Database --startup-project ST_finance.Api` as a dedicated step immediately after AWS credentials are configured and before the Lambda stack is deployed. This guarantees schema changes are applied exactly once, against the correct environment's database, before any new Lambda instance can start handling requests. The step authenticates via the `ASPNETCORE_ENVIRONMENT` and `ConnectionStrings__DbConnection` environment variables, sourced from a `DB_CONNECTION` secret scoped to each GitHub Environment (`staging` and `Production` respectively — same convention as the existing `AWS_ROLE_TO_ASSUME` secret). Add it under **Settings → Environments → \<staging|Production\> → Secrets**, using the same Supabase connection string already used for `ConnectionStrings__DbConnection` in that environment's Lambda config.
+
+**Local/manual override:** For cases outside CI (e.g. a hotfix deployed directly from a developer machine), you can run the same migration command locally against the target database:
+```bash
+dotnet ef database update --project ST_finance.Database --startup-project ST_finance.Api
+```
+Set the `ASPNETCORE_ENVIRONMENT` and `ConnectionStrings__DbConnection` environment variables appropriately for your target environment (Staging or Production) before running this command.
+
+### C. Deploy the Serverless Stack
 Run this command from the `ST_finance.Api/` directory to deploy:
 ```bash
 cd ST_finance.Api

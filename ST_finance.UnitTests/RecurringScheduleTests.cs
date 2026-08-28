@@ -26,8 +26,8 @@ namespace ST_finance.UnitTests
             _context = TestDatabaseFixture.CreateContext();
             _scheduleService = new RecurringScheduleService(_context);
             var accountService = new AccountService(_context);
-            _transactionService = new TransactionService(_context, accountService);
-            _jobService = new RecurringJobService(_context, _transactionService);
+            _transactionService = new TransactionService(_context, accountService, Microsoft.Extensions.Logging.Abstractions.NullLogger<TransactionService>.Instance);
+            _jobService = new RecurringJobService(_context, _transactionService, Microsoft.Extensions.Logging.Abstractions.NullLogger<RecurringJobService>.Instance);
 
             // Seed a source account
             var account = new TblAccount

@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -292,16 +291,6 @@ namespace ST_finance.Domain.Features.Authentication
 
             var result = await _authService.ResetPasswordAsync(request);
             return HandleResult(result);
-        }
-
-        private Guid GetUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
-            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
-            {
-                throw new UnauthorizedAccessException("User ID claim missing or invalid in JWT token.");
-            }
-            return userId;
         }
     }
 }
