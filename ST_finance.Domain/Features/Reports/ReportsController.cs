@@ -5,7 +5,6 @@ using ST_finance.Shared;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace ST_finance.Domain.Features.Reports
@@ -34,10 +33,6 @@ namespace ST_finance.Domain.Features.Reports
             }
 
             var userId = GetUserId();
-            if (userId == Guid.Empty)
-            {
-                return Unauthorized(Result.Failure(CustomErrors.Auth.UserNotFound));
-            }
 
             var report = new TblUserReport
             {
@@ -61,12 +56,6 @@ namespace ST_finance.Domain.Features.Reports
                 report.Status,
                 report.CreatedAt
             }));
-        }
-
-        private Guid GetUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            return userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId) ? userId : Guid.Empty;
         }
     }
 
