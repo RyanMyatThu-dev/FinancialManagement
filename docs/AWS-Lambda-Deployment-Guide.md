@@ -104,6 +104,15 @@ dotnet lambda deploy-serverless --s3-bucket st-finance-deployments-ryan-2026
 ```
 *(This uses the `serverless.template` to package the code, upload it to `st-finance-deployments-ryan-2026`, and spin up the Lambda function and API Gateway.)*
 
+### C. Database Migrations (Manual Step for Staging/Production)
+**Important:** The API no longer applies Entity Framework migrations automatically on Lambda cold start (they are gated to Development only). This prevents race conditions when multiple Lambda instances start concurrently. 
+
+**Before deploying a migration that requires schema changes**, you must run the migration explicitly against the target database:
+```bash
+dotnet ef database update --project ST_finance.Database --startup-project ST_finance.Api
+```
+Set the `ASPNETCORE_ENVIRONMENT` and `ConnectionStrings__DbConnection` environment variables appropriately for your target environment (Staging or Production) before running this command. This step ensures schema changes are applied once, before Lambda instances begin processing requests.
+
 ---
 
 *Related links:*

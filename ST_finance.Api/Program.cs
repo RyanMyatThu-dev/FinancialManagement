@@ -175,14 +175,18 @@ builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
 
 var app = builder.Build();
 
-// Apply automatic migration on startup (guarded)
-using (var scope = app.Services.CreateScope())
+// Automatic migration only runs in local Development. In Lambda (Staging/Production),
+// the process is a stateless, frequently cold-started request handler — running
+// migrations there risks concurrent cold starts racing to apply/check migrations
+// against the same database. Run `dotnet ef database update` as an explicit deploy
+// step for Staging/Production instead.
+if (app.Environment.IsDevelopment())
 {
+    using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<ST_finance.Database.Data.AppDbContext>();
-
 
         var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
         if (pendingMigrations.Any())
