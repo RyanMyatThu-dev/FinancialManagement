@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const queryClient = useQueryClient();
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (): Promise<boolean> => {
     try {
       const response = await apiClient.get("/api/auth/profile");
       const result = response.data;
@@ -59,11 +59,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(result.value);
         setIsAuthenticated(true);
         localStorage.setItem("userProfile", JSON.stringify(result.value));
+        return true;
       } else {
         logout();
+        return false;
       }
     } catch {
       logout();
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fullName: string;
     role?: string;
     permissions?: string[];
-  }) => {
+  }): Promise<boolean> => {
     localStorage.setItem("accessToken", value.accessToken);
     localStorage.setItem("refreshToken", value.refreshToken);
 
@@ -93,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(initialUser);
     setIsAuthenticated(true);
 
-    await fetchProfile();
+    return await fetchProfile();
   };
 
   useEffect(() => {
@@ -134,7 +137,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const { accessToken, refreshToken, userId, username, fullName, role, permissions } = result.value;
-        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
+        const profileLoaded = await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
+        if (!profileLoaded) {
+          return { success: false, error: "Signed in, but couldn't load your profile. Please try again." };
+        }
         return { success: true };
       } else {
         return { success: false, error: result.error?.message || "Login failed." };
@@ -152,7 +158,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (result.isSuccess && result.value) {
         const { accessToken, refreshToken, username, email, fullName, role, permissions } = result.value;
-        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
+        const profileLoaded = await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
+        if (!profileLoaded) {
+          return { success: false, error: "Signed in, but couldn't load your profile. Please try again." };
+        }
         return { success: true };
       } else {
         return { success: false, error: result.error?.message || "Verification failed." };
@@ -193,7 +202,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (result.isSuccess && result.value) {
         const { accessToken, refreshToken, userId, role, permissions } = result.value;
-        await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
+        const profileLoaded = await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
+        if (!profileLoaded) {
+          return { success: false, error: "Account created, but couldn't load your profile. Please try logging in." };
+        }
         return { success: true };
       } else {
         return { success: false, error: result.error?.message || "Registration failed." };

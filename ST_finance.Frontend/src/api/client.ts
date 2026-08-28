@@ -41,13 +41,32 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
+// Endpoints whose own 401 response means "invalid credentials" / "not yet authenticated",
+// not "your session expired" — a refresh attempt here is meaningless (there's no session to
+// refresh yet) and must not trigger the redirect-to-login side effect below.
+const AUTH_ENDPOINTS_EXCLUDED_FROM_REFRESH = [
+  "/api/auth/login",
+  "/api/auth/login/verify-2fa",
+  "/api/auth/register",
+  "/api/auth/register/send-otp",
+  "/api/auth/refresh-token",
+  "/api/auth/forgot-password/send-otp",
+  "/api/auth/forgot-password/reset",
+];
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const requestUrl: string = originalRequest?.url || "";
+    const isExcludedAuthEndpoint = AUTH_ENDPOINTS_EXCLUDED_FROM_REFRESH.some((path) =>
+      requestUrl.includes(path)
+    );
 
-    // Guard: only attempt refresh if response is 401 and we haven't already retried
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Guard: only attempt refresh if response is 401, we haven't already retried, and this
+    // wasn't one of the auth endpoints above (whose 401 is a normal credentials/validation
+    // failure, not an expired session).
+    if (error.response?.status === 401 && !originalRequest._retry && !isExcludedAuthEndpoint) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

@@ -90,7 +90,10 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSettings.GetValue<string>("Issuer"),
         ValidAudience = jwtSettings.GetValue<string>("Audience"),
         IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey!)),
-        ClockSkew = TimeSpan.Zero
+        // A small tolerance instead of zero avoids spurious "token not yet valid" (nbf) rejections
+        // when a token issued by one Lambda instance is validated moments later by another instance
+        // whose system clock is fractionally behind.
+        ClockSkew = TimeSpan.FromSeconds(30)
     };
 });
 
