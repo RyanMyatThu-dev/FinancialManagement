@@ -7,9 +7,9 @@ using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Transactions;
 using ST_finance.Domain.Features.Transactions.Models;
 
-namespace ST_finance.Domain.Features.RecurringSchedules
+namespace ST_finance.Domain.Features.Jobs
 {
-    public class RecurringJobService
+    public class RecurringJobService : IRecurringJobService
     {
         private readonly AppDbContext _context;
         private readonly ITransactionService _transactionService;

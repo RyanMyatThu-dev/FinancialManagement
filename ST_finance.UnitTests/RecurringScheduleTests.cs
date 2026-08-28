@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Accounts;
+using ST_finance.Domain.Features.Jobs;
 using ST_finance.Domain.Features.RecurringSchedules;
 using ST_finance.Domain.Features.RecurringSchedules.Models;
 using ST_finance.Domain.Features.Transactions;

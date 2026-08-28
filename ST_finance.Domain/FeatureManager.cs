@@ -48,10 +48,10 @@ public static class FeatureManager
         builder.Services.AddScoped<IAccountService, AccountService>();
         builder.Services.AddScoped<ITransactionService, TransactionService>();
         builder.Services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
-        builder.Services.AddScoped<RecurringJobService>();
+        builder.Services.AddScoped<ST_finance.Domain.Features.Jobs.IRecurringJobService, ST_finance.Domain.Features.Jobs.RecurringJobService>();
         builder.Services.AddScoped<ST_finance.Domain.Features.SavingsGoals.ISavingsGoalService, ST_finance.Domain.Features.SavingsGoals.SavingsGoalService>();
         builder.Services.AddScoped<ST_finance.Domain.Features.Dashboard.IDashboardService, ST_finance.Domain.Features.Dashboard.DashboardService>();
-        builder.Services.AddScoped<ST_finance.Domain.Features.Dashboard.QuotaLoggingJob>();
+        builder.Services.AddScoped<ST_finance.Domain.Features.Jobs.IQuotaLoggingJob, ST_finance.Domain.Features.Jobs.QuotaLoggingJob>();
         builder.Services.AddScoped<ST_finance.Domain.Features.Budgets.IBudgetService, ST_finance.Domain.Features.Budgets.BudgetService>();
     }
 }

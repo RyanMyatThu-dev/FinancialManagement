@@ -3,11 +3,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ST_finance.Database.Data;
+using ST_finance.Domain.Features.Dashboard;
 using ST_finance.Shared;
 
-namespace ST_finance.Domain.Features.Dashboard
+namespace ST_finance.Domain.Features.Jobs
 {
-    public class QuotaLoggingJob
+    public class QuotaLoggingJob : IQuotaLoggingJob
     {
         private readonly AppDbContext _context;
         private readonly IDashboardService _dashboardService;

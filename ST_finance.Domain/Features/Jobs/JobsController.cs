@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
-using ST_finance.Domain.Features.Dashboard;
-using ST_finance.Domain.Features.RecurringSchedules;
 using ST_finance.Shared;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ST_finance.Domain.Features.Jobs
 {
@@ -16,13 +17,13 @@ namespace ST_finance.Domain.Features.Jobs
     [DisableRateLimiting]
     public class JobsController : ApiControllerBase
     {
-        private readonly RecurringJobService _recurringJobService;
-        private readonly QuotaLoggingJob _quotaLoggingJob;
+        private readonly IRecurringJobService _recurringJobService;
+        private readonly IQuotaLoggingJob _quotaLoggingJob;
         private readonly IConfiguration _configuration;
 
         public JobsController(
-            RecurringJobService recurringJobService,
-            QuotaLoggingJob quotaLoggingJob,
+            IRecurringJobService recurringJobService,
+            IQuotaLoggingJob quotaLoggingJob,
             IConfiguration configuration)
         {
             _recurringJobService = recurringJobService;

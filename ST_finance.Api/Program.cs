@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
 using ST_finance.Domain;
-using ST_finance.Domain.Features.RecurringSchedules;
 using System.Threading.RateLimiting;
 
 
@@ -248,12 +247,12 @@ if (app.Environment.IsDevelopment())
         Authorization = new[] { new ST_finance.Api.HangfireAuthorizationFilter() }
     });
 
-    RecurringJob.AddOrUpdate<ST_finance.Domain.Features.RecurringSchedules.RecurringJobService>(
+    RecurringJob.AddOrUpdate<ST_finance.Domain.Features.Jobs.RecurringJobService>(
         "ProcessRecurringSchedules",
         job => job.ProcessRecurringSchedulesAsync(),
         Cron.Hourly());
 
-    RecurringJob.AddOrUpdate<ST_finance.Domain.Features.Dashboard.QuotaLoggingJob>(
+    RecurringJob.AddOrUpdate<ST_finance.Domain.Features.Jobs.QuotaLoggingJob>(
         "LogDailyQuotas",
         job => job.LogDailyQuotasAsync(),
         Cron.Daily(17));
