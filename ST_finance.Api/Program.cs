@@ -1,5 +1,6 @@
 using Amazon.Lambda.AspNetCoreServer.Hosting;
 using Hangfire;
+using Hangfire.Dashboard;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
@@ -230,7 +231,10 @@ app.UseAuthorization();
 // no persistent thread to process Hangfire queues.
 if (app.Environment.IsDevelopment())
 {
-    app.UseHangfireDashboard();
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = new[] { new ST_finance.Api.HangfireAuthorizationFilter() }
+    });
 
     RecurringJob.AddOrUpdate<ST_finance.Domain.Features.RecurringSchedules.RecurringJobService>(
         "ProcessRecurringSchedules",
