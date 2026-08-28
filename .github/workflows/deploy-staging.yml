@@ -44,7 +44,16 @@ jobs:
         aws-region: ap-southeast-1
         audience: sts.amazonaws.com
 
-    # 6. Deploy to Staging Lambda Stack
+    # 6. Apply pending EF Core migrations before deploying new code
+    - name: Apply Database Migrations
+      env:
+        ASPNETCORE_ENVIRONMENT: Staging
+        ConnectionStrings__DbConnection: ${{ secrets.STAGING_DB_CONNECTION }}
+      run: |
+        dotnet tool install --global dotnet-ef
+        dotnet ef database update --project ST_finance.Database --startup-project ST_finance.Api
+
+    # 7. Deploy to Staging Lambda Stack
     - name: Deploy API to Staging Lambda
       run: |
         cd ST_finance.Api
