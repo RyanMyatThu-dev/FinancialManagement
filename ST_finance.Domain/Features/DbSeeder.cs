@@ -77,7 +77,7 @@ namespace ST_finance.Domain.Features
                     var existing = await userManager.FindByNameAsync(username);
                     if (existing != null)
                     {
-                        await DeleteUserDataAsync(context, existing.Id);
+                        await UserDataCleanup.DeleteAllUserDataAsync(context, existing.Id);
                         await userManager.DeleteAsync(existing);
                     }
                 }
@@ -119,52 +119,6 @@ namespace ST_finance.Domain.Features
                     await userManager.AddToRoleAsync(adminUser, adminRoleName);
                 }
             }
-        }
-
-        // ─────────────────────────────────────────────────────────────────
-        private static async Task DeleteUserDataAsync(AppDbContext context, Guid userId)
-        {
-            var contributions = await context.TblSavingsContributions.IgnoreQueryFilters()
-                .Where(c => c.SavingsGoal.UserId == userId).ToListAsync();
-            context.TblSavingsContributions.RemoveRange(contributions);
-
-            var goals = await context.TblSavingsGoals.IgnoreQueryFilters()
-                .Where(g => g.UserId == userId).ToListAsync();
-            context.TblSavingsGoals.RemoveRange(goals);
-
-            var budgets = await context.TblCategoryBudgets.IgnoreQueryFilters()
-                .Where(b => b.UserId == userId).ToListAsync();
-            context.TblCategoryBudgets.RemoveRange(budgets);
-
-            var schedules = await context.TblRecurringSchedules.IgnoreQueryFilters()
-                .Where(s => s.UserId == userId).ToListAsync();
-            context.TblRecurringSchedules.RemoveRange(schedules);
-
-            var logs = await context.TblDailyQuotaLogs.IgnoreQueryFilters()
-                .Where(l => l.UserId == userId).ToListAsync();
-            context.TblDailyQuotaLogs.RemoveRange(logs);
-
-            var transactions = await context.TblTransactions.IgnoreQueryFilters()
-                .Where(t => t.UserId == userId).ToListAsync();
-            context.TblTransactions.RemoveRange(transactions);
-
-            var tags = await context.TblTags.IgnoreQueryFilters()
-                .Where(t => t.UserId == userId).ToListAsync();
-            context.TblTags.RemoveRange(tags);
-
-            var categories = await context.TblCategories.IgnoreQueryFilters()
-                .Where(c => c.UserId == userId).ToListAsync();
-            context.TblCategories.RemoveRange(categories);
-
-            var accounts = await context.TblAccounts.IgnoreQueryFilters()
-                .Where(a => a.UserId == userId).ToListAsync();
-            context.TblAccounts.RemoveRange(accounts);
-
-            var profiles = await context.TblUserProfiles.IgnoreQueryFilters()
-                .Where(p => p.UserId == userId).ToListAsync();
-            context.TblUserProfiles.RemoveRange(profiles);
-
-            await context.SaveChangesAsync();
         }
 
         // ─────────────────────────────────────────────────────────────────
