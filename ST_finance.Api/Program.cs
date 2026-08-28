@@ -176,7 +176,12 @@ if (builder.Environment.IsDevelopment())
 
 builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
 
+builder.Services.AddExceptionHandler<ST_finance.Domain.GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 // Automatic migration only runs in local Development. In Lambda (Staging/Production),
 // the process is a stateless, frequently cold-started request handler — running
