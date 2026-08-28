@@ -29,9 +29,7 @@ namespace ST_finance.Domain.Features.Budgets
                 .ToDictionaryAsync(b => b.CategoryId);
 
             // Month date ranges in Bangkok time UTC+7
-            var startOfMonth = DateTime.SpecifyKind(
-                new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7),
-                DateTimeKind.Utc);
+            var startOfMonth = BkkTimeHelper.StartOfMonthUtc(year, month);
             var endOfMonth = startOfMonth.AddMonths(1);
 
             var responseList = new List<CategoryBudgetResponse>();
@@ -107,9 +105,7 @@ namespace ST_finance.Domain.Features.Budgets
             await _context.SaveChangesAsync();
 
             // Calculate spent
-            var startOfMonth = DateTime.SpecifyKind(
-                new DateTime(request.Year, request.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-7),
-                DateTimeKind.Utc);
+            var startOfMonth = BkkTimeHelper.StartOfMonthUtc(request.Year, request.Month);
             var endOfMonth = startOfMonth.AddMonths(1);
 
             var spent = await _context.TblTransactions
