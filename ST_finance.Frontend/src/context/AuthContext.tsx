@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { apiClient } from "@/api/client";
 
 export interface UserProfile {
@@ -21,6 +22,10 @@ export interface UserProfile {
   role?: string;
   permissions?: string[];
 }
+
+// What the enriched profile fetch says about the session, as distinct from whether it
+// succeeded: only "unauthenticated" is grounds for clearing a session.
+type ProfileFetchOutcome = "loaded" | "unauthenticated" | "unavailable";
 
 interface LoginResult {
   success: boolean;
@@ -51,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const queryClient = useQueryClient();
 
-  const fetchProfile = async (): Promise<boolean> => {
+  const fetchProfile = async (): Promise<ProfileFetchOutcome> => {
     try {
       const response = await apiClient.get("/api/auth/profile");
       const result = response.data;
@@ -59,14 +64,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(result.value);
         setIsAuthenticated(true);
         localStorage.setItem("userProfile", JSON.stringify(result.value));
-        return true;
-      } else {
-        logout();
-        return false;
+        return "loaded";
       }
-    } catch {
+      // A well-formed failure envelope from an authenticated endpoint means the account
+      // itself is no longer usable (deleted or deactivated) — not a transport problem.
       logout();
-      return false;
+      return "unauthenticated";
+    } catch (err) {
+      const status = (err as AxiosError).response?.status;
+      if (status === 401 || status === 403) {
+        logout();
+        return "unauthenticated";
+      }
+      // A 429, a 5xx, an API Gateway timeout or a dropped connection says nothing about
+      // the token. Tearing the session down here turned any backend blip into a silent
+      // logout immediately after a successful sign-in.
+      return "unavailable";
     } finally {
       setIsLoading(false);
     }
@@ -95,8 +108,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setUser(initialUser);
     setIsAuthenticated(true);
+    localStorage.setItem("userProfile", JSON.stringify(initialUser));
 
-    return await fetchProfile();
+    // The auth response already carries everything needed to enter the app; the profile
+    // fetch only enriches it. So the sign-in stands unless the session is actively rejected.
+    return (await fetchProfile()) !== "unauthenticated";
   };
 
   useEffect(() => {
@@ -139,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { accessToken, refreshToken, userId, username, fullName, role, permissions } = result.value;
         const profileLoaded = await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
         if (!profileLoaded) {
-          return { success: false, error: "Signed in, but couldn't load your profile. Please try again." };
+          return { success: false, error: "Signed in, but the session was rejected. Please try again." };
         }
         return { success: true };
       } else {
@@ -160,7 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { accessToken, refreshToken, username, email, fullName, role, permissions } = result.value;
         const profileLoaded = await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
         if (!profileLoaded) {
-          return { success: false, error: "Signed in, but couldn't load your profile. Please try again." };
+          return { success: false, error: "Signed in, but the session was rejected. Please try again." };
         }
         return { success: true };
       } else {
@@ -204,7 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { accessToken, refreshToken, userId, role, permissions } = result.value;
         const profileLoaded = await storeAuthTokens({ accessToken, refreshToken, userId, username, email, fullName, role, permissions });
         if (!profileLoaded) {
-          return { success: false, error: "Account created, but couldn't load your profile. Please try logging in." };
+          return { success: false, error: "Account created, but the session was rejected. Please try logging in." };
         }
         return { success: true };
       } else {

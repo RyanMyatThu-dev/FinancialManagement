@@ -157,6 +157,25 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0
         });
     });
+
+    // 3. Sensitive authenticated operations (password change, email change, 2FA toggle,
+    //    account deactivation). These need a tighter budget than api-general, but they are
+    //    authenticated, so the budget is per user: partitioning them by IP under auth-strict
+    //    meant everyone behind one NAT or office egress shared five requests a minute.
+    options.AddPolicy("auth-sensitive", httpContext =>
+    {
+        var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                     ?? httpContext.User.FindFirst("sub")?.Value;
+        var partitionKey = !string.IsNullOrEmpty(userId) ? $"user:{userId}" : $"ip:{GetClientIp(httpContext)}";
+
+        return RateLimitPartition.GetSlidingWindowLimiter(partitionKey, _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 2,
+            QueueLimit = 0
+        });
+    });
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DbConnection");

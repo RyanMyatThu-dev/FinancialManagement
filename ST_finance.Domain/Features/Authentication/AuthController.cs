@@ -135,6 +135,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpPost("profile/update-username")]
+        [EnableRateLimiting("auth-sensitive")]
         public async Task<IActionResult> UpdateUsername([FromBody] UpdateUsernameRequest request)
         {
             if (!ModelState.IsValid)
@@ -152,6 +153,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpPost("profile/request-password-change")]
+        [EnableRateLimiting("auth-sensitive")]
         public async Task<IActionResult> RequestPasswordChange([FromBody] ChangePasswordRequest request)
         {
             if (!ModelState.IsValid)
@@ -169,6 +171,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpPost("profile/change-password")]
+        [EnableRateLimiting("auth-sensitive")]
         public async Task<IActionResult> ChangePassword([FromBody] ConfirmPasswordChangeRequest request)
         {
             if (!ModelState.IsValid)
@@ -186,6 +189,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpPost("profile/request-email-change")]
+        [EnableRateLimiting("auth-sensitive")]
         public async Task<IActionResult> RequestEmailChange([FromBody] RequestEmailChangeRequest request)
         {
             if (!ModelState.IsValid)
@@ -203,6 +207,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpPost("profile/verify-current-email")]
+        [EnableRateLimiting("auth-sensitive")]
         public async Task<IActionResult> VerifyCurrentEmail([FromBody] VerifyCurrentEmailRequest request)
         {
             if (!ModelState.IsValid)
@@ -220,6 +225,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpPost("profile/confirm-email-change")]
+        [EnableRateLimiting("auth-sensitive")]
         public async Task<IActionResult> ConfirmEmailChange([FromBody] ConfirmEmailChangeRequest request)
         {
             if (!ModelState.IsValid)
@@ -237,6 +243,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpPost("profile/toggle-2fa")]
+        [EnableRateLimiting("auth-sensitive")]
         public async Task<IActionResult> ToggleTwoFactor([FromBody] Toggle2FaRequest request)
         {
             if (!ModelState.IsValid)
@@ -254,6 +261,7 @@ namespace ST_finance.Domain.Features.Authentication
 
         [Authorize]
         [HttpDelete("profile")]
+        [EnableRateLimiting("auth-sensitive")]
         public async Task<IActionResult> DeactivateAccount()
         {
             var userId = GetUserId();
