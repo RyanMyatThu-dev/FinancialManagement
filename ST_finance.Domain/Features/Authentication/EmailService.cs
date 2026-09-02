@@ -23,6 +23,7 @@ public class EmailService : IEmailService
             "EmailChangeCurrent" => "Verify security code to change your email",
             "EmailChangeNew" => "Confirm your new email address",
             "TwoFactor" => "Your ST-Finance verification code",
+            "TwoFactorToggle" => "Confirm your two-factor authentication change",
             "ForgotPassword" => "Reset your ST-Finance password",
             "PasswordChange" => "Confirm your password change request",
             _ => "Your ST-Finance verification code"
