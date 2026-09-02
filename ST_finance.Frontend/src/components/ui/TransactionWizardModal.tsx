@@ -49,6 +49,31 @@ interface TagType {
 const CATEGORY_PAGE_SIZE = 6;
 const TAG_PAGE_SIZE = 10;
 
+const getAccountTypeLabel = (type: string | number): string => {
+  switch (String(type)) {
+    case "1":
+    case "Bank":
+      return "Bank Account";
+    case "2":
+    case "EWallet":
+      return "Digital Wallet";
+    case "3":
+    case "TransitCard":
+      return "Transit Card";
+    case "4":
+    case "Cash":
+      return "Cash Pocket";
+    case "5":
+    case "Savings":
+      return "Savings";
+    case "6":
+    case "Credit":
+      return "Credit";
+    default:
+      return String(type || "Wallet");
+  }
+};
+
 export function TransactionWizardModal({ onClose, initialData }: TransactionWizardModalProps) {
   const { showToast } = useToast();
   const qc = useQueryClient();
@@ -106,7 +131,9 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
   const selectedAccount = accounts.find((a) => a.id === accountId) || accounts[0] || null;
   const currentNetBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
   const txAmount = parseFloat(amount) || 0;
-  const isInsufficientBalance = selectedAccount && transactionType === "Expense" ? txAmount > selectedAccount.balance : false;
+  const isInsufficientBalance = selectedAccount && (transactionType === "Expense" || transactionType === "Transfer")
+    ? txAmount > selectedAccount.balance
+    : false;
   const proposedNetBalance =
     transactionType === "Expense" ? currentNetBalance - txAmount :
     transactionType === "Income" ? currentNetBalance + txAmount :
@@ -248,6 +275,22 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
       return;
     }
     if (currentStep === 1) {
+      if (!accountId) {
+        setError("Please select a source account.");
+        return;
+      }
+      if (transactionType === "Transfer") {
+        if (!targetAccountId) {
+          setError("Please select a target account for transfer.");
+          return;
+        }
+        if (accountId === targetAccountId) {
+          setError("Source and Target accounts must be different.");
+          return;
+        }
+      }
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
       const parsedAmountVal = parseFloat(amount);
       if (isNaN(parsedAmountVal) || parsedAmountVal <= 0) {
         setError("Please enter a valid amount greater than 0.");
@@ -257,15 +300,12 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
         setError(`Amount exceeds balance of ${selectedAccount?.name} (${selectedAccount?.balance.toFixed(2)} ${currency}).`);
         return;
       }
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
-      if (!accountId) { setError("Please select a source account."); return; }
-      if (transactionType === "Transfer" && !targetAccountId) { setError("Please select a target account for transfer."); return; }
-      if (transactionType === "Transfer" && accountId === targetAccountId) { setError("Source and Target accounts must be different."); return; }
-      if (isInsufficientBalance) { setError(`Amount exceeds balance of ${selectedAccount?.name}.`); return; }
       setCurrentStep(3);
     } else if (currentStep === 3) {
-      if (!date) { setError("Please select a valid date."); return; }
+      if (!date) {
+        setError("Please select a valid date.");
+        return;
+      }
       setCurrentStep(4);
     }
   };
@@ -278,9 +318,11 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
   const handleSubmit = () => {
     setError(null);
     if (accounts.length === 0) { setError("No accounts created yet."); return; }
+    if (!accountId) { setError("Please select a source account."); return; }
+    if (transactionType === "Transfer" && !targetAccountId) { setError("Please select a target account for transfer."); return; }
+    if (transactionType === "Transfer" && accountId === targetAccountId) { setError("Source and Target accounts must be different."); return; }
     const parsedAmountVal = parseFloat(amount);
     if (isNaN(parsedAmountVal) || parsedAmountVal <= 0) { setError("Amount must be greater than zero."); return; }
-    if (!accountId) { setError("Please select a source account."); return; }
     if (isInsufficientBalance) { setError(`Amount exceeds balance of ${selectedAccount?.name}.`); return; }
     if (!date) { setError("Please select a valid date."); return; }
 
@@ -297,7 +339,7 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
     });
   };
 
-  const STEP_LABELS = ["Type & Amount", "Account & Category", "Details & Tags", "Review & Submit"];
+  const STEP_LABELS = ["Account & Type", "Amount & Category", "Details & Tags", "Review & Submit"];
 
   return (
     <ModalPortal>
@@ -421,13 +463,84 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
           ) : (
             <>
               {/* ═══════════════════════════════════════════════════════ */}
-              {/* STEP 1: Transaction Type & Amount                        */}
+              {/* STEP 1: Source Account & Transaction Type                */}
               {/* ═══════════════════════════════════════════════════════ */}
               {currentStep === 1 && (
-                <div className="space-y-5 py-2">
+                <div className="space-y-4 py-2">
+                  {/* Source Account Selection */}
+                  <div>
+                    <label className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Wallet className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
+                        {transactionType === "Income"
+                          ? "1. Receiving Account (Deposit To)"
+                          : "1. Source Account (Reducing / Spending From)"}
+                      </span>
+                      <span className="text-[10px] font-normal normal-case text-[hsl(var(--muted-foreground))] font-mono">
+                        Pick wallet
+                      </span>
+                    </label>
+
+                    <div
+                      role="radiogroup"
+                      aria-label="Select source wallet account"
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar"
+                    >
+                      {accounts.map((acc) => {
+                        const isSelected = accountId === acc.id;
+                        return (
+                          <button
+                            key={acc.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
+                            onClick={() => {
+                              setAccountId(acc.id);
+                              // A transfer cannot land back in its source, and the target
+                              // <select> filters this option out the moment it is chosen here.
+                              if (targetAccountId === acc.id) {
+                                setTargetAccountId("");
+                              }
+                              setError(null);
+                            }}
+                            className={`p-3 rounded-xl border flex flex-col justify-between text-left transition-all min-h-[72px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] group relative ${
+                              isSelected
+                                ? "bg-[hsl(var(--primary)/0.12)] border-[hsl(var(--primary))] text-[hsl(var(--primary))] shadow-sm"
+                                : "bg-[hsl(var(--secondary))] border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:border-[hsl(var(--primary)/0.4)]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between w-full mb-1">
+                              <span className="text-xs font-bold truncate pr-2 group-hover:text-[hsl(var(--primary))] transition-colors">
+                                {acc.name}
+                              </span>
+                              {isSelected ? (
+                                <span className="h-4 w-4 rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] flex items-center justify-center text-[10px] shrink-0">
+                                  <Check className="h-2.5 w-2.5" />
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-mono text-[hsl(var(--muted-foreground))] px-1.5 py-0.5 rounded bg-[hsl(var(--background))] border border-[hsl(var(--border))] shrink-0">
+                                  {getAccountTypeLabel(acc.accountType)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-baseline justify-between w-full">
+                              <span className="text-[10px] font-mono text-[hsl(var(--muted-foreground))]">
+                                Balance:
+                              </span>
+                              <span className="text-xs font-mono font-black tabular-nums">
+                                {formatCurrency(acc.balance, currency)}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Transaction Type */}
                   <div>
                     <p className="text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
-                      1. Transaction Type
+                      2. Transaction Type
                     </p>
                     <div className="grid grid-cols-3 gap-2" role="group" aria-label="Select transaction type">
                       {["Expense", "Income", "Transfer"].map((t) => {
@@ -437,7 +550,10 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
                             key={t}
                             type="button"
                             aria-pressed={isSelected}
-                            onClick={() => setTransactionType(t)}
+                            onClick={() => {
+                              setTransactionType(t);
+                              setError(null);
+                            }}
                             className={`py-3 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
                               isSelected
                                 ? t === "Expense"
@@ -455,9 +571,68 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
                     </div>
                   </div>
 
+                  {/* Target Account (for Transfer only) */}
+                  {transactionType === "Transfer" && (
+                    <div className="animate-fadeIn">
+                      <label htmlFor="wizard-target-account" className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
+                        3. Target Account (Receiving Funds)
+                      </label>
+                      <select
+                        id="wizard-target-account"
+                        value={targetAccountId}
+                        onChange={(e) => {
+                          setTargetAccountId(e.target.value);
+                          setError(null);
+                        }}
+                        className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                      >
+                        <option value="">Select receiving account...</option>
+                        {accounts
+                          .filter((a) => a.id !== accountId)
+                          .map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.name} ({formatCurrency(a.balance, currency)})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ═══════════════════════════════════════════════════════ */}
+              {/* STEP 2: Amount & Category                                */}
+              {/* ═══════════════════════════════════════════════════════ */}
+              {currentStep === 2 && (
+                <div className="space-y-4 py-2">
+                  {/* Selected Source Account Banner */}
+                  <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[hsl(var(--secondary))] border border-[hsl(var(--border))]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Wallet className="h-4 w-4 text-[hsl(var(--primary))] shrink-0" />
+                      <div className="min-w-0 text-xs font-mono">
+                        <span className="text-[hsl(var(--muted-foreground))]">
+                          {transactionType === "Income" ? "Depositing into: " : "Reducing from: "}
+                        </span>
+                        <strong className="text-[hsl(var(--foreground))] truncate">{selectedAccount?.name || "Account"}</strong>
+                        <span className="text-[hsl(var(--muted-foreground))]"> ({formatCurrency(selectedAccount?.balance || 0, currency)})</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentStep(1);
+                        setError(null);
+                      }}
+                      className="text-[10px] font-mono font-bold text-[hsl(var(--primary))] hover:underline shrink-0 ml-2 focus-visible:ring-1 focus-visible:ring-[hsl(var(--ring))] rounded"
+                    >
+                      Change
+                    </button>
+                  </div>
+
+                  {/* Amount Input */}
                   <div>
                     <label htmlFor={amountInputId} className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-2 font-mono">
-                      2. Amount ({currency})
+                      Amount ({currency})
                     </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-mono font-bold text-[hsl(var(--muted-foreground))]">
@@ -468,7 +643,10 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
                         {...numericInputProps}
                         required
                         value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
+                        onChange={(e) => {
+                          setAmount(e.target.value);
+                          setError(null);
+                        }}
                         placeholder="0.00"
                         className={`ds-input w-full pl-16 pr-4 py-3 text-2xl font-mono font-black min-h-[52px] focus-visible:ring-2 ${
                           isInsufficientBalance ? "border-[hsl(var(--destructive))] focus-visible:ring-[hsl(var(--destructive))]" : "focus-visible:ring-[hsl(var(--ring))]"
@@ -481,55 +659,6 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Exceeds balance of {selectedAccount.name} ({formatCurrency(selectedAccount.balance, currency)})
                       </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ═══════════════════════════════════════════════════════ */}
-              {/* STEP 2: Account & Category                               */}
-              {/* ═══════════════════════════════════════════════════════ */}
-              {currentStep === 2 && (
-                <div className="space-y-4 py-2">
-                  {/* Account selectors */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="wizard-source-account" className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                        {transactionType === "Transfer" ? "Source Account" : "Account"}
-                      </label>
-                      <select
-                        id="wizard-source-account"
-                        value={accountId}
-                        onChange={(e) => setAccountId(e.target.value)}
-                        className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-                      >
-                        {accounts.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.name} ({formatCurrency(a.balance, currency)})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {transactionType === "Transfer" && (
-                      <div>
-                        <label htmlFor="wizard-target-account" className="block text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-widest mb-1.5 font-mono">
-                          Target Account
-                        </label>
-                        <select
-                          id="wizard-target-account"
-                          value={targetAccountId}
-                          onChange={(e) => setTargetAccountId(e.target.value)}
-                          className="ds-input w-full px-3 py-2.5 text-sm min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-                        >
-                          <option value="">Select target...</option>
-                          {accounts.map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.name} ({formatCurrency(a.balance, currency)})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
                     )}
                   </div>
 
@@ -818,33 +947,6 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
                   {/* Review Card */}
                   <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.5)] divide-y divide-[hsl(var(--border))] overflow-hidden">
 
-                    {/* Type & Amount */}
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <div className="space-y-0.5">
-                        <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Type & Amount</p>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            transactionType === "Expense"
-                              ? "bg-[hsl(var(--destructive)/0.15)] text-[hsl(var(--destructive))]"
-                              : transactionType === "Income"
-                              ? "bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))]"
-                              : "bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))]"
-                          }`}>{transactionType}</span>
-                          <span className="text-base font-black font-mono">
-                            {formatCurrency(parseFloat(amount) || 0, currency)}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => { setCurrentStep(1); setError(null); }}
-                        className="text-[hsl(var(--primary))] hover:opacity-70 p-1.5 rounded-lg focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] min-h-[36px]"
-                        aria-label="Edit type and amount"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
                     {/* Account */}
                     <div className="flex items-center justify-between px-4 py-3">
                       <div className="space-y-0.5">
@@ -860,9 +962,36 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
                       </div>
                       <button
                         type="button"
+                        onClick={() => { setCurrentStep(1); setError(null); }}
+                        className="text-[hsl(var(--primary))] hover:opacity-70 p-1.5 rounded-lg focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] min-h-[36px]"
+                        aria-label="Edit account and transaction type"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Type & Amount */}
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-mono text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Amount</p>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            transactionType === "Expense"
+                              ? "bg-[hsl(var(--destructive)/0.15)] text-[hsl(var(--destructive))]"
+                              : transactionType === "Income"
+                              ? "bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))]"
+                              : "bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))]"
+                          }`}>{transactionType}</span>
+                          <span className="text-base font-black font-mono">
+                            {formatCurrency(parseFloat(amount) || 0, currency)}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
                         onClick={() => { setCurrentStep(2); setError(null); }}
                         className="text-[hsl(var(--primary))] hover:opacity-70 p-1.5 rounded-lg focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] min-h-[36px]"
-                        aria-label="Edit account"
+                        aria-label="Edit amount"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
@@ -988,7 +1117,11 @@ export function TransactionWizardModal({ onClose, initialData }: TransactionWiza
             <button
               type="button"
               onClick={validateAndNextStep}
-              disabled={accounts.length === 0 || (currentStep === 1 && isInsufficientBalance)}
+              disabled={
+                accounts.length === 0 ||
+                (currentStep === 1 && (!accountId || (transactionType === "Transfer" && (!targetAccountId || targetAccountId === accountId)))) ||
+                (currentStep === 2 && isInsufficientBalance)
+              }
               className="ds-btn-primary px-5 py-2.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase min-h-[44px] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
             >
               Next <ArrowRight className="h-4 w-4" />
