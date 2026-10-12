@@ -106,7 +106,7 @@ Scheduled and asynchronous delivery is at least once, so the database is the fin
 - Recurring transactions store `recurring_schedule_id` plus `recurring_occurrence_date` under a unique partial index.
 - A retry returns the transaction already created for that occurrence instead of adjusting balances again.
 - Daily quota logs retain the unique `(UserId, Date)` index and check for an existing row before insertion.
-- The jobs Lambda reserves concurrency at one; database constraints still protect against retries and manual overlapping invocations.
+- Database constraints protect against Scheduler retries and overlapping manual invocations.
 
 Production uses both Scheduler delivery retries and Lambda asynchronous retries. Exhausted events go to `st-finance-production-scheduled-jobs-dlq`, which has a 14-day retention period and a CloudWatch alarm when visible messages exceed zero.
 
