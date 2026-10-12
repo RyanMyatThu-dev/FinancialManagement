@@ -2,6 +2,12 @@
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "UseAwsServerlessTransform",
+      "Effect": "Allow",
+      "Action": "cloudformation:CreateChangeSet",
+      "Resource": "arn:aws:cloudformation:ap-southeast-1:aws:transform/Serverless-2016-10-31"
+    },
+    {
       "Sid": "ReadProductionDeploymentArtifacts",
       "Effect": "Allow",
       "Action": [
