@@ -74,7 +74,9 @@
         "apigateway:GET",
         "apigateway:PATCH",
         "apigateway:POST",
-        "apigateway:PUT"
+        "apigateway:PUT",
+        "apigateway:TagResource",
+        "apigateway:UntagResource"
       ],
       "Resource": [
         "arn:aws:apigateway:ap-southeast-1::/apis",
