@@ -1,11 +1,8 @@
 using Amazon.Lambda.AspNetCoreServer.Hosting;
-using Hangfire;
-using Hangfire.Dashboard;
-using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using ST_finance.Domain;
 using System.Threading.RateLimiting;
@@ -55,24 +52,20 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""
     });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings.GetValue<string>("SecretKey");
+if (string.IsNullOrWhiteSpace(secretKey))
+{
+    throw new InvalidOperationException(
+        "JwtSettings:SecretKey is required. Set JwtSettings__SecretKey in the runtime environment.");
+}
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -178,20 +171,6 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-var connectionString = builder.Configuration.GetConnectionString("DbConnection");
-builder.Services.AddHangfire(config => config
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
-
-// Hangfire server only runs locally. Lambda is stateless — it cannot host
-// a persistent background polling thread. Recurring jobs are handled separately.
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddHangfireServer();
-}
-
 builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
 
 builder.Services.AddExceptionHandler<ST_finance.Domain.GlobalExceptionHandler>();
@@ -227,7 +206,7 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -256,26 +235,15 @@ app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 
-// Hangfire dashboard and recurring jobs only register in local development.
-// In Lambda (Staging/Production), these are stateless invocations — there is
-// no persistent thread to process Hangfire queues.
-if (app.Environment.IsDevelopment())
+app.MapGet("/health", async (ST_finance.Database.Data.AppDbContext context, CancellationToken cancellationToken) =>
 {
-    app.UseHangfireDashboard("/hangfire", new DashboardOptions
-    {
-        Authorization = new[] { new ST_finance.Api.HangfireAuthorizationFilter() }
-    });
-
-    RecurringJob.AddOrUpdate<ST_finance.Domain.Features.Jobs.RecurringJobService>(
-        "ProcessRecurringSchedules",
-        job => job.ProcessRecurringSchedulesAsync(),
-        Cron.Hourly());
-
-    RecurringJob.AddOrUpdate<ST_finance.Domain.Features.Jobs.QuotaLoggingJob>(
-        "LogDailyQuotas",
-        job => job.LogDailyQuotasAsync(),
-        Cron.Daily(17));
-}
+    var databaseAvailable = await context.Database.CanConnectAsync(cancellationToken);
+    return databaseAvailable
+        ? Results.Ok(new { status = "healthy" })
+        : Results.Problem("The database is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
+})
+.AllowAnonymous()
+.DisableRateLimiting();
 
 app.MapControllers();
 

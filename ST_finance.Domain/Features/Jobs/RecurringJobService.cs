@@ -32,6 +32,7 @@ namespace ST_finance.Domain.Features.Jobs
 
             foreach (var schedule in dueSchedules)
             {
+                var occurrenceDate = schedule.NextOccurrenceDate;
                 var request = new TransactionRequest
                 {
                     AccountId = schedule.AccountId,
@@ -39,17 +40,19 @@ namespace ST_finance.Domain.Features.Jobs
                     CategoryId = schedule.CategoryId,
                     TransactionType = schedule.TransactionType,
                     IsRecurring = true,
-                    Date = now,
+                    Date = occurrenceDate,
                     Amount = schedule.Amount,
                     Description = $"[Recurring] {schedule.Name}",
-                    TagIds = null
+                    TagIds = null,
+                    RecurringScheduleId = schedule.Id,
+                    RecurringOccurrenceDate = occurrenceDate
                 };
 
                 var result = await _transactionService.CreateTransactionAsync(schedule.UserId, request);
                 if (result.IsSuccess)
                 {
                     schedule.LastTriggeredAt = now;
-                    schedule.NextOccurrenceDate = CalculateNextOccurrence(schedule.NextOccurrenceDate, schedule.Frequency);
+                    schedule.NextOccurrenceDate = CalculateNextOccurrence(occurrenceDate, schedule.Frequency);
                 }
                 else
                 {

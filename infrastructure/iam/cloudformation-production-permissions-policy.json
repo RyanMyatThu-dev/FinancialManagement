@@ -1,0 +1,148 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "UseAwsServerlessTransform",
+      "Effect": "Allow",
+      "Action": "cloudformation:CreateChangeSet",
+      "Resource": "arn:aws:cloudformation:ap-southeast-1:aws:transform/Serverless-2016-10-31"
+    },
+    {
+      "Sid": "ReadProductionDeploymentArtifacts",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::st-finance-production-deployments-079379901631-ap-southeast-1"
+    },
+    {
+      "Sid": "ReadProductionDeploymentObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion"
+      ],
+      "Resource": "arn:aws:s3:::st-finance-production-deployments-079379901631-ap-southeast-1/*"
+    },
+    {
+      "Sid": "ReadAndPassProductionLambdaExecutionRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:PassRole"
+      ],
+      "Resource": "arn:aws:iam::079379901631:role/st-finance/production/st-finance-production-lambda-execution-role",
+      "Condition": {
+        "StringEqualsIfExists": {
+          "iam:PassedToService": "lambda.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "ManageProductionLambdaFunction",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:AddPermission",
+        "lambda:CreateFunction",
+        "lambda:DeleteFunction",
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:GetFunctionConcurrency",
+        "lambda:GetFunctionEventInvokeConfig",
+        "lambda:GetPolicy",
+        "lambda:ListTags",
+        "lambda:ListVersionsByFunction",
+        "lambda:PublishVersion",
+        "lambda:RemovePermission",
+        "lambda:TagResource",
+        "lambda:UntagResource",
+        "lambda:DeleteFunctionConcurrency",
+        "lambda:DeleteFunctionEventInvokeConfig",
+        "lambda:PutFunctionConcurrency",
+        "lambda:PutFunctionEventInvokeConfig",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration"
+      ],
+      "Resource": "arn:aws:lambda:ap-southeast-1:079379901631:function:st-finance-prod-stack-*"
+    },
+    {
+      "Sid": "ManageProductionHttpApiResources",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:DELETE",
+        "apigateway:GET",
+        "apigateway:PATCH",
+        "apigateway:POST",
+        "apigateway:PUT",
+        "apigateway:TagResource",
+        "apigateway:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:apigateway:ap-southeast-1::/apis",
+        "arn:aws:apigateway:ap-southeast-1::/apis/*",
+        "arn:aws:apigateway:ap-southeast-1::/tags/*"
+      ]
+    },
+    {
+      "Sid": "ManageProductionSchedulerExecutionRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:DeleteRolePolicy",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
+        "iam:ListRolePolicies",
+        "iam:PassRole",
+        "iam:PutRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:UpdateAssumeRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::079379901631:role/st-finance/scheduler/production/st-finance-production-scheduler-execution-role"
+    },
+    {
+      "Sid": "ManageProductionSchedules",
+      "Effect": "Allow",
+      "Action": [
+        "scheduler:CreateSchedule",
+        "scheduler:DeleteSchedule",
+        "scheduler:GetSchedule",
+        "scheduler:UpdateSchedule"
+      ],
+      "Resource": "arn:aws:scheduler:ap-southeast-1:079379901631:schedule/default/st-finance-production-*"
+    },
+    {
+      "Sid": "ManageProductionScheduledJobsDeadLetterQueue",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:AddPermission",
+        "sqs:CreateQueue",
+        "sqs:DeleteQueue",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ListQueueTags",
+        "sqs:RemovePermission",
+        "sqs:SetQueueAttributes",
+        "sqs:TagQueue",
+        "sqs:UntagQueue"
+      ],
+      "Resource": "arn:aws:sqs:ap-southeast-1:079379901631:st-finance-production-scheduled-jobs-dlq"
+    },
+    {
+      "Sid": "ManageProductionScheduledJobsAlarm",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:DeleteAlarms",
+        "cloudwatch:DescribeAlarms",
+        "cloudwatch:PutMetricAlarm",
+        "cloudwatch:TagResource",
+        "cloudwatch:UntagResource"
+      ],
+      "Resource": "arn:aws:cloudwatch:ap-southeast-1:079379901631:alarm:st-finance-production-scheduled-jobs-dlq-not-empty"
+    }
+  ]
+}

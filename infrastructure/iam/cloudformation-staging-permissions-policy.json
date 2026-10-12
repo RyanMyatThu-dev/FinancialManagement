@@ -1,0 +1,85 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "UseAwsServerlessTransform",
+      "Effect": "Allow",
+      "Action": "cloudformation:CreateChangeSet",
+      "Resource": "arn:aws:cloudformation:ap-southeast-1:aws:transform/Serverless-2016-10-31"
+    },
+    {
+      "Sid": "ReadStagingDeploymentArtifacts",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::st-finance-staging-deployments-079379901631-ap-southeast-1"
+    },
+    {
+      "Sid": "ReadStagingDeploymentObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion"
+      ],
+      "Resource": "arn:aws:s3:::st-finance-staging-deployments-079379901631-ap-southeast-1/*"
+    },
+    {
+      "Sid": "ReadAndPassStagingLambdaExecutionRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:PassRole"
+      ],
+      "Resource": "arn:aws:iam::079379901631:role/st-finance/staging/st-finance-staging-lambda-execution-role",
+      "Condition": {
+        "StringEqualsIfExists": {
+          "iam:PassedToService": "lambda.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "ManageStagingLambdaFunction",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:AddPermission",
+        "lambda:CreateFunction",
+        "lambda:DeleteFunction",
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:GetPolicy",
+        "lambda:GetFunctionConcurrency",
+        "lambda:ListTags",
+        "lambda:ListVersionsByFunction",
+        "lambda:PublishVersion",
+        "lambda:RemovePermission",
+        "lambda:TagResource",
+        "lambda:UntagResource",
+        "lambda:DeleteFunctionConcurrency",
+        "lambda:PutFunctionConcurrency",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration"
+      ],
+      "Resource": "arn:aws:lambda:ap-southeast-1:079379901631:function:st-finance-staging-stack-*"
+    },
+    {
+      "Sid": "ManageStagingHttpApiResources",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:DELETE",
+        "apigateway:GET",
+        "apigateway:PATCH",
+        "apigateway:POST",
+        "apigateway:PUT",
+        "apigateway:TagResource",
+        "apigateway:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:apigateway:ap-southeast-1::/apis",
+        "arn:aws:apigateway:ap-southeast-1::/apis/*",
+        "arn:aws:apigateway:ap-southeast-1::/tags/*"
+      ]
+    }
+  ]
+}

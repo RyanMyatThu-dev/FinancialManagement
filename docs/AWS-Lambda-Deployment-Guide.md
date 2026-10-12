@@ -1,122 +1,199 @@
-# AWS Lambda Serverless Deployment & Hosting Manual
+# AWS Lambda Deployment and Operations Guide
 
-This document is the master operational guide for hosting the **Student Financial Management Web API** on a cost-optimized, secure, and auto-scaling AWS serverless architecture. It explains the mechanics, steps, security models, and rationale behind each resource.
+This repository deploys the FinancialManagement backend into one AWS account (`079379901631`) in `ap-southeast-1`, with separate staging and production resources.
 
----
-
-## 🏛️ 1. Architecture Overview (What & Why)
-
-Rather than running a traditional virtual server (like EC2) which bills you 24/7 even when idle, this application uses a fully serverless architecture.
+## Architecture
 
 ```mermaid
-graph LR
-    Vercel[Vercel Frontend] -->|HTTPS 443| APIGW[API Gateway - HTTP API]
-    APIGW -->|Proxy Payload| Lambda[AWS Lambda - ASP.NET Core API]
-    Lambda -->|Port 5432| Supabase[(Supabase DB)]
+flowchart LR
+    GitHub[GitHub Actions] -->|OIDC temporary credentials| DeployRole[Environment deployer role]
+    DeployRole --> S3[Environment deployment bucket]
+    DeployRole --> CFN[CloudFormation stack]
+    CFN --> Api[ASP.NET Core API Lambda]
+    CFN --> Worker[Scheduled jobs Lambda]
+    APIGW[API Gateway HTTP API] --> Api
+    Api --> Supabase[(Supabase PostgreSQL)]
+    Scheduler[EventBridge Scheduler production only] -->|IAM invoke| Worker
+    Worker --> Supabase
+    Scheduler -->|delivery failures| DLQ[SQS dead-letter queue]
+    Worker -->|async failures| DLQ
+    DLQ --> Alarm[CloudWatch alarm]
 ```
 
-### Component Breakdown:
-*   **Vercel (Frontend)**: Native Next.js hosting. Direct Git-trigger deployments.
-*   **Amazon API Gateway (HTTP API)**: The front door. Receives public requests, maps routing, terminates HTTPS, and invokes the Lambda function.
-*   **AWS Lambda (Backend)**: Event-driven execution. Spins up microVMs on demand to process API controllers, then freezes them when complete.
-*   **Supabase (Database)**: Cloud-hosted PostgreSQL. Managed outside AWS to leverage its free tier and connection pooling tools (Supavisor).
+S3 stores deployment artifacts; it does not serve runtime requests. API Gateway invokes the API Lambda. EventBridge Scheduler directly invokes the jobs Lambda and never calls a public controller.
 
----
+## Responsibility Boundaries
 
-## 🔐 2. Identity & Security Strategy (How & Why)
+- **GitHub OIDC deployer role**: reads only its environment's SSM configuration, uploads artifacts to its bucket, and requests updates to its stack.
+- **CloudFormation service role**: creates and updates resources for its environment. Production additionally manages Scheduler, SQS, the Scheduler execution role, and the DLQ alarm.
+- **Lambda execution role**: writes CloudWatch logs. The production role can also send exhausted asynchronous job invocations to the production DLQ.
+- **Scheduler execution role**: exists only in production and can invoke only the production jobs Lambda and send delivery failures to its DLQ.
 
-We adhere strictly to the **Principle of Least Privilege** and separate dev credentials from production roles.
+This separation is least privilege: deployment, infrastructure management, runtime code, and scheduling do not share one all-powerful identity.
 
-### A. Local developer IAM User (`st-finance-dev`)
-*   **What it is**: A dedicated user account in your AWS IAM registry.
-*   **Why**: Separates this project's security boundary from your Root account and other future projects. If credentials are leaked, only this user's scope is affected.
-*   **How it works**: Local CLI commands sign requests using Access Keys linked to this user's policies.
+## Environment Resources
 
-### B. GitHub Actions OIDC Deployer (`github-actions-lambda-deployer`)
-*   **What it is**: An IAM Role that permits GitHub Actions runners to authenticate without storing permanent passwords/keys in GitHub Secrets.
-*   **Why**: Traditional access keys in GitHub Secrets can be stolen if the repository is compromised. **OpenID Connect (OIDC)** uses temporary, short-lived security tokens.
-*   **How it works**: AWS trusts GitHub's authentication authority. GitHub Actions presents a JWT to AWS, and AWS STS returns temporary credentials that expire automatically after the build.
+| Purpose | Staging | Production |
+| --- | --- | --- |
+| Stack | `st-finance-staging-stack` | `st-finance-prod-stack` |
+| Artifact bucket | `st-finance-staging-deployments-079379901631-ap-southeast-1` | `st-finance-production-deployments-079379901631-ap-southeast-1` |
+| Database parameter | `/st-finance/staging/db-connection` | `/st-finance/production/db-connection` |
+| JWT parameter | `/st-finance/staging/jwt-secret` | `/st-finance/production/jwt-secret` |
+| Automatic schedules | None | Hourly recurring processing and daily quota logging |
 
-### C. Lambda Execution Role (`st-finance-lambda-execution-role`)
-*   **What it is**: An IAM role assumed by the Lambda function itself when it runs your code.
-*   **Why**: Lambda needs explicit permission to perform system-level tasks (like writing logs to CloudWatch).
-*   **How it works**: Locked down with only the `AWSLambdaBasicExecutionRole` policy. The deployer role uses `iam:PassRole` to assign this execution role to the Lambda function.
+The jobs Lambda is deployed to both environments so staging can be invoked manually, but Scheduler resources are guarded by the CloudFormation `IsProduction` condition.
 
----
+The staging API exposes Scalar at `/scalar/v1` for integration testing. API documentation remains disabled in production.
 
-## 📦 3. S3 Deployment Staging Bucket (What & Why)
+## Secure Configuration Flow
 
-During deployment, we package our API into a ZIP file. Because AWS CloudFormation cannot build directly from your local computer, we use a private S3 staging bucket: **`st-finance-deployments-ryan-2026`**.
+The workflows retrieve SSM `SecureString` values after assuming the environment's OIDC role:
 
-### Security & Cost Controls:
-*   **Block Public Access**: (What & Why) All public reads/writes are blocked. Only CloudFormation and your authenticated CLI have permission to read this bucket, keeping your compiled C# code secure.
-*   **7-Day Lifecycle Expiration**: (What & Why) S3 charges for storage capacity. Since these ZIP packages are only needed during the deployment process, we configure a Lifecycle Rule that **automatically deletes files after 7 days**, ensuring your staging costs remain exactly **$0.00**.
-
----
-
-## 🛠️ 4. Code & Configuration Setup (How)
-
-The .NET 8 Web API is configured to run seamlessly both locally (via Kestrel) and in the cloud (via Lambda).
-
-### A. Project References (`ST_finance.Api.csproj`)
-We use the official AWS hosting wrapper package:
-```xml
-<PackageReference Include="Amazon.Lambda.AspNetCoreServer.Hosting" Version="2.1.0" />
+```text
+SSM SecureString
+  -> GitHub runner retrieves and masks value
+  -> EF Core uses database value for migrations
+  -> value is passed as a NoEcho CloudFormation parameter
+  -> CloudFormation injects a Lambda environment variable
 ```
 
-### B. Bootstrap Wrapper (`Program.cs`)
-The API detects if it is running in AWS Lambda and acts accordingly:
-```csharp
-builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
-```
+The repository and GitHub settings never contain database passwords or JWT signing keys. A PostgreSQL URI is accepted; `PostgresConnectionString.Normalize` converts it to Npgsql's key/value format.
 
-### C. Git-Safe Configuration (`appsettings.json` vs. Environment Variables)
-*   **Local development**: Dev secrets are stored in `appsettings.Development.json` (ignored by Git).
-*   **Production/Staging**: `appsettings.json` contains no secrets. Connection strings and signing keys are injected securely at runtime via **Lambda Environment Variables**:
-    *   `ASPNETCORE_ENVIRONMENT` = `Staging`
-    *   `ConnectionStrings__DbConnection` = `[Supabase connection string]`
-    *   `JwtSettings__SecretKey` = `[JWT secret key]`
+Verify parameter metadata without decrypting values:
 
----
-
-## 🚀 5. Command-Line Deployment Manual (How)
-
-Use these commands to build, upload, and deploy your serverless stack:
-
-### A. Prerequisite: Create the S3 Bucket (Already Done)
-To create the bucket, block public access, and attach the 7-day lifecycle rule:
 ```bash
-# Create the bucket in Singapore
-aws s3api create-bucket --bucket st-finance-deployments-ryan-2026 --region ap-southeast-1 --create-bucket-configuration LocationConstraint=ap-southeast-1
-
-# Block public access
-aws s3api put-public-access-block --bucket st-finance-deployments-ryan-2026 --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
-
-# Apply the 7-day deletion rule
-aws s3api put-bucket-lifecycle-configuration --bucket st-finance-deployments-ryan-2026 --lifecycle-configuration '{"Rules":[{"ID":"DeleteOldDeployments","Status":"Enabled","Filter":{"Prefix":""},"Expiration":{"Days":7}}]}'
+AWS_PROFILE=ryan-admin AWS_REGION=ap-southeast-1 \
+aws ssm describe-parameters \
+  --parameter-filters 'Key=Name,Option=BeginsWith,Values=/st-finance/' \
+  --query 'Parameters[].{Name:Name,Type:Type,Version:Version}' \
+  --output table
 ```
 
-### B. Database Migrations
-**Important:** The API no longer applies Entity Framework migrations automatically on Lambda cold start (they are gated to Development only). This prevents race conditions when multiple Lambda instances start concurrently.
+Update a database parameter without placing the connection string in shell history:
 
-**Automated (CI):** The `deploy-staging.yml` and `deploy-prod.yml` GitHub Actions workflows run `dotnet ef database update --project ST_finance.Database --startup-project ST_finance.Api` as a dedicated step immediately after AWS credentials are configured and before the Lambda stack is deployed. This guarantees schema changes are applied exactly once, against the correct environment's database, before any new Lambda instance can start handling requests. The step authenticates via the `ASPNETCORE_ENVIRONMENT` and `ConnectionStrings__DbConnection` environment variables, sourced from a `DB_CONNECTION` secret scoped to each GitHub Environment (`staging` and `Production` respectively — same convention as the existing `AWS_ROLE_TO_ASSUME` secret). Add it under **Settings → Environments → \<staging|Production\> → Secrets**, using the same Supabase connection string already used for `ConnectionStrings__DbConnection` in that environment's Lambda config.
-
-**Local/manual override:** For cases outside CI (e.g. a hotfix deployed directly from a developer machine), you can run the same migration command locally against the target database:
 ```bash
-dotnet ef database update --project ST_finance.Database --startup-project ST_finance.Api
+export AWS_PROFILE=ryan-admin
+export AWS_REGION=ap-southeast-1
+read -rsp 'Paste the complete PostgreSQL connection string: ' DB_CONNECTION
+echo
+aws ssm put-parameter \
+  --name /st-finance/staging/db-connection \
+  --type SecureString \
+  --value "$DB_CONNECTION" \
+  --overwrite \
+  --no-cli-pager
+unset DB_CONNECTION
 ```
-Set the `ASPNETCORE_ENVIRONMENT` and `ConnectionStrings__DbConnection` environment variables appropriately for your target environment (Staging or Production) before running this command.
 
-### C. Deploy the Serverless Stack
-Run this command from the `ST_finance.Api/` directory to deploy:
+Replace `staging` with `production` for the production parameter. Do not paste either value into chat, source files, or GitHub settings.
+
+## Scheduled Job Contract
+
+The production schedules send one of these events to `ScheduledJobsFunction`:
+
+```json
+{ "job": "ProcessRecurringSchedules" }
+```
+
+```json
+{ "job": "LogDailyQuotas" }
+```
+
+`ScheduledJobDispatcher` selects the domain service. Unknown commands throw so failures remain visible to Lambda retry and DLQ handling.
+
+### Delivery and Idempotency
+
+Scheduled and asynchronous delivery is at least once, so the database is the final duplicate-prevention boundary:
+
+- Recurring transactions store `recurring_schedule_id` plus `recurring_occurrence_date` under a unique partial index.
+- A retry returns the transaction already created for that occurrence instead of adjusting balances again.
+- Daily quota logs retain the unique `(UserId, Date)` index and check for an existing row before insertion.
+- Database constraints protect against Scheduler retries and overlapping manual invocations.
+
+Production uses both Scheduler delivery retries and Lambda asynchronous retries. Exhausted events go to `st-finance-production-scheduled-jobs-dlq`, which has a 14-day retention period and a CloudWatch alarm when visible messages exceed zero.
+
+## CI/CD Sequence
+
+The staging and production workflows perform the same controlled sequence:
+
+1. Check out code and install .NET 10.
+2. Restore and run tests.
+3. Assume the environment's AWS role through GitHub OIDC.
+4. Read and mask the database and JWT SSM parameters.
+5. Apply EF Core migrations before new code is deployed.
+6. Package the API artifact and upload it to the environment bucket.
+7. Ask CloudFormation to create or update the stack with its service role.
+8. Read the `ApiURL` stack output and call `/health` to verify Lambda-to-Supabase connectivity.
+
+Staging runs from the `staging` branch. Production runs from `main` and should retain GitHub Environment approval protection.
+
+## Manual Validation Commands
+
 ```bash
-cd ST_finance.Api
-dotnet lambda deploy-serverless --s3-bucket st-finance-deployments-ryan-2026
+dotnet restore ST_finance.slnx
+dotnet build ST_finance.slnx --no-restore
+dotnet test ST_finance.UnitTests/ST_finance.UnitTests.csproj --no-restore
+
+aws cloudformation validate-template \
+  --profile ryan-admin \
+  --region ap-southeast-1 \
+  --template-body file://ST_finance.Api/serverless.template
 ```
-*(This uses the `serverless.template` to package the code, upload it to `st-finance-deployments-ryan-2026`, and spin up the Lambda function and API Gateway.)*
 
----
+After a successful deployment, obtain the API URLs:
 
-*Related links:*
-- [[Environments]]
-- [[Architecture-Design]]
+```bash
+aws cloudformation describe-stacks \
+  --profile ryan-admin \
+  --region ap-southeast-1 \
+  --stack-name st-finance-staging-stack \
+  --query 'Stacks[0].Outputs[?OutputKey==`ApiURL`].OutputValue | [0]' \
+  --output text
+
+aws cloudformation describe-stacks \
+  --profile ryan-admin \
+  --region ap-southeast-1 \
+  --stack-name st-finance-prod-stack \
+  --query 'Stacks[0].Outputs[?OutputKey==`ApiURL`].OutputValue | [0]' \
+  --output text
+```
+
+Set each returned URL as the appropriate Vercel `NEXT_PUBLIC_API_URL` value.
+
+## Operations
+
+Manually test a staging worker command after deployment:
+
+```bash
+FUNCTION_NAME=$(aws cloudformation describe-stack-resource \
+  --profile ryan-admin \
+  --region ap-southeast-1 \
+  --stack-name st-finance-staging-stack \
+  --logical-resource-id ScheduledJobsFunction \
+  --query 'StackResourceDetail.PhysicalResourceId' \
+  --output text)
+
+aws lambda invoke \
+  --profile ryan-admin \
+  --region ap-southeast-1 \
+  --function-name "$FUNCTION_NAME" \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"job":"LogDailyQuotas"}' \
+  /tmp/st-finance-job-response.json
+```
+
+Inspect production schedule state:
+
+```bash
+aws scheduler get-schedule \
+  --profile ryan-admin \
+  --region ap-southeast-1 \
+  --name st-finance-production-process-recurring-schedules
+
+aws scheduler get-schedule \
+  --profile ryan-admin \
+  --region ap-southeast-1 \
+  --name st-finance-production-log-daily-quotas
+```
+
+If the DLQ alarm enters `ALARM`, inspect the message before redriving or deleting it. A DLQ entry means all configured delivery or function retries were exhausted.

@@ -124,5 +124,45 @@ namespace ST_finance.UnitTests
             Assert.NotNull(tx);
             Assert.Equal(100m, tx!.Amount);
         }
+
+        [Fact]
+        public async Task ProcessRecurringSchedules_WhenOccurrenceIsRetried_DoesNotDuplicateTransactionOrBalanceChange()
+        {
+            var occurrenceDate = DateTime.UtcNow.AddHours(-1);
+            var schedule = new TblRecurringSchedule
+            {
+                Id = Guid.NewGuid(),
+                UserId = _userId,
+                AccountId = _accountId,
+                Name = "Retry-safe allowance",
+                Amount = 100m,
+                TransactionType = "Income",
+                Frequency = "Daily",
+                StartDate = occurrenceDate,
+                NextOccurrenceDate = occurrenceDate,
+                DeleteFlag = false
+            };
+            _context.TblRecurringSchedules.Add(schedule);
+            await _context.SaveChangesAsync();
+
+            await _jobService.ProcessRecurringSchedulesAsync();
+
+            schedule.NextOccurrenceDate = occurrenceDate;
+            schedule.LastTriggeredAt = null;
+            await _context.SaveChangesAsync();
+
+            await _jobService.ProcessRecurringSchedulesAsync();
+
+            var recurringTransactions = await _context.TblTransactions
+                .Where(transaction =>
+                    transaction.RecurringScheduleId == schedule.Id &&
+                    transaction.RecurringOccurrenceDate == occurrenceDate)
+                .ToListAsync();
+            var account = await _context.TblAccounts.FindAsync(_accountId);
+
+            Assert.Single(recurringTransactions);
+            Assert.Equal(10100m, account!.Balance);
+            Assert.Equal(occurrenceDate.AddDays(1), schedule.NextOccurrenceDate);
+        }
     }
 }

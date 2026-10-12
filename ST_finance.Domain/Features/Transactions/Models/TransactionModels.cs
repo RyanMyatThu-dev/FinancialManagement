@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ST_finance.Domain.Features.Transactions.Models
 {
@@ -15,6 +16,12 @@ namespace ST_finance.Domain.Features.Transactions.Models
         public decimal Amount { get; set; }
         public string? Description { get; set; }
         public List<Guid>? TagIds { get; set; }
+
+        [JsonIgnore]
+        public Guid? RecurringScheduleId { get; set; }
+
+        [JsonIgnore]
+        public DateTime? RecurringOccurrenceDate { get; set; }
     }
 
     public class TransactionResponse

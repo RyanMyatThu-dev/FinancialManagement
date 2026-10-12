@@ -20,11 +20,11 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # 2. Setup .NET 8.0 SDK
+    # 2. Setup .NET 10.0 SDK
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '10.0.x'
 
     # 3. Restore dependencies & Run Unit Tests
     - name: Restore & Test
@@ -34,36 +34,87 @@ jobs:
 
     # 4. Install AWS Lambda Global CLI Tooling
     - name: Install AWS Lambda Tools
-      run: dotnet tool install -g Amazon.Lambda.Tools
+      run: dotnet tool install -g Amazon.Lambda.Tools --version 7.0.0
 
     # 5. Configure AWS Credentials using Secure OIDC (No permanent keys)
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
         aws-region: ap-southeast-1
         audience: sts.amazonaws.com
 
-    # 6. Apply pending EF Core migrations before deploying new code
-    # Requires an Environment secret named DB_CONNECTION on the "Production"
-    # GitHub Environment (Settings -> Environments -> Production -> Secrets),
-    # holding the same Supabase connection string used for
-    # ConnectionStrings__DbConnection in the Lambda config.
+    # 6. Retrieve environment configuration from SSM using the OIDC role.
+    - name: Load and Mask Runtime Configuration
+      shell: bash
+      run: |
+        set -euo pipefail
+        DB_CONNECTION="$(aws ssm get-parameter \
+          --name /st-finance/production/db-connection \
+          --with-decryption \
+          --query 'Parameter.Value' \
+          --output text)"
+        JWT_SECRET_KEY="$(aws ssm get-parameter \
+          --name /st-finance/production/jwt-secret \
+          --with-decryption \
+          --query 'Parameter.Value' \
+          --output text)"
+
+        if [[ "$DB_CONNECTION" != postgresql://* && "$DB_CONNECTION" != postgres://* ]]; then
+          echo "::error::The production SSM database parameter must be a PostgreSQL URI."
+          exit 1
+        fi
+        if (( ${#JWT_SECRET_KEY} < 32 )); then
+          echo "::error::The production JWT signing key must contain at least 32 characters."
+          exit 1
+        fi
+
+        echo "::add-mask::$DB_CONNECTION"
+        echo "::add-mask::$JWT_SECRET_KEY"
+        echo "DB_CONNECTION=$DB_CONNECTION" >> "$GITHUB_ENV"
+        echo "JWT_SECRET_KEY=$JWT_SECRET_KEY" >> "$GITHUB_ENV"
+
+    # 7. Apply pending EF Core migrations before deploying new code.
     - name: Apply Database Migrations
       env:
         ASPNETCORE_ENVIRONMENT: Production
-        ConnectionStrings__DbConnection: ${{ secrets.DB_CONNECTION }}
+        ConnectionStrings__DbConnection: ${{ env.DB_CONNECTION }}
+        JwtSettings__SecretKey: ${{ env.JWT_SECRET_KEY }}
       run: |
-        dotnet tool install --global dotnet-ef
+        dotnet tool install --global dotnet-ef --version 10.0.12
         dotnet ef database update --project ST_finance.Database --startup-project ST_finance.Api
 
-    # 7. Deploy to Production Lambda Stack
+    # 8. Deploy the API, jobs worker, and production-only Scheduler resources.
     - name: Deploy API to Production Lambda
       run: |
         cd ST_finance.Api
         dotnet lambda deploy-serverless \
           --stack-name st-finance-prod-stack \
-          --s3-bucket ${{ secrets.AWS_DEPLOYMENT_S3_BUCKET }}
+          --s3-bucket ${{ vars.AWS_DEPLOYMENT_S3_BUCKET }} \
+          --cloudformation-role ${{ vars.AWS_CLOUDFORMATION_ROLE_ARN }} \
+          --template-parameters "Environment=production;LambdaExecutionRoleArn=${{ vars.AWS_LAMBDA_EXECUTION_ROLE_ARN }};DatabaseConnection=$DB_CONNECTION;JwtSecretKey=$JWT_SECRET_KEY" \
+          --tags "Project=FinancialManagement;Environment=production;ManagedBy=GitHubActions" \
+          --disable-interactive true
 
+    # 9. Resolve the stack output and verify Lambda can reach the production database.
+    - name: Verify Production API
+      shell: bash
+      run: |
+        set -euo pipefail
+        API_URL="$(aws cloudformation describe-stacks \
+          --stack-name st-finance-prod-stack \
+          --query 'Stacks[0].Outputs[?OutputKey==`ApiURL`].OutputValue | [0]' \
+          --output text)"
 
+        for attempt in {1..12}; do
+          if curl --fail --silent --show-error "${API_URL}health"; then
+            echo
+            echo "### Production API" >> "$GITHUB_STEP_SUMMARY"
+            echo "$API_URL" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          sleep 5
+        done
 
+        echo "Production health check failed after 60 seconds." >&2
+        exit 1
