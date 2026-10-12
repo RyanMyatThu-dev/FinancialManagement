@@ -16,11 +16,19 @@ public static class FeatureManager
 {
     public static void AddDomain(this WebApplicationBuilder builder)
     {
-        var connectionString = builder.Configuration.GetConnectionString("DbConnection");
-        builder.Services.AddDbContext<AppDbContext>(options =>
+        builder.Services.AddDomainServices(builder.Configuration);
+    }
+
+    public static IServiceCollection AddDomainServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var connectionString = PostgresConnectionString.Normalize(
+            configuration.GetConnectionString("DbConnection"));
+        services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 
-        builder.Services.AddIdentityCore<TblUser>(options =>
+        services.AddIdentityCore<TblUser>(options =>
         {
             options.Password.RequireDigit = true;
             options.Password.RequiredLength = 6;
@@ -32,27 +40,30 @@ public static class FeatureManager
         .AddRoles<IdentityRole<Guid>>()
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
-        var gmail = builder.Configuration.GetSection("Gmail");
+        var gmail = configuration.GetSection("Gmail");
         var smtpHost = gmail["SmtpHost"] ?? "smtp.gmail.com";
         var username = gmail["Username"] ?? "[EMAIL_ADDRESS]";
         var password = gmail["Password"] ?? "";
         var fromEmail = gmail["FromEmail"] ?? "[EMAIL_ADDRESS]";
 
-        builder.Services.AddFluentEmail(fromEmail)
-                        .AddSmtpSender(smtpHost, 587, username, password);
+        services.AddFluentEmail(fromEmail)
+                .AddSmtpSender(smtpHost, 587, username, password);
 
-        builder.Services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IEmailService, EmailService>();
 
-        builder.Services.AddScoped<IAuthService, AuthService>();
-        builder.Services.AddScoped<ITokenService, TokenService>();
-        builder.Services.AddScoped<IAccountService, AccountService>();
-        builder.Services.AddScoped<ITransactionService, TransactionService>();
-        builder.Services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
-        builder.Services.AddScoped<ST_finance.Domain.Features.Jobs.IRecurringJobService, ST_finance.Domain.Features.Jobs.RecurringJobService>();
-        builder.Services.AddScoped<ST_finance.Domain.Features.SavingsGoals.ISavingsGoalService, ST_finance.Domain.Features.SavingsGoals.SavingsGoalService>();
-        builder.Services.AddScoped<ST_finance.Domain.Features.Dashboard.IDashboardService, ST_finance.Domain.Features.Dashboard.DashboardService>();
-        builder.Services.AddScoped<ST_finance.Domain.Features.Jobs.IQuotaLoggingJob, ST_finance.Domain.Features.Jobs.QuotaLoggingJob>();
-        builder.Services.AddScoped<ST_finance.Domain.Features.Budgets.IBudgetService, ST_finance.Domain.Features.Budgets.BudgetService>();
-        builder.Services.AddScoped<ST_finance.Domain.Features.Reports.IReportService, ST_finance.Domain.Features.Reports.ReportService>();
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<ITransactionService, TransactionService>();
+        services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
+        services.AddScoped<Features.Jobs.IRecurringJobService, Features.Jobs.RecurringJobService>();
+        services.AddScoped<Features.Jobs.IScheduledJobDispatcher, Features.Jobs.ScheduledJobDispatcher>();
+        services.AddScoped<Features.SavingsGoals.ISavingsGoalService, Features.SavingsGoals.SavingsGoalService>();
+        services.AddScoped<Features.Dashboard.IDashboardService, Features.Dashboard.DashboardService>();
+        services.AddScoped<Features.Jobs.IQuotaLoggingJob, Features.Jobs.QuotaLoggingJob>();
+        services.AddScoped<Features.Budgets.IBudgetService, Features.Budgets.BudgetService>();
+        services.AddScoped<Features.Reports.IReportService, Features.Reports.ReportService>();
+
+        return services;
     }
 }

@@ -231,6 +231,17 @@ namespace ST_finance.Domain.Features.Transactions
                 return Result.Failure<TransactionResponse>(CustomErrors.Transaction.NegativeAmount);
             }
 
+            if (request.RecurringScheduleId.HasValue && request.RecurringOccurrenceDate.HasValue)
+            {
+                var existingRecurringTransaction = await FindRecurringTransactionAsync(
+                    request.RecurringScheduleId.Value,
+                    request.RecurringOccurrenceDate.Value);
+                if (existingRecurringTransaction != null)
+                {
+                    return Result.Success(MapToResponse(existingRecurringTransaction));
+                }
+            }
+
             // Validate Category if provided
             if (request.CategoryId.HasValue)
             {
@@ -271,6 +282,8 @@ namespace ST_finance.Domain.Features.Transactions
                     CategoryId = request.CategoryId,
                     TransactionType = request.TransactionType,
                     IsRecurringCreated = request.IsRecurring,
+                    RecurringScheduleId = request.RecurringScheduleId,
+                    RecurringOccurrenceDate = request.RecurringOccurrenceDate,
                     Date = request.Date,
                     Amount = request.Amount,
                     Description = request.Description,
@@ -298,11 +311,37 @@ namespace ST_finance.Domain.Features.Transactions
 
                 return Result.Success(MapToResponse(transaction));
             }
+            catch (DbUpdateException) when (
+                request.RecurringScheduleId.HasValue && request.RecurringOccurrenceDate.HasValue)
+            {
+                await transactionScope.RollbackAsync();
+                _context.ChangeTracker.Clear();
+
+                var existingRecurringTransaction = await FindRecurringTransactionAsync(
+                    request.RecurringScheduleId.Value,
+                    request.RecurringOccurrenceDate.Value);
+                if (existingRecurringTransaction != null)
+                {
+                    return Result.Success(MapToResponse(existingRecurringTransaction));
+                }
+
+                throw;
+            }
             catch
             {
                 await transactionScope.RollbackAsync();
                 throw;
             }
+        }
+
+        private Task<TblTransaction?> FindRecurringTransactionAsync(
+            Guid recurringScheduleId,
+            DateTime recurringOccurrenceDate)
+        {
+            return _context.TblTransactions
+                .FirstOrDefaultAsync(transaction =>
+                    transaction.RecurringScheduleId == recurringScheduleId &&
+                    transaction.RecurringOccurrenceDate == recurringOccurrenceDate);
         }
 
         public async Task<Result<TransactionResponse>> UpdateTransactionAsync(Guid userId, Guid transactionId, TransactionRequest request)

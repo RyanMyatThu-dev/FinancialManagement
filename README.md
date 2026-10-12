@@ -28,12 +28,14 @@ flowchart TB
 
         subgraph ServerlessRuntime ["Serverless Runtime"]
             APIGW["API Gateway (HTTP API v2)"]
-            Lambda["AWS Lambda Function<br>(ASP.NET Core Web API)"]
+            Lambda["API Lambda<br>(ASP.NET Core Web API)"]
+            JobsLambda["Scheduled Jobs Lambda<br>(Command Handler)"]
             EventBridge["Amazon EventBridge (Scheduler)"]
+            DLQ["SQS Dead-Letter Queue"]
         end
 
         subgraph StagingStorage ["Staging Storage"]
-            S3["S3 Staging Bucket<br>(st-finance-deployments-ryan-2026)"]
+            S3["S3 Staging Bucket<br>(st-finance-deployments-&lt;account-id&gt;-&lt;region&gt;)"]
         end
     end
 
@@ -46,7 +48,10 @@ flowchart TB
     VercelApp ====|"1. HTTPS Request"| APIGW
     APIGW ====|"2. Proxy Request"| Lambda
     Lambda ====|"3. EF Core Query (Port 5432)"| SupabaseDB
-    EventBridge ====|"Direct Invoke (JSON payload)"| Lambda
+    EventBridge ====|"Direct IAM Invoke"| JobsLambda
+    JobsLambda ====|"EF Core Query (Port 5432)"| SupabaseDB
+    EventBridge -.->|"Exhausted Delivery Retries"| DLQ
+    JobsLambda -.->|"Exhausted Async Retries"| DLQ
 
     %% 2. CI/CD & Deploy Flow (Dashed Lines)
     Runner -.->|"1. Authenticate with OIDC JWT"| OIDC
@@ -66,26 +71,29 @@ flowchart TB
   * `NEXT_PUBLIC_API_URL`: The HTTPS Invoke URL from API Gateway.
 
 ### ⚡ Backend API (AWS Lambda)
-* **Hosting**: Deployed as an ASP.NET Core 8.0 serverless function on **AWS Lambda** (behind API Gateway).
-* **Configuration**: Set the following Environment Variables in the AWS Lambda Console:
-  * `ASPNETCORE_ENVIRONMENT`: `Staging`
-  * `ConnectionStrings__DbConnection`: Supabase connection string (`Host=...;Port=5432;Database=postgres;...`).
-  * `JwtSettings__SecretKey`: Your 32+ character JWT signing key.
+* **Hosting**: Deployed as an ASP.NET Core 10 serverless function on **AWS Lambda** behind API Gateway.
+* **Configuration**: GitHub Actions reads environment-specific `SecureString` values from SSM Parameter Store, masks them, and passes them as `NoEcho` CloudFormation parameters. CloudFormation injects:
+  * `ASPNETCORE_ENVIRONMENT`: `Staging` or `Production`.
+  * `ConnectionStrings__DbConnection`: the environment's Supabase connection string.
+  * `JwtSettings__SecretKey`: the environment's 32+ character JWT signing key.
   * `Gmail__Username` / `Gmail__Password` / `Gmail__FromEmail`: SMTP credentials for OTP emails.
-  * `SchedulerApiKey`: Secret API key to secure the recurring jobs.
 
 ### ⏰ Cron & Recurring Job Scheduling (EventBridge)
-Because AWS Lambda is stateless and shuts down when inactive, background job runners (like Hangfire) are disabled in the cloud. Instead, **Amazon EventBridge Scheduler** is configured to trigger endpoints directly on a schedule:
-1. **Process Recurring (Hourly)**: Sends a direct Lambda invoke payload triggering `POST /api/jobs/process-recurring`.
-2. **Log Daily Quotas (Daily 00:00 BKK)**: Trigger payload invoking `POST /api/jobs/log-daily-quotas`.
-* *Security*: Requests include the header `x-scheduler-api-key` which must match the `SchedulerApiKey` environment variable.
+Because Lambda is stateless, the application does not run Hangfire. In production only, **EventBridge Scheduler** assumes a restricted IAM role and directly invokes a dedicated jobs Lambda with a command payload:
+1. **Process Recurring (hourly)**: `{ "job": "ProcessRecurringSchedules" }`.
+2. **Log Daily Quotas (00:00 Asia/Bangkok)**: `{ "job": "LogDailyQuotas" }`.
+* **Security**: no public job endpoint or shared API key exists; IAM authorizes invocation.
+* **Reliability**: Scheduler delivery retries and Lambda async retries feed one encrypted SQS DLQ monitored by a CloudWatch alarm.
+* **Idempotency**: recurring occurrences have a database uniqueness key, and daily quota rows retain their unique `(UserId, Date)` constraint.
 
 ### 🚀 CI/CD Pipeline (GitHub Actions)
-Pushes to the `main` branch trigger a deployment pipeline (`.github/workflows/deploy.yml`):
+Pushes to `staging` and `main` trigger `.github/workflows/deploy-staging.yml` and `.github/workflows/deploy-prod.yml`:
 * **Security**: Authenticates with AWS via secure **OpenID Connect (OIDC)** (no permanent credentials stored).
-* **Required GitHub Secrets**:
+* **Required GitHub Environment variables**:
   * `AWS_ROLE_TO_ASSUME`: Role ARN of your deployer IAM role.
-  * `AWS_DEPLOYMENT_S3_BUCKET`: Private S3 bucket (`st-finance-deployments-ryan-2026`) used to stage build archives.
+  * `AWS_CLOUDFORMATION_ROLE_ARN`: environment-specific CloudFormation service role.
+  * `AWS_LAMBDA_EXECUTION_ROLE_ARN`: environment-specific Lambda runtime role.
+  * `AWS_DEPLOYMENT_S3_BUCKET`: environment-specific private deployment bucket.
 
 ---
 
@@ -131,7 +139,7 @@ FinancialManagement/
 │   └── AWS-Lambda-Deployment-Guide.md
 ├── ST_finance.slnx         # Solution file
 ├── ST_finance.Database/    # EF Core db context and schema configurations
-├── ST_finance.Domain/      # Business logic controllers and services (contains JobsController)
+├── ST_finance.Domain/      # Business logic, scheduled job services, and command dispatcher
 ├── ST_finance.Api/         # Main bootstrapping host and AWS Serverless templates
 └── ST_finance.Frontend/    # Next.js client-side application
 ```

@@ -25,6 +25,10 @@ public partial class TblTransaction
 
     public bool? IsRecurringCreated { get; set; }
 
+    public Guid? RecurringScheduleId { get; set; }
+
+    public DateTime? RecurringOccurrenceDate { get; set; }
+
     public DateTime? CreatedAt { get; set; }
 
     public bool DeleteFlag { get; set; }

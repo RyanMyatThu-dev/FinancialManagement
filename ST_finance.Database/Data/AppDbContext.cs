@@ -371,6 +371,12 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
 
             entity.ToTable("Tbl_Transaction");
 
+            entity.HasIndex(
+                    e => new { e.RecurringScheduleId, e.RecurringOccurrenceDate },
+                    "unique_recurring_schedule_occurrence")
+                .IsUnique()
+                .HasFilter("recurring_schedule_id IS NOT NULL AND recurring_occurrence_date IS NOT NULL");
+
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
@@ -394,6 +400,8 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
             entity.Property(e => e.IsRecurringCreated)
                 .HasDefaultValue(false)
                 .HasColumnName("is_recurring_created");
+            entity.Property(e => e.RecurringOccurrenceDate).HasColumnName("recurring_occurrence_date");
+            entity.Property(e => e.RecurringScheduleId).HasColumnName("recurring_schedule_id");
             entity.Property(e => e.TargetAccountId).HasColumnName("target_account_id");
             entity.Property(e => e.TransactionType)
                 .HasMaxLength(10)
