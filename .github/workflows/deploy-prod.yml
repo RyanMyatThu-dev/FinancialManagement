@@ -59,6 +59,21 @@ jobs:
           --with-decryption \
           --query 'Parameter.Value' \
           --output text)"
+        GMAIL_USERNAME="$(aws ssm get-parameter \
+          --name /st-finance/production/gmail-username \
+          --with-decryption \
+          --query 'Parameter.Value' \
+          --output text)"
+        GMAIL_APP_PASSWORD="$(aws ssm get-parameter \
+          --name /st-finance/production/gmail-app-password \
+          --with-decryption \
+          --query 'Parameter.Value' \
+          --output text)"
+        GMAIL_FROM_EMAIL="$(aws ssm get-parameter \
+          --name /st-finance/production/gmail-from-email \
+          --with-decryption \
+          --query 'Parameter.Value' \
+          --output text)"
 
         if [[ "$DB_CONNECTION" != postgresql://* && "$DB_CONNECTION" != postgres://* ]]; then
           echo "::error::The production SSM database parameter must be a PostgreSQL URI."
@@ -68,11 +83,21 @@ jobs:
           echo "::error::The production JWT signing key must contain at least 32 characters."
           exit 1
         fi
+        if [[ -z "$GMAIL_USERNAME" || -z "$GMAIL_APP_PASSWORD" || -z "$GMAIL_FROM_EMAIL" ]]; then
+          echo "::error::The production Gmail SSM parameters must not be empty."
+          exit 1
+        fi
 
         echo "::add-mask::$DB_CONNECTION"
         echo "::add-mask::$JWT_SECRET_KEY"
+        echo "::add-mask::$GMAIL_USERNAME"
+        echo "::add-mask::$GMAIL_APP_PASSWORD"
+        echo "::add-mask::$GMAIL_FROM_EMAIL"
         echo "DB_CONNECTION=$DB_CONNECTION" >> "$GITHUB_ENV"
         echo "JWT_SECRET_KEY=$JWT_SECRET_KEY" >> "$GITHUB_ENV"
+        echo "GMAIL_USERNAME=$GMAIL_USERNAME" >> "$GITHUB_ENV"
+        echo "GMAIL_APP_PASSWORD=$GMAIL_APP_PASSWORD" >> "$GITHUB_ENV"
+        echo "GMAIL_FROM_EMAIL=$GMAIL_FROM_EMAIL" >> "$GITHUB_ENV"
 
     # 7. Apply pending EF Core migrations before deploying new code.
     - name: Apply Database Migrations
@@ -92,7 +117,7 @@ jobs:
           --stack-name st-finance-prod-stack \
           --s3-bucket ${{ vars.AWS_DEPLOYMENT_S3_BUCKET }} \
           --cloudformation-role ${{ vars.AWS_CLOUDFORMATION_ROLE_ARN }} \
-          --template-parameters "Environment=production;LambdaExecutionRoleArn=${{ vars.AWS_LAMBDA_EXECUTION_ROLE_ARN }};DatabaseConnection=$DB_CONNECTION;JwtSecretKey=$JWT_SECRET_KEY" \
+          --template-parameters "Environment=production;LambdaExecutionRoleArn=${{ vars.AWS_LAMBDA_EXECUTION_ROLE_ARN }};DatabaseConnection=$DB_CONNECTION;JwtSecretKey=$JWT_SECRET_KEY;GmailUsername=$GMAIL_USERNAME;GmailAppPassword=$GMAIL_APP_PASSWORD;GmailFromEmail=$GMAIL_FROM_EMAIL" \
           --tags "Project=FinancialManagement;Environment=production;ManagedBy=GitHubActions" \
           --disable-interactive true
 
