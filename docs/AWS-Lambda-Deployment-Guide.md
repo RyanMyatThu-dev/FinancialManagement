@@ -43,6 +43,8 @@ This separation is least privilege: deployment, infrastructure management, runti
 
 The jobs Lambda is deployed to both environments so staging can be invoked manually, but Scheduler resources are guarded by the CloudFormation `IsProduction` condition.
 
+The staging API exposes Scalar at `/scalar/v1` for integration testing. API documentation remains disabled in production.
+
 ## Secure Configuration Flow
 
 The workflows retrieve SSM `SecureString` values after assuming the environment's OIDC role:
