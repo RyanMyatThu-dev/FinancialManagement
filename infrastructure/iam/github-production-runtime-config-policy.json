@@ -7,7 +7,10 @@
       "Action": "ssm:GetParameter",
       "Resource": [
         "arn:aws:ssm:ap-southeast-1:079379901631:parameter/st-finance/production/db-connection",
-        "arn:aws:ssm:ap-southeast-1:079379901631:parameter/st-finance/production/jwt-secret"
+        "arn:aws:ssm:ap-southeast-1:079379901631:parameter/st-finance/production/jwt-secret",
+        "arn:aws:ssm:ap-southeast-1:079379901631:parameter/st-finance/production/gmail-username",
+        "arn:aws:ssm:ap-southeast-1:079379901631:parameter/st-finance/production/gmail-app-password",
+        "arn:aws:ssm:ap-southeast-1:079379901631:parameter/st-finance/production/gmail-from-email"
       ]
     }
   ]

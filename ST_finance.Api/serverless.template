@@ -20,6 +20,21 @@
       "Type": "String",
       "NoEcho": true,
       "MinLength": 32
+    },
+    "GmailUsername": {
+      "Type": "String",
+      "NoEcho": true,
+      "Default": ""
+    },
+    "GmailAppPassword": {
+      "Type": "String",
+      "NoEcho": true,
+      "Default": ""
+    },
+    "GmailFromEmail": {
+      "Type": "String",
+      "NoEcho": true,
+      "Default": ""
     }
   },
   "Mappings": {
@@ -60,7 +75,10 @@
               ]
             },
             "ConnectionStrings__DbConnection": { "Ref": "DatabaseConnection" },
-            "JwtSettings__SecretKey": { "Ref": "JwtSecretKey" }
+            "JwtSettings__SecretKey": { "Ref": "JwtSecretKey" },
+            "Gmail__Username": { "Ref": "GmailUsername" },
+            "Gmail__Password": { "Ref": "GmailAppPassword" },
+            "Gmail__FromEmail": { "Ref": "GmailFromEmail" }
           }
         },
         "Tags": {
