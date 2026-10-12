@@ -79,6 +79,7 @@ jobs:
       env:
         ASPNETCORE_ENVIRONMENT: Production
         ConnectionStrings__DbConnection: ${{ env.DB_CONNECTION }}
+        JwtSettings__SecretKey: ${{ env.JWT_SECRET_KEY }}
       run: |
         dotnet tool install --global dotnet-ef --version 10.0.12
         dotnet ef database update --project ST_finance.Database --startup-project ST_finance.Api
