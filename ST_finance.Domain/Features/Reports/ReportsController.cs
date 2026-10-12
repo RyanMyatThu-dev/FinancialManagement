@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ST_finance.Database.Data;
+using ST_finance.Domain.Features.Reports.Models;
 using ST_finance.Shared;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,15 +13,15 @@ namespace ST_finance.Domain.Features.Reports
     [Authorize]
     public class ReportsController : ApiControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IReportService _reportService;
 
-        public ReportsController(AppDbContext context)
+        public ReportsController(IReportService reportService)
         {
-            _context = context;
+            _reportService = reportService;
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateReport([FromBody] SubmitReportRequest request)
+        public async Task<IActionResult> CreateReport([FromBody] SubmitReportHttpRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -33,33 +32,12 @@ namespace ST_finance.Domain.Features.Reports
             }
 
             var userId = GetUserId();
-
-            var report = new TblUserReport
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Title = request.Title,
-                Description = request.Description,
-                Status = "Open",
-                CreatedAt = DateTime.UtcNow,
-                DeleteFlag = false
-            };
-
-            _context.TblUserReports.Add(report);
-            await _context.SaveChangesAsync();
-
-            return Ok(Result.Success(new
-            {
-                report.Id,
-                report.Title,
-                report.Description,
-                report.Status,
-                report.CreatedAt
-            }));
+            var result = await _reportService.SubmitReportAsync(userId, new SubmitReportRequest(request.Title, request.Description));
+            return HandleResult(result);
         }
     }
 
-    public record SubmitReportRequest(
+    public record SubmitReportHttpRequest(
         [Required][MaxLength(150)] string Title,
         [Required][MaxLength(1000)] string Description
     );

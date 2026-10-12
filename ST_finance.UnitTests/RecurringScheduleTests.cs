@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ST_finance.Database.Data;
 using ST_finance.Domain.Features.Accounts;
+using ST_finance.Domain.Features.Jobs;
 using ST_finance.Domain.Features.RecurringSchedules;
 using ST_finance.Domain.Features.RecurringSchedules.Models;
 using ST_finance.Domain.Features.Transactions;
@@ -122,6 +123,46 @@ namespace ST_finance.UnitTests
             var tx = await _context.TblTransactions.FirstOrDefaultAsync(t => t.Description != null && t.Description.Contains(schedule.Name));
             Assert.NotNull(tx);
             Assert.Equal(100m, tx!.Amount);
+        }
+
+        [Fact]
+        public async Task ProcessRecurringSchedules_WhenOccurrenceIsRetried_DoesNotDuplicateTransactionOrBalanceChange()
+        {
+            var occurrenceDate = DateTime.UtcNow.AddHours(-1);
+            var schedule = new TblRecurringSchedule
+            {
+                Id = Guid.NewGuid(),
+                UserId = _userId,
+                AccountId = _accountId,
+                Name = "Retry-safe allowance",
+                Amount = 100m,
+                TransactionType = "Income",
+                Frequency = "Daily",
+                StartDate = occurrenceDate,
+                NextOccurrenceDate = occurrenceDate,
+                DeleteFlag = false
+            };
+            _context.TblRecurringSchedules.Add(schedule);
+            await _context.SaveChangesAsync();
+
+            await _jobService.ProcessRecurringSchedulesAsync();
+
+            schedule.NextOccurrenceDate = occurrenceDate;
+            schedule.LastTriggeredAt = null;
+            await _context.SaveChangesAsync();
+
+            await _jobService.ProcessRecurringSchedulesAsync();
+
+            var recurringTransactions = await _context.TblTransactions
+                .Where(transaction =>
+                    transaction.RecurringScheduleId == schedule.Id &&
+                    transaction.RecurringOccurrenceDate == occurrenceDate)
+                .ToListAsync();
+            var account = await _context.TblAccounts.FindAsync(_accountId);
+
+            Assert.Single(recurringTransactions);
+            Assert.Equal(10100m, account!.Balance);
+            Assert.Equal(occurrenceDate.AddDays(1), schedule.NextOccurrenceDate);
         }
     }
 }

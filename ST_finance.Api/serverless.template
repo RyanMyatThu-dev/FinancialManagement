@@ -1,18 +1,72 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Transform": "AWS::Serverless-2016-10-31",
-  "Description": "An AWS Serverless Application running ASP.NET Core Web API.",
+  "Description": "FinancialManagement HTTP API and scheduled jobs worker.",
+  "Parameters": {
+    "Environment": {
+      "Type": "String",
+      "AllowedValues": ["staging", "production"]
+    },
+    "LambdaExecutionRoleArn": {
+      "Type": "String"
+    },
+    "DatabaseConnection": {
+      "Type": "String",
+      "NoEcho": true,
+      "AllowedPattern": "^postgres(ql)?://.+$",
+      "ConstraintDescription": "must be a PostgreSQL URI"
+    },
+    "JwtSecretKey": {
+      "Type": "String",
+      "NoEcho": true,
+      "MinLength": 32
+    }
+  },
+  "Mappings": {
+    "EnvironmentConfiguration": {
+      "staging": {
+        "DotNetEnvironment": "Staging"
+      },
+      "production": {
+        "DotNetEnvironment": "Production"
+      }
+    }
+  },
+  "Conditions": {
+    "IsProduction": {
+      "Fn::Equals": [
+        { "Ref": "Environment" },
+        "production"
+      ]
+    }
+  },
   "Resources": {
     "AspNetCoreFunction": {
       "Type": "AWS::Serverless::Function",
       "Properties": {
         "Handler": "ST_finance.Api",
-        "Runtime": "dotnet8",
+        "Runtime": "dotnet10",
         "CodeUri": "",
         "MemorySize": 512,
         "Timeout": 30,
-        "Role": {
-          "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/st-finance-lambda-execution-role"
+        "Role": { "Ref": "LambdaExecutionRoleArn" },
+        "Environment": {
+          "Variables": {
+            "ASPNETCORE_ENVIRONMENT": {
+              "Fn::FindInMap": [
+                "EnvironmentConfiguration",
+                { "Ref": "Environment" },
+                "DotNetEnvironment"
+              ]
+            },
+            "ConnectionStrings__DbConnection": { "Ref": "DatabaseConnection" },
+            "JwtSettings__SecretKey": { "Ref": "JwtSecretKey" }
+          }
+        },
+        "Tags": {
+          "Project": "FinancialManagement",
+          "Environment": { "Ref": "Environment" },
+          "ManagedBy": "CloudFormation"
         },
         "Events": {
           "ProxyResource": {
@@ -31,14 +85,218 @@
           }
         }
       }
+    },
+    "ScheduledJobsFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "ST_finance.Api::ST_finance.Api.ScheduledJobsFunction::FunctionHandler",
+        "Runtime": "dotnet10",
+        "CodeUri": "",
+        "MemorySize": 512,
+        "Timeout": 300,
+        "ReservedConcurrentExecutions": 1,
+        "Role": { "Ref": "LambdaExecutionRoleArn" },
+        "Environment": {
+          "Variables": {
+            "DOTNET_ENVIRONMENT": {
+              "Fn::FindInMap": [
+                "EnvironmentConfiguration",
+                { "Ref": "Environment" },
+                "DotNetEnvironment"
+              ]
+            },
+            "ConnectionStrings__DbConnection": { "Ref": "DatabaseConnection" }
+          }
+        },
+        "Tags": {
+          "Project": "FinancialManagement",
+          "Environment": { "Ref": "Environment" },
+          "Workload": "ScheduledJobs",
+          "ManagedBy": "CloudFormation"
+        }
+      }
+    },
+    "ScheduledJobsDeadLetterQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Condition": "IsProduction",
+      "Properties": {
+        "QueueName": "st-finance-production-scheduled-jobs-dlq",
+        "MessageRetentionPeriod": 1209600,
+        "SqsManagedSseEnabled": true,
+        "Tags": [
+          { "Key": "Project", "Value": "FinancialManagement" },
+          { "Key": "Environment", "Value": "production" },
+          { "Key": "ManagedBy", "Value": "CloudFormation" }
+        ]
+      }
+    },
+    "ScheduledJobsDeadLetterQueuePolicy": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Condition": "IsProduction",
+      "Properties": {
+        "Queues": [
+          { "Ref": "ScheduledJobsDeadLetterQueue" }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "sqs:*",
+              "Resource": { "Fn::GetAtt": ["ScheduledJobsDeadLetterQueue", "Arn"] },
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "SchedulerExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsProduction",
+      "Properties": {
+        "RoleName": "st-finance-production-scheduler-execution-role",
+        "Path": "/st-finance/scheduler/production/",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "scheduler.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "InvokeProductionScheduledJobs",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "lambda:InvokeFunction",
+                  "Resource": { "Fn::GetAtt": ["ScheduledJobsFunction", "Arn"] }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "sqs:SendMessage",
+                  "Resource": { "Fn::GetAtt": ["ScheduledJobsDeadLetterQueue", "Arn"] }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Project", "Value": "FinancialManagement" },
+          { "Key": "Environment", "Value": "production" },
+          { "Key": "ManagedBy", "Value": "CloudFormation" }
+        ]
+      }
+    },
+    "ScheduledJobsAsyncFailureConfig": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Condition": "IsProduction",
+      "Properties": {
+        "FunctionName": { "Ref": "ScheduledJobsFunction" },
+        "Qualifier": "$LATEST",
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 2,
+        "DestinationConfig": {
+          "OnFailure": {
+            "Destination": { "Fn::GetAtt": ["ScheduledJobsDeadLetterQueue", "Arn"] }
+          }
+        }
+      }
+    },
+    "ProcessRecurringSchedulesSchedule": {
+      "Type": "AWS::Scheduler::Schedule",
+      "Condition": "IsProduction",
+      "DependsOn": "ScheduledJobsAsyncFailureConfig",
+      "Properties": {
+        "Name": "st-finance-production-process-recurring-schedules",
+        "Description": "Process due recurring financial schedules every hour.",
+        "ScheduleExpression": "rate(1 hour)",
+        "FlexibleTimeWindow": { "Mode": "OFF" },
+        "State": "ENABLED",
+        "Target": {
+          "Arn": { "Fn::GetAtt": ["ScheduledJobsFunction", "Arn"] },
+          "RoleArn": { "Fn::GetAtt": ["SchedulerExecutionRole", "Arn"] },
+          "Input": "{\"job\":\"ProcessRecurringSchedules\"}",
+          "DeadLetterConfig": {
+            "Arn": { "Fn::GetAtt": ["ScheduledJobsDeadLetterQueue", "Arn"] }
+          },
+          "RetryPolicy": {
+            "MaximumEventAgeInSeconds": 3600,
+            "MaximumRetryAttempts": 3
+          }
+        }
+      }
+    },
+    "LogDailyQuotasSchedule": {
+      "Type": "AWS::Scheduler::Schedule",
+      "Condition": "IsProduction",
+      "DependsOn": "ScheduledJobsAsyncFailureConfig",
+      "Properties": {
+        "Name": "st-finance-production-log-daily-quotas",
+        "Description": "Log the previous Bangkok day's quota snapshot at midnight.",
+        "ScheduleExpression": "cron(0 0 * * ? *)",
+        "ScheduleExpressionTimezone": "Asia/Bangkok",
+        "FlexibleTimeWindow": { "Mode": "OFF" },
+        "State": "ENABLED",
+        "Target": {
+          "Arn": { "Fn::GetAtt": ["ScheduledJobsFunction", "Arn"] },
+          "RoleArn": { "Fn::GetAtt": ["SchedulerExecutionRole", "Arn"] },
+          "Input": "{\"job\":\"LogDailyQuotas\"}",
+          "DeadLetterConfig": {
+            "Arn": { "Fn::GetAtt": ["ScheduledJobsDeadLetterQueue", "Arn"] }
+          },
+          "RetryPolicy": {
+            "MaximumEventAgeInSeconds": 3600,
+            "MaximumRetryAttempts": 3
+          }
+        }
+      }
+    },
+    "ScheduledJobsDeadLetterQueueAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "IsProduction",
+      "Properties": {
+        "AlarmName": "st-finance-production-scheduled-jobs-dlq-not-empty",
+        "AlarmDescription": "Scheduled job events have exhausted retries and require investigation.",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": { "Fn::GetAtt": ["ScheduledJobsDeadLetterQueue", "QueueName"] }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching"
+      }
     }
   },
   "Outputs": {
     "ApiURL": {
-      "Description": "API Gateway Endpoint URL",
+      "Description": "API Gateway endpoint URL.",
       "Value": {
         "Fn::Sub": "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
       }
+    },
+    "ScheduledJobsFunctionArn": {
+      "Description": "Dedicated scheduled-jobs Lambda ARN for manual staging tests and production schedules.",
+      "Value": { "Fn::GetAtt": ["ScheduledJobsFunction", "Arn"] }
     }
   }
 }

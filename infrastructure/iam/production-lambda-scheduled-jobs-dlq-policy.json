@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SendFailedScheduledJobsToProductionDlq",
+      "Effect": "Allow",
+      "Action": "sqs:SendMessage",
+      "Resource": "arn:aws:sqs:ap-southeast-1:079379901631:st-finance-production-scheduled-jobs-dlq"
+    }
+  ]
+}

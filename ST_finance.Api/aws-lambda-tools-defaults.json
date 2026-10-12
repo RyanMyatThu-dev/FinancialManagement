@@ -6,7 +6,7 @@
   "profile": "default",
   "region": "ap-southeast-1",
   "configuration": "Release",
-  "framework": "net8.0",
+  "framework": "net10.0",
   "template": "serverless.template",
   "stack-name": "st-finance-staging-stack",
   "s3-bucket": ""

@@ -529,11 +529,14 @@ namespace ST_finance.Domain.Features.Authentication
 
             if (string.IsNullOrWhiteSpace(request.OtpCode))
             {
-                await GenerateAndSendOtpAsync(user.Email!, "TwoFactor");
+                // Deliberately a different purpose from the login challenge: sharing one purpose
+                // meant enabling 2FA from the profile page retired a pending sign-in
+                // code, and a sign-in retired a pending toggle code.
+                await GenerateAndSendOtpAsync(user.Email!, "TwoFactorToggle");
                 return Result.Success();
             }
 
-            var otpValid = await ValidateOtpAsync(user.Email!, request.OtpCode, "TwoFactor");
+            var otpValid = await ValidateOtpAsync(user.Email!, request.OtpCode, "TwoFactorToggle");
             if (!otpValid)
             {
                 return Result.Failure(CustomErrors.Auth.InvalidOtp);
@@ -622,8 +625,10 @@ namespace ST_finance.Domain.Features.Authentication
 
         private async Task GenerateAndSendOtpAsync(string email, string purpose)
         {
+            var normalizedEmail = NormalizeOtpEmail(email);
+
             var existingOtps = await _context.TblOtpVerifications
-                .Where(o => o.Email == email && o.Purpose == purpose && !o.IsUsed)
+                .Where(o => o.Email.ToLower() == normalizedEmail && o.Purpose == purpose && !o.IsUsed)
                 .ToListAsync();
 
             foreach (var otp in existingOtps)
@@ -635,7 +640,7 @@ namespace ST_finance.Domain.Features.Authentication
             var otpEntry = new TblOtpVerification
             {
                 Id = Guid.NewGuid(),
-                Email = email,
+                Email = normalizedEmail,
                 Code = code,
                 Purpose = purpose,
                 ExpiryTime = DateTime.UtcNow.AddMinutes(OtpExpiryMinutes),
@@ -655,19 +660,58 @@ namespace ST_finance.Domain.Features.Authentication
                 return false;
             }
 
+            var normalizedEmail = NormalizeOtpEmail(email);
+            var submittedCode = code.Trim();
+
+            // The submitted code is part of the query rather than a comparison against a single
+            // pre-selected row. GenerateAndSendOtpAsync retires previous codes with a read-then-write
+            // that is not atomic, so two near-simultaneous sends (a double-submitted sign-in, or two
+            // concurrent Lambda invocations) can leave more than one live code for the same
+            // (email, purpose). Selecting only the newest row and then comparing rejected a code the
+            // user legitimately held, surfacing as "Invalid or expired verification code" for a
+            // correct code.
             var otp = await _context.TblOtpVerifications
-                .Where(o => o.Email == email && o.Purpose == purpose && !o.IsUsed && o.ExpiryTime > DateTime.UtcNow)
+                .Where(o => o.Email.ToLower() == normalizedEmail
+                            && o.Purpose == purpose
+                            && o.Code == submittedCode
+                            && !o.IsUsed
+                            && o.ExpiryTime > DateTime.UtcNow)
                 .OrderByDescending(o => o.ExpiryTime)
                 .FirstOrDefaultAsync();
 
-            if (otp == null || otp.Code != code.Trim())
+            if (otp == null)
             {
                 return false;
             }
 
             otp.IsUsed = true;
+
+            // Spend every other live code for this (email, purpose) alongside the one just accepted,
+            // so widening the match above can never let a superseded code be replayed.
+            var supersededOtps = await _context.TblOtpVerifications
+                .Where(o => o.Email.ToLower() == normalizedEmail
+                            && o.Purpose == purpose
+                            && !o.IsUsed
+                            && o.Id != otp.Id)
+                .ToListAsync();
+
+            foreach (var superseded in supersededOtps)
+            {
+                superseded.IsUsed = true;
+            }
+
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        /// <summary>
+        /// OTP rows are keyed by the address the code was sent to. Postgres compares text
+        /// case-sensitively, so an address typed with different casing at the send and verify steps
+        /// (registration, forgot-password, email-change) would otherwise never match its own code.
+        /// </summary>
+        private static string NormalizeOtpEmail(string email)
+        {
+            return email.Trim().ToLowerInvariant();
         }
 
         private static string GenerateOtpCode()

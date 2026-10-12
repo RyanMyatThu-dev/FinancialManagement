@@ -39,6 +39,12 @@ namespace ST_finance.Shared
             public static readonly Error UsernameInUse = new("Auth.UsernameInUse", "This username is already taken.");
             public static readonly Error IncorrectPassword = new("Auth.IncorrectPassword", "Current password is incorrect.");
             public static readonly Error PasswordCannotBeOld = new("Auth.PasswordCannotBeOld", "New password cannot be the same as your old password.");
+            public static readonly Error Unauthorized = new("Auth.Unauthorized", "Authentication is required or the provided credentials are invalid.");
+        }
+
+        public static class General
+        {
+            public static readonly Error UnexpectedError = new("General.UnexpectedError", "An unexpected error occurred. Please try again.");
         }
     }
 }
