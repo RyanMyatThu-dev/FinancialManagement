@@ -206,5 +206,33 @@ namespace ST_finance.UnitTests
             Assert.Equal(0m, result.Value.Quota);
             Assert.Equal(0, result.Value.CanteenIndex);
         }
+
+        [Fact]
+        public async Task GetDailyQuotaLogs_ShouldReturnLatestThirtyLogsInChronologicalOrder()
+        {
+            var firstDate = new DateOnly(2026, 1, 1);
+            for (var day = 0; day < 35; day++)
+            {
+                _context.TblDailyQuotaLogs.Add(new TblDailyQuotaLog
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = _userId,
+                    Date = firstDate.AddDays(day),
+                    TargetQuota = day,
+                    ActualSpent = day
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            var result = await _service.GetDailyQuotaLogsAsync(_userId);
+            var logs = result.Value.ToList();
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(30, logs.Count);
+            Assert.Equal(firstDate.AddDays(5), logs.First().Date);
+            Assert.Equal(firstDate.AddDays(34), logs.Last().Date);
+            Assert.True(logs.SequenceEqual(logs.OrderBy(log => log.Date)));
+        }
     }
 }

@@ -16,7 +16,6 @@ import {
   AlertTriangle,
   Loader2,
   Calendar,
-  UtensilsCrossed,
   CheckCircle,
   PiggyBank,
   Wallet,
@@ -76,16 +75,20 @@ export default function DashboardHome() {
     },
   });
 
-  const { data: trends, isLoading: isTrendsLoading } = useQuery<QuotaTrendItem[]>({
+  const {
+    data: trends = [],
+    isLoading: isTrendsLoading,
+    error: trendsError,
+  } = useQuery<QuotaTrendItem[]>({
     queryKey: ["dashboardTrends"],
     queryFn: async () => {
       const res = await apiClient.get("/api/dashboard/trends");
-      if (res.data.isSuccess && res.data.value) return res.data.value;
+      if (res.data.isSuccess && Array.isArray(res.data.value)) return res.data.value;
       throw new Error(res.data.error?.message || "Failed to fetch trends");
     },
   });
 
-  const isLoading = isSummaryLoading || isTrendsLoading;
+  const isLoading = isSummaryLoading;
   const currency  = user?.currency || "THB";
 
   if (isLoading) {
@@ -114,19 +117,21 @@ export default function DashboardHome() {
   const hints = summary?.activeWarnings?.filter(w => w.startsWith("Pacing-Hint:")) || [];
   const warnings = summary?.activeWarnings?.filter(w => !w.startsWith("Pacing-Hint:")) || [];
 
-  const chartData = (trends || []).map((item) => {
-    const parts = String(item.date).split("-");
-    const formattedDate = parts.length === 3
-      ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).toLocaleDateString(undefined, {
-          month: "short",
-          day:   "numeric",
-        })
-      : String(item.date);
-    return {
-      ...item,
-      formattedDate,
-    };
-  });
+  const chartData = [...trends]
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .map((item) => {
+      const parts = String(item.date).split("-");
+      const formattedDate = parts.length === 3
+        ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).toLocaleDateString(undefined, {
+            month: "short",
+            day:   "numeric",
+          })
+        : String(item.date);
+      return {
+        ...item,
+        formattedDate,
+      };
+    });
 
   // Calculate quota usage % (example: spent vs quota)
   const quotaUsedPercent =
@@ -393,11 +398,23 @@ export default function DashboardHome() {
               30-day historical: daily quotas vs. actual costs
             </p>
           </div>
-          <div className="ds-badge ds-badge-success">Live</div>
+          <div className={`ds-badge ${trendsError ? "ds-badge-danger" : "ds-badge-success"}`}>
+            {isTrendsLoading ? "Loading" : trendsError ? "Unavailable" : "Live"}
+          </div>
         </div>
 
         <div className="h-64 w-full">
-          {chartData.length > 0 ? (
+          {isTrendsLoading ? (
+            <div className="h-full flex items-center justify-center text-[hsl(var(--muted-foreground))] text-xs font-mono">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Loading daily quota logs...
+            </div>
+          ) : trendsError ? (
+            <div className="h-full flex flex-col items-center justify-center rounded-xl border border-dashed border-[hsl(var(--destructive))] text-[hsl(var(--destructive))] text-xs font-mono px-4 text-center">
+              <AlertTriangle className="h-5 w-5 mb-2" />
+              {(trendsError as Error).message}
+            </div>
+          ) : chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>

@@ -270,15 +270,17 @@ namespace ST_finance.Domain.Features.Dashboard
         {
             var logs = await _context.TblDailyQuotaLogs
                 .Where(l => l.UserId == userId)
-                .OrderBy(l => l.Date)
+                .OrderByDescending(l => l.Date)
                 .Take(30) // Return trends for past 30 logged days
                 .ToListAsync();
 
-            var responses = logs.Select(l => new DailyQuotaLogResponse(
-                Date: l.Date,
-                TargetQuota: l.TargetQuota,
-                ActualSpent: l.ActualSpent
-            ));
+            var responses = logs
+                .OrderBy(l => l.Date)
+                .Select(l => new DailyQuotaLogResponse(
+                    Date: l.Date,
+                    TargetQuota: l.TargetQuota,
+                    ActualSpent: l.ActualSpent
+                ));
 
             return Result.Success(responses);
         }
