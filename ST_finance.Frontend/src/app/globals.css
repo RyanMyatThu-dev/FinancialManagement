@@ -464,3 +464,42 @@ button:active:not(:disabled),
 }
 
 
+
+/* ---- Streak Flame & Embers Animations ---- */
+@keyframes flame-flicker {
+  0%, 100% {
+    transform: scale(1) rotate(-1deg);
+    filter: drop-shadow(0 0 16px rgba(249, 115, 22, 0.7));
+  }
+  25% {
+    transform: scale(1.06) rotate(1.5deg);
+    filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.9));
+  }
+  50% {
+    transform: scale(0.98) rotate(-1.5deg);
+    filter: drop-shadow(0 0 18px rgba(239, 68, 68, 0.75));
+  }
+  75% {
+    transform: scale(1.04) rotate(1deg);
+    filter: drop-shadow(0 0 28px rgba(249, 115, 22, 0.85));
+  }
+}
+
+@keyframes ember-rise {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-44px) scale(0);
+    opacity: 0;
+  }
+}
+
+.animate-flame-flicker {
+  animation: flame-flicker 1.8s ease-in-out infinite;
+}
+
+.animate-ember {
+  animation: ember-rise 1.5s ease-out infinite;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
@@ -9,6 +9,7 @@ import { CurrencyDisplay, formatCurrency } from "@/components/ui/CurrencyDisplay
 import { TechProgress } from "@/components/ui/TechProgress";
 import { type Timeframe } from "@/components/ui/TimeframeFilter";
 import { QuickAddBar } from "@/components/ui/QuickAddBar";
+import { StreakCelebrationModal } from "@/components/ui/StreakCelebrationModal";
 import { TransactionWizardModal } from "@/components/ui/TransactionWizardModal";
 import {
   TrendingUp,
@@ -62,6 +63,9 @@ export default function DashboardHome() {
   const { user } = useAuth();
   const timeframe: Timeframe = "Day";
   const [showWizardModal, setShowWizardModal] = useState(false);
+  const [showStreakModal, setShowStreakModal] = useState(false);
+
+
   const [wizardInitialData, setWizardInitialData] = useState<{ amount?: string; description?: string; categoryId?: string; accountId?: string; type?: string } | undefined>(undefined);
 
   const handleOpenWizardWithData = (data?: { amount?: string; description?: string; categoryId?: string; accountId?: string; type?: string }) => {
@@ -77,6 +81,24 @@ export default function DashboardHome() {
       throw new Error(res.data.error?.message || "Failed to fetch dashboard summary");
     },
   });
+
+  useEffect(() => {
+    if (!summary || !user?.userId) return;
+    const streak = summary.currentStreak ?? 0;
+    const isLogged = summary.isStreakLoggedToday ?? false;
+
+    if (streak > 0 && isLogged) {
+      const storageKey = `streak_celebrated_${user.userId}_${streak}`;
+      const hasCelebrated = localStorage.getItem(storageKey);
+      if (!hasCelebrated) {
+        localStorage.setItem(storageKey, "true");
+        const timer = setTimeout(() => {
+          setShowStreakModal(true);
+        }, 150);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [summary, user?.userId]);
 
   const {
     data: trends = [],
@@ -155,20 +177,22 @@ export default function DashboardHome() {
               Core Analytics
             </div>
 
-            <div
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors ${
+            <button
+              type="button"
+              onClick={() => setShowStreakModal(true)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all hover:scale-105 active:scale-95 cursor-pointer ${
                 summary?.isStreakLoggedToday
-                  ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-sm shadow-amber-500/10"
                   : (summary?.currentStreak ?? 0) > 0
                   ? "border-orange-500/20 bg-orange-500/5 text-orange-600/80 dark:text-orange-400/80"
                   : "border-[hsl(var(--border))] bg-[hsl(var(--muted))]/50 text-[hsl(var(--muted-foreground))]"
               }`}
               title={
                 summary?.isStreakLoggedToday
-                  ? `Streak active! Logged today. Longest: ${summary?.longestStreak ?? 0} days`
+                  ? `Streak active! Logged today. Longest: ${summary?.longestStreak ?? 0} days (Click to view)`
                   : (summary?.currentStreak ?? 0) > 0
-                  ? `Log a transaction today to protect your ${summary?.currentStreak}-day streak!`
-                  : "Log a transaction today to start a streak!"
+                  ? `Log a transaction today to protect your ${summary?.currentStreak}-day streak! (Click to view)`
+                  : "Log a transaction today to start a streak! (Click to view)"
               }
             >
               <span className="text-xs">🔥</span>
@@ -181,7 +205,7 @@ export default function DashboardHome() {
               ) : (summary?.currentStreak ?? 0) > 0 ? (
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse" />
               ) : null}
-            </div>
+            </button>
           </div>
           <h1 className="text-2xl font-black tracking-tight">
             Hello, {user?.fullName || "Student"} 👋
@@ -522,6 +546,13 @@ export default function DashboardHome() {
           initialData={wizardInitialData}
         />
       )}
+
+      <StreakCelebrationModal
+        isOpen={showStreakModal}
+        onClose={() => setShowStreakModal(false)}
+        currentStreak={summary?.currentStreak ?? 0}
+        longestStreak={summary?.longestStreak ?? 0}
+      />
     </div>
   );
 }
