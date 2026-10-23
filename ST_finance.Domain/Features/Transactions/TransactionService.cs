@@ -296,6 +296,12 @@ namespace ST_finance.Domain.Features.Transactions
                 await _context.SaveChangesAsync();
 
                 await UpdateDailyQuotaLogForDateAsync(userId, transaction.Date);
+
+                if (!request.IsRecurring)
+                {
+                    await UpdateUserStreakAsync(userId);
+                }
+
                 await _context.SaveChangesAsync();
 
                 var proposedNetBalance = await _context.TblAccounts
@@ -826,6 +832,65 @@ namespace ST_finance.Domain.Features.Transactions
                     .SumAsync(t => t.Amount);
 
                 existingLog.ActualSpent = actualSpent;
+            }
+        }
+         private async Task UpdateUserStreakAsync(Guid userId)
+        {
+            var profile = await _context.TblUserProfiles
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            if (profile == null)
+            {
+                return;
+            }
+
+            var timeZone = ResolveTimeZone(profile.TimeZoneId);
+            var nowUtc = DateTime.UtcNow;
+            var todayLocal = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc), timeZone));
+
+            if (profile.LastLoggedDate == todayLocal)
+            {
+                // Already logged today; streak is preserved
+                return;
+            }
+
+            if (profile.LastLoggedDate == todayLocal.AddDays(-1))
+            {
+                profile.CurrentStreak += 1;
+                profile.LongestStreak = Math.Max(profile.LongestStreak, profile.CurrentStreak);
+                profile.LastLoggedDate = todayLocal;
+                profile.UpdatedAt = nowUtc;
+            }
+            else
+            {
+                profile.CurrentStreak = 1;
+                profile.LongestStreak = Math.Max(profile.LongestStreak, 1);
+                profile.LastLoggedDate = todayLocal;
+                profile.UpdatedAt = nowUtc;
+            }
+        }
+
+        private static TimeZoneInfo ResolveTimeZone(string? timeZoneId)
+        {
+            if (!string.IsNullOrWhiteSpace(timeZoneId))
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+                }
+                catch (Exception)
+                {
+                    // Fall back
+                }
+            }
+
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+            }
+            catch (Exception)
+            {
+                return TimeZoneInfo.Utc;
             }
         }
     }

@@ -6,4 +6,5 @@ public static class ScheduledJobNames
 {
     public const string ProcessRecurringSchedules = nameof(ProcessRecurringSchedules);
     public const string LogDailyQuotas = nameof(LogDailyQuotas);
+    public const string ProcessDueNotifications = nameof(ProcessDueNotifications);
 }

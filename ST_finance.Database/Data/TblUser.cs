@@ -22,6 +22,10 @@ public partial class TblUser : IdentityUser<Guid>
 
     public virtual ICollection<TblDailyQuotaLog> TblDailyQuotaLogs { get; set; } = new List<TblDailyQuotaLog>();
 
+    public virtual ICollection<TblNotification> TblNotifications { get; set; } = new List<TblNotification>();
+
+    public virtual ICollection<TblPushSubscription> TblPushSubscriptions { get; set; } = new List<TblPushSubscription>();
+
     public virtual ICollection<TblRecurringSchedule> TblRecurringSchedules { get; set; } = new List<TblRecurringSchedule>();
 
     public virtual ICollection<TblSavingsGoal> TblSavingsGoals { get; set; } = new List<TblSavingsGoal>();
@@ -31,4 +35,6 @@ public partial class TblUser : IdentityUser<Guid>
     public virtual ICollection<TblTransaction> TblTransactions { get; set; } = new List<TblTransaction>();
 
     public virtual TblUserProfile? TblUserProfile { get; set; }
+
+    public virtual TblNotificationPreference? TblNotificationPreference { get; set; }
 }

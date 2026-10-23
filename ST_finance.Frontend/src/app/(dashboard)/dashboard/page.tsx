@@ -47,6 +47,9 @@ interface DashboardSummary {
   enableQuotaPacing: boolean;
   daysRemaining?: number;
   resetDate?: string;
+  currentStreak?: number;
+  longestStreak?: number;
+  isStreakLoggedToday?: boolean;
 }
 
 interface QuotaTrendItem {
@@ -146,9 +149,39 @@ export default function DashboardHome() {
       <div className="ds-card p-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         {/* Left: greeting */}
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))] mb-2">
-            <Zap className="h-3 w-3 text-[hsl(var(--primary))]" />
-            Core Analytics
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
+              <Zap className="h-3 w-3 text-[hsl(var(--primary))]" />
+              Core Analytics
+            </div>
+
+            <div
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors ${
+                summary?.isStreakLoggedToday
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  : (summary?.currentStreak ?? 0) > 0
+                  ? "border-orange-500/20 bg-orange-500/5 text-orange-600/80 dark:text-orange-400/80"
+                  : "border-[hsl(var(--border))] bg-[hsl(var(--muted))]/50 text-[hsl(var(--muted-foreground))]"
+              }`}
+              title={
+                summary?.isStreakLoggedToday
+                  ? `Streak active! Logged today. Longest: ${summary?.longestStreak ?? 0} days`
+                  : (summary?.currentStreak ?? 0) > 0
+                  ? `Log a transaction today to protect your ${summary?.currentStreak}-day streak!`
+                  : "Log a transaction today to start a streak!"
+              }
+            >
+              <span className="text-xs">🔥</span>
+              <span className="font-mono font-bold">{summary?.currentStreak ?? 0}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
+                {(summary?.currentStreak ?? 0) === 1 ? "day streak" : "day streak"}
+              </span>
+              {summary?.isStreakLoggedToday ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+              ) : (summary?.currentStreak ?? 0) > 0 ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse" />
+              ) : null}
+            </div>
           </div>
           <h1 className="text-2xl font-black tracking-tight">
             Hello, {user?.fullName || "Student"} 👋

@@ -58,12 +58,14 @@ public static class FeatureManager
         services.AddScoped<IRecurringScheduleService, RecurringScheduleService>();
         services.AddScoped<Features.Jobs.IRecurringJobService, Features.Jobs.RecurringJobService>();
         services.AddScoped<Features.Jobs.IScheduledJobDispatcher, Features.Jobs.ScheduledJobDispatcher>();
+        services.AddScoped<Features.Jobs.INotificationSchedulingJob, Features.Jobs.NotificationSchedulingJob>();
         services.AddScoped<Features.SavingsGoals.ISavingsGoalService, Features.SavingsGoals.SavingsGoalService>();
         services.AddScoped<Features.Dashboard.IDashboardService, Features.Dashboard.DashboardService>();
         services.AddScoped<Features.Jobs.IQuotaLoggingJob, Features.Jobs.QuotaLoggingJob>();
         services.AddScoped<Features.Budgets.IBudgetService, Features.Budgets.BudgetService>();
         services.AddScoped<Features.Reports.IReportService, Features.Reports.ReportService>();
-
+        services.AddScoped<Features.Notifications.IDailyReminderNotificationEvaluator, Features.Notifications.DailyReminderNotificationService>();
+        services.AddScoped<Features.Notifications.IFunNotificationEvaluator, Features.Notifications.FunNotificationEvalutor>();
         return services;
     }
 }

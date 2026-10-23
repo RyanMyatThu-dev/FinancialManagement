@@ -21,6 +21,14 @@ public partial class TblUserProfile
 
     public bool EnableQuotaPacing { get; set; }
 
+    public string TimeZoneId { get; set; } = "Asia/Bangkok";
+
+    public int CurrentStreak { get; set; } = 0;
+
+    public int LongestStreak { get; set; } = 0;
+
+    public DateOnly? LastLoggedDate { get; set; }
+
     public DateTime? UpdatedAt { get; set; }
 
     public virtual TblUser User { get; set; } = null!;

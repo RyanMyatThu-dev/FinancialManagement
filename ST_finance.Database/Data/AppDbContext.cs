@@ -27,6 +27,14 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
 
     public virtual DbSet<TblDailyQuotaLog> TblDailyQuotaLogs { get; set; }
 
+    public virtual DbSet<TblNotification> TblNotifications { get; set; }
+
+    public virtual DbSet<TblNotificationDelivery> TblNotificationDeliveries { get; set; }
+
+    public virtual DbSet<TblNotificationPreference> TblNotificationPreferences { get; set; }
+
+    public virtual DbSet<TblPushSubscription> TblPushSubscriptions { get; set; }
+
     public virtual DbSet<TblRecurringSchedule> TblRecurringSchedules { get; set; }
 
     public virtual DbSet<TblSavingsContribution> TblSavingsContributions { get; set; }
@@ -537,6 +545,18 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
             entity.Property(e => e.EnableQuotaPacing)
                 .HasDefaultValue(true)
                 .HasColumnName("enable_quota_pacing");
+            entity.Property(e => e.TimeZoneId)
+                .HasMaxLength(100)
+                .HasDefaultValueSql("'Asia/Bangkok'::character varying")
+                .HasColumnName("time_zone_id");
+            entity.Property(e => e.CurrentStreak)
+                .HasDefaultValue(0)
+                .HasColumnName("current_streak");
+            entity.Property(e => e.LongestStreak)
+                .HasDefaultValue(0)
+                .HasColumnName("longest_streak");
+            entity.Property(e => e.LastLoggedDate)
+                .HasColumnName("last_logged_date");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
@@ -623,6 +643,230 @@ public partial class AppDbContext : IdentityDbContext<TblUser, IdentityRole<Guid
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("Tbl_UserReport_user_id_fkey");
+        });
+
+        modelBuilder.Entity<TblNotificationPreference>(entity =>
+        {
+            entity.ToTable("Tbl_NotificationPreference", table =>
+            {
+                table.HasCheckConstraint(
+                    "Tbl_NotificationPreference_quiet_hours_check",
+                    "(quiet_hours_start IS NULL AND quiet_hours_end IS NULL) OR " +
+                    "(quiet_hours_start IS NOT NULL AND quiet_hours_end IS NOT NULL)");
+            });
+
+            entity.HasKey(e => e.Id).HasName("Tbl_NotificationPreference_pkey");
+
+            entity.HasIndex(e => e.UserId, "Tbl_NotificationPreference_user_id_key")
+                .IsUnique();
+
+            entity.HasIndex(e => e.NextDailyReminderAt, "Tbl_NotificationPreference_due_daily_idx")
+                .HasFilter("daily_reminder_enabled = TRUE AND next_daily_reminder_at IS NOT NULL");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.DailyReminderEnabled)
+                .HasDefaultValue(false)
+                .HasColumnName("daily_reminder_enabled");
+            entity.Property(e => e.DailyReminderTime)
+                .HasDefaultValue(new TimeOnly(20, 0))
+                .HasColumnName("daily_reminder_time");
+            entity.Property(e => e.NextDailyReminderAt).HasColumnName("next_daily_reminder_at");
+            entity.Property(e => e.BalanceAlertsEnabled)
+                .HasDefaultValue(false)
+                .HasColumnName("balance_alerts_enabled");
+            entity.Property(e => e.FunNotificationsEnabled)
+                .HasDefaultValue(false)
+                .HasColumnName("fun_notifications_enabled");
+            entity.Property(e => e.QuietHoursStart).HasColumnName("quiet_hours_start");
+            entity.Property(e => e.QuietHoursEnd).HasColumnName("quiet_hours_end");
+            entity.Property(e => e.ShowSensitiveContent)
+                .HasDefaultValue(false)
+                .HasColumnName("show_sensitive_content");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.User)
+                .WithOne(p => p.TblNotificationPreference)
+                .HasForeignKey<TblNotificationPreference>(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("Tbl_NotificationPreference_user_id_fkey");
+        });
+
+        modelBuilder.Entity<TblPushSubscription>(entity =>
+        {
+            entity.ToTable("Tbl_PushSubscription", table =>
+            {
+                table.HasCheckConstraint(
+                    "Tbl_PushSubscription_failure_count_check",
+                    "failure_count >= 0");
+            });
+
+            entity.HasKey(e => e.Id).HasName("Tbl_PushSubscription_pkey");
+
+            entity.HasIndex(e => e.Endpoint, "Tbl_PushSubscription_endpoint_key")
+                .IsUnique();
+
+            entity.HasIndex(e => e.UserId, "Tbl_PushSubscription_active_user_idx")
+                .HasFilter("revoked_at IS NULL");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Endpoint).HasColumnName("endpoint");
+            entity.Property(e => e.P256dhKey).HasColumnName("p256dh_key");
+            entity.Property(e => e.AuthKey).HasColumnName("auth_key");
+            entity.Property(e => e.DeviceName)
+                .HasMaxLength(100)
+                .HasColumnName("device_name");
+            entity.Property(e => e.UserAgent).HasColumnName("user_agent");
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(e => e.LastSuccessAt).HasColumnName("last_success_at");
+            entity.Property(e => e.FailureCount)
+                .HasDefaultValue(0)
+                .HasColumnName("failure_count");
+            entity.Property(e => e.RevokedAt).HasColumnName("revoked_at");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.TblPushSubscriptions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("Tbl_PushSubscription_user_id_fkey");
+        });
+
+        modelBuilder.Entity<TblNotification>(entity =>
+        {
+            entity.ToTable("Tbl_Notification", table =>
+            {
+                table.HasCheckConstraint(
+                    "Tbl_Notification_status_check",
+                    "status IN ('Pending', 'Queued', 'Completed', 'Cancelled', 'Failed')");
+            });
+
+            entity.HasKey(e => e.Id).HasName("Tbl_Notification_pkey");
+
+            entity.HasIndex(e => new { e.UserId, e.DedupeKey }, "Tbl_Notification_user_dedupe_key")
+                .IsUnique()
+                .HasFilter("dedupe_key IS NOT NULL");
+
+            entity.HasIndex(e => e.ScheduledFor, "Tbl_Notification_pending_schedule_idx")
+                .HasFilter("status = 'Pending'");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Type)
+                .HasMaxLength(50)
+                .HasColumnName("type");
+            entity.Property(e => e.DedupeKey)
+                .HasMaxLength(200)
+                .HasColumnName("dedupe_key");
+            entity.Property(e => e.Title)
+                .HasMaxLength(150)
+                .HasColumnName("title");
+            entity.Property(e => e.Body)
+                .HasMaxLength(500)
+                .HasColumnName("body");
+            entity.Property(e => e.ActionUrl)
+                .HasMaxLength(500)
+                .HasColumnName("action_url");
+            entity.Property(e => e.DataJson)
+                .HasColumnType("jsonb")
+                .HasColumnName("data_json");
+            entity.Property(e => e.Status)
+                .HasMaxLength(30)
+                .HasDefaultValueSql("'Pending'::character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.ScheduledFor)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("scheduled_for");
+            entity.Property(e => e.QueuedAt).HasColumnName("queued_at");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.TblNotifications)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("Tbl_Notification_user_id_fkey");
+        });
+
+        modelBuilder.Entity<TblNotificationDelivery>(entity =>
+        {
+            entity.ToTable("Tbl_NotificationDelivery", table =>
+            {
+                table.HasCheckConstraint(
+                    "Tbl_NotificationDelivery_attempt_count_check",
+                    "attempt_count >= 0");
+                table.HasCheckConstraint(
+                    "Tbl_NotificationDelivery_status_check",
+                    "status IN ('Pending', 'Sent', 'TemporaryFailure', 'PermanentFailure', 'Skipped')");
+            });
+
+            entity.HasKey(e => e.Id).HasName("Tbl_NotificationDelivery_pkey");
+
+            entity.HasIndex(
+                    e => new { e.NotificationId, e.PushSubscriptionId },
+                    "Tbl_NotificationDelivery_notification_subscription_key")
+                .IsUnique();
+
+            entity.HasIndex(
+                    e => new { e.Status, e.LastAttemptAt },
+                    "Tbl_NotificationDelivery_retry_idx")
+                .HasFilter("status IN ('Pending', 'TemporaryFailure')");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.NotificationId).HasColumnName("notification_id");
+            entity.Property(e => e.PushSubscriptionId).HasColumnName("push_subscription_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(30)
+                .HasDefaultValueSql("'Pending'::character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.AttemptCount)
+                .HasDefaultValue(0)
+                .HasColumnName("attempt_count");
+            entity.Property(e => e.LastAttemptAt).HasColumnName("last_attempt_at");
+            entity.Property(e => e.SentAt).HasColumnName("sent_at");
+            entity.Property(e => e.FailureCode)
+                .HasMaxLength(100)
+                .HasColumnName("failure_code");
+            entity.Property(e => e.FailureMessage)
+                .HasMaxLength(500)
+                .HasColumnName("failure_message");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.Notification)
+                .WithMany(p => p.TblNotificationDeliveries)
+                .HasForeignKey(d => d.NotificationId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("Tbl_NotificationDelivery_notification_id_fkey");
+
+            entity.HasOne(d => d.PushSubscription)
+                .WithMany(p => p.TblNotificationDeliveries)
+                .HasForeignKey(d => d.PushSubscriptionId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("Tbl_NotificationDelivery_push_subscription_id_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);

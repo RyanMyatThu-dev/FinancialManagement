@@ -11,11 +11,28 @@ namespace ST_finance.Domain.Features
         /// <summary>
         /// Deletes every financial record owned by a user: transactions, categories, tags,
         /// accounts, budgets, recurring schedules, savings goals/contributions, daily quota
-        /// logs, and the user profile. Does not delete the TblUser row itself, OTP
+        /// logs, notifications, push subscriptions, notification preferences, and the user
+        /// profile. Does not delete the TblUser row itself, OTP
         /// verifications, or role/permission assignments — callers handle those separately.
         /// </summary>
         public static async Task DeleteAllUserDataAsync(AppDbContext context, Guid userId)
         {
+            var notificationDeliveries = await context.TblNotificationDeliveries
+                .Where(d => d.Notification.UserId == userId).ToListAsync();
+            context.TblNotificationDeliveries.RemoveRange(notificationDeliveries);
+
+            var notifications = await context.TblNotifications
+                .Where(n => n.UserId == userId).ToListAsync();
+            context.TblNotifications.RemoveRange(notifications);
+
+            var pushSubscriptions = await context.TblPushSubscriptions
+                .Where(s => s.UserId == userId).ToListAsync();
+            context.TblPushSubscriptions.RemoveRange(pushSubscriptions);
+
+            var notificationPreferences = await context.TblNotificationPreferences
+                .Where(p => p.UserId == userId).ToListAsync();
+            context.TblNotificationPreferences.RemoveRange(notificationPreferences);
+
             var contributions = await context.TblSavingsContributions.IgnoreQueryFilters()
                 .Where(c => c.SavingsGoal.UserId == userId).ToListAsync();
             context.TblSavingsContributions.RemoveRange(contributions);

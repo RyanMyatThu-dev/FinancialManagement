@@ -249,6 +249,17 @@ namespace ST_finance.Domain.Features.Dashboard
                 }
             }
 
+            var timeZone = ResolveTimeZone(profile?.TimeZoneId);
+            var todayLocal = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc), timeZone));
+
+            var isStreakLoggedToday = profile?.LastLoggedDate == todayLocal;
+            var isStreakActiveFromYesterday = profile?.LastLoggedDate == todayLocal.AddDays(-1);
+
+            int currentStreak = (isStreakLoggedToday || isStreakActiveFromYesterday)
+                ? (profile?.CurrentStreak ?? 0)
+                : 0;
+            int longestStreak = profile?.LongestStreak ?? 0;
+
             return Result.Success(new DashboardSummaryResponse(
                 Quota: quota,
                 CanteenIndex: canteenIndex,
@@ -262,7 +273,10 @@ namespace ST_finance.Domain.Features.Dashboard
                 ResetDayText: resetDayText,
                 EnableQuotaPacing: enableQuotaPacing,
                 DaysRemaining: daysRemaining,
-                ResetDate: resetDate
+                ResetDate: resetDate,
+                CurrentStreak: currentStreak,
+                LongestStreak: longestStreak,
+                IsStreakLoggedToday: isStreakLoggedToday
             ));
         }
 
@@ -343,6 +357,29 @@ namespace ST_finance.Domain.Features.Dashboard
                 3 => "rd",
                 _ => "th"
             };
+        }
+         private static TimeZoneInfo ResolveTimeZone(string? timeZoneId)
+        {
+            if (!string.IsNullOrWhiteSpace(timeZoneId))
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+                }
+                catch (Exception)
+                {
+                    // Fall back
+                }
+            }
+
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+            }
+            catch (Exception)
+            {
+                return TimeZoneInfo.Utc;
+            }
         }
     }
 }

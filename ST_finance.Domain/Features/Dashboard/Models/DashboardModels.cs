@@ -16,7 +16,10 @@ namespace ST_finance.Domain.Features.Dashboard.Models
         string ResetDayText,
         bool EnableQuotaPacing,
         int DaysRemaining = 1,
-        DateTime? ResetDate = null
+        DateTime? ResetDate = null,
+        int CurrentStreak = 0,
+        int LongestStreak = 0,
+        bool IsStreakLoggedToday = false
     );
 
     public record DailyQuotaLogResponse(
