@@ -22,6 +22,7 @@ import {
   Wallet,
   Info,
   Zap,
+  Flame,
 } from "lucide-react";
 import {
   AreaChart,
@@ -180,12 +181,12 @@ export default function DashboardHome() {
             <button
               type="button"
               onClick={() => setShowStreakModal(true)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+              className={`group inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-medium transition-all duration-150 active:scale-95 cursor-pointer ${
                 summary?.isStreakLoggedToday
-                  ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-sm shadow-amber-500/10"
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-400 shadow-[0_0_12px_rgba(34,197,94,0.15)]"
                   : (summary?.currentStreak ?? 0) > 0
-                  ? "border-orange-500/20 bg-orange-500/5 text-orange-600/80 dark:text-orange-400/80"
-                  : "border-[hsl(var(--border))] bg-[hsl(var(--muted))]/50 text-[hsl(var(--muted-foreground))]"
+                  ? "border-emerald-500/30 bg-emerald-950/30 text-emerald-400/90 hover:bg-emerald-500/15 hover:border-emerald-500/50"
+                  : "border-[hsl(var(--border))] bg-[hsl(var(--muted))]/50 text-[hsl(var(--muted-foreground))] hover:border-emerald-500/30 hover:text-emerald-400"
               }`}
               title={
                 summary?.isStreakLoggedToday
@@ -195,15 +196,23 @@ export default function DashboardHome() {
                   : "Log a transaction today to start a streak! (Click to view)"
               }
             >
-              <span className="text-xs">🔥</span>
-              <span className="font-mono font-bold">{summary?.currentStreak ?? 0}</span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
+              <Flame
+                className={`w-3.5 h-3.5 transition-transform duration-150 group-hover:scale-110 ${
+                  summary?.isStreakLoggedToday
+                    ? "text-emerald-400 fill-emerald-400/40"
+                    : (summary?.currentStreak ?? 0) > 0
+                    ? "text-emerald-400/80 fill-emerald-400/20"
+                    : "text-zinc-500"
+                }`}
+              />
+              <span className="font-bold text-white tracking-tight">{summary?.currentStreak ?? 0}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80 group-hover:text-emerald-300">
                 {(summary?.currentStreak ?? 0) === 1 ? "day streak" : "day streak"}
               </span>
               {summary?.isStreakLoggedToday ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#22c55e]" />
               ) : (summary?.currentStreak ?? 0) > 0 ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-lime-400/80 animate-pulse shadow-[0_0_6px_#86efac]" />
               ) : null}
             </button>
           </div>

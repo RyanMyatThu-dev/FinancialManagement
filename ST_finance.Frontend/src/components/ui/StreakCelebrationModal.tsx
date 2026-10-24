@@ -79,21 +79,21 @@ export function StreakCelebrationModal({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors z-20"
+            className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors z-20 cursor-pointer"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
 
           {/* Flame & Ember Stage */}
-          <div className="relative flex items-center justify-center my-4">
+          <div className="relative flex items-center justify-center mt-2 mb-3">
             {/* Floating Pixel Embers rising around the flame */}
             <div
-              className="absolute -top-3 left-[28%] w-1.5 h-1.5 bg-emerald-400 animate-ember pointer-events-none shadow-[0_0_6px_#22c55e]"
+              className="absolute -top-3 left-[26%] w-1.5 h-1.5 bg-emerald-400 animate-ember pointer-events-none shadow-[0_0_6px_#22c55e]"
               style={{ animationDelay: "0.15s", animationDuration: "1.4s" }}
             />
             <div
-              className="absolute -top-6 right-[26%] w-1.5 h-1.5 bg-lime-300 animate-ember pointer-events-none shadow-[0_0_6px_#86efac]"
+              className="absolute -top-6 right-[24%] w-1.5 h-1.5 bg-lime-300 animate-ember pointer-events-none shadow-[0_0_6px_#86efac]"
               style={{ animationDelay: "0.65s", animationDuration: "1.8s" }}
             />
             <div
@@ -101,7 +101,7 @@ export function StreakCelebrationModal({
               style={{ animationDelay: "1.05s", animationDuration: "1.2s" }}
             />
             <div
-              className="absolute top-4 right-[22%] w-1 h-1 bg-emerald-300 animate-ember pointer-events-none"
+              className="absolute top-4 right-[20%] w-1 h-1 bg-emerald-300 animate-ember pointer-events-none"
               style={{ animationDelay: "0.45s", animationDuration: "1.6s" }}
             />
 
@@ -130,13 +130,15 @@ export function StreakCelebrationModal({
             {message.desc}
           </p>
 
-          {/* Action button */}
+          {/* Action button: Authentic Border Box with Tactile Invert Hover */}
           <button
             onClick={onClose}
-            className="mt-6 w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-lime-400 hover:from-emerald-400 hover:via-teal-300 hover:to-lime-300 text-black font-mono font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            className="group relative mt-6 w-full py-3.5 px-4 rounded-xl border border-emerald-500/50 bg-[#030d07] hover:bg-emerald-500 text-emerald-400 hover:text-black hover:border-emerald-400 font-mono font-bold text-xs uppercase tracking-widest transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer active:translate-y-0.5 shadow-[0_0_12px_rgba(34,197,94,0.15)] hover:shadow-[0_0_20px_rgba(34,197,94,0.4)]"
           >
-            <Flame className="w-4 h-4 fill-black stroke-black" />
-            Keep it Burning!
+            <Flame className="w-4 h-4 transition-transform duration-150 group-hover:scale-110" />
+            <span className="transition-transform duration-150 group-hover:-translate-x-1 opacity-60 group-hover:opacity-100">[</span>
+            <span>Keep it Burning</span>
+            <span className="transition-transform duration-150 group-hover:translate-x-1 opacity-60 group-hover:opacity-100">]</span>
           </button>
         </div>
       </div>

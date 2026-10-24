@@ -143,18 +143,18 @@ export function PixelFlameStreak({
   const [isStoked, setIsStoked] = useState(false);
   const stokeFuelRef = useRef<number>(0);
 
-  // Resolution of the retro pixel grid
+  // Height increased significantly so flames have full vertical room to leap and lick
   const dimensions = {
-    sm: { w: 46, h: 60, cssW: "w-32", cssH: "h-40" },
-    md: { w: 56, h: 72, cssW: "w-44", cssH: "h-56" },
-    lg: { w: 66, h: 84, cssW: "w-56", cssH: "h-72" },
+    sm: { w: 46, h: 72, cssW: "w-32", cssH: "h-48" },
+    md: { w: 56, h: 88, cssW: "w-44", cssH: "h-64" },
+    lg: { w: 66, h: 104, cssW: "w-56", cssH: "h-80" },
   }[size];
 
   const handleStoke = useCallback(() => {
     if (!interactive) return;
-    stokeFuelRef.current = 24; // boost fire for 24 frames
+    stokeFuelRef.current = 28; // boost fire for 28 frames
     setIsStoked(true);
-    setTimeout(() => setIsStoked(false), 800);
+    setTimeout(() => setIsStoked(false), 900);
   }, [interactive]);
 
   useEffect(() => {
@@ -173,7 +173,7 @@ export function PixelFlameStreak({
 
     let animationFrameId: number;
     let lastTime = 0;
-    const targetFps = 32;
+    const targetFps = 34;
     const frameInterval = 1000 / targetFps;
 
     const numStr = Math.max(0, streak).toString();
@@ -190,7 +190,8 @@ export function PixelFlameStreak({
     const digitSpacing = 1 * digitScale;
     const totalNumWidth = numStr.length * digitWidth + (numStr.length - 1) * digitSpacing;
     const numStartX = Math.floor((W - totalNumWidth) / 2);
-    const numStartY = Math.floor(H * 0.44);
+    // Position the number in the lower-middle body so tall flames lick high above it
+    const numStartY = Math.floor(H * 0.54);
 
     const render = (time: number) => {
       animationFrameId = requestAnimationFrame(render);
@@ -204,63 +205,69 @@ export function PixelFlameStreak({
         stokeFuelRef.current--;
       }
 
-      // 1. Seed bottom base row with shaped flame envelope
-      const wave = Math.sin(time * 0.005) * 0.8;
+      // 1. Seed bottom base rows with a deeper, hotter furnace well
+      const wave = Math.sin(time * 0.005) * 0.9;
       for (let x = 0; x < W; x++) {
-        // Distance from horizontal center: 0 in center, 1 at edges
-        const distFromCenter = Math.abs(x - (W / 2 + wave * 2)) / (W / 2);
+        const distFromCenter = Math.abs(x - (W / 2 + wave * 2.5)) / (W / 2);
 
         // Teardrop / bell curve mask so fire shapes naturally like a flame
-        if (distFromCenter < 0.72) {
-          const envelope = Math.cos((distFromCenter / 0.72) * (Math.PI / 2));
-          const noise = (Math.sin(time * 0.012 + x * 0.45) + 1) * 0.5;
+        if (distFromCenter < 0.74) {
+          const envelope = Math.cos((distFromCenter / 0.74) * (Math.PI / 2));
+          const noise = (Math.sin(time * 0.014 + x * 0.45) + 1) * 0.5;
           const heatBoost = isBoosted ? 3 : 0;
 
           // Hottest center base
           const baseHeat = Math.min(
             maxPaletteIdx,
-            Math.floor((maxPaletteIdx - 1 + heatBoost) * Math.pow(envelope, 0.9) * (0.75 + 0.25 * noise))
+            Math.floor((maxPaletteIdx - 1 + heatBoost) * Math.pow(envelope, 0.8) * (0.8 + 0.2 * noise))
           );
 
-          fireBuffer[(H - 1) * W + x] = Math.random() < 0.92 ? baseHeat : 0;
-          fireBuffer[(H - 2) * W + x] = Math.random() < 0.85 ? Math.max(0, baseHeat - 1) : 0;
+          // Seed bottom 4 rows to give strong thermal momentum
+          for (let rowOffset = 1; rowOffset <= 4; rowOffset++) {
+            const idx = (H - rowOffset) * W + x;
+            fireBuffer[idx] = Math.random() < (0.96 - rowOffset * 0.05) ? Math.max(0, baseHeat - (rowOffset - 1)) : 0;
+          }
 
-          // Occasionally seed floating core sparks
-          if (distFromCenter < 0.35 && Math.random() < (isBoosted ? 0.35 : 0.08)) {
+          // Sparks shooting out of the roaring flame
+          if (distFromCenter < 0.38 && Math.random() < (isBoosted ? 0.45 : 0.12)) {
             sparks.push({
               x: x + (Math.random() * 2 - 1),
-              y: H - 4,
-              vx: (Math.random() - 0.5) * 0.8 + wave * 0.4,
-              vy: -(1.2 + Math.random() * 1.6 + (isBoosted ? 1.0 : 0)),
+              y: H - 8,
+              vx: (Math.random() - 0.5) * 1.0 + wave * 0.6,
+              vy: -(1.6 + Math.random() * 2.2 + (isBoosted ? 1.2 : 0)),
               life: 0,
-              maxLife: 20 + Math.random() * 25,
+              maxLife: 26 + Math.random() * 32,
             });
           }
         } else {
-          fireBuffer[(H - 1) * W + x] = 0;
-          fireBuffer[(H - 2) * W + x] = 0;
+          for (let rowOffset = 1; rowOffset <= 4; rowOffset++) {
+            fireBuffer[(H - rowOffset) * W + x] = 0;
+          }
         }
       }
 
-      // 2. Convection and turbulence heat step
+      // 2. High-Reach Convection and Turbulence
       for (let y = 1; y < H; y++) {
         for (let x = 0; x < W; x++) {
           const srcIdx = y * W + x;
           const heat = fireBuffer[srcIdx];
           if (heat === 0) continue;
 
-          // Natural air decay: center decays slower to form tall flame tips
           const dist = Math.abs(x - W / 2) / (W / 2);
-          const decayProb = dist > 0.4 ? 0.6 : 0.35;
-          const decay = Math.random() < decayProb ? Math.floor(Math.random() * 2) + 1 : Math.floor(Math.random() * 1.4);
+          
+          // Low decay in the center column so flames lick high up the canvas
+          const decayProb = dist < 0.28 ? 0.18 : dist < 0.5 ? 0.34 : 0.65;
+          const decay = Math.random() < decayProb ? 1 : 0;
 
-          // Swaying wind drift
-          const windDrift = Math.random() < 0.4 ? (wave > 0 ? 1 : -1) : 0;
-          const randomDrift = Math.floor(Math.random() * 3) - 1;
-          const drift = randomDrift + windDrift;
+          // Upward convection step: center column surges 2 rows at once frequently
+          const stepY = (dist < 0.38 && Math.random() < 0.35) ? 2 : 1;
+
+          // Sinusoidal turbulent wind sway
+          const windDrift = Math.sin(time * 0.007 + y * 0.08) * 0.8;
+          const drift = Math.round((Math.random() - 0.5) * 1.8 + windDrift);
 
           const destX = Math.min(W - 1, Math.max(0, x + drift));
-          const destY = y - 1;
+          const destY = Math.max(0, y - stepY);
           const destIdx = destY * W + destX;
 
           fireBuffer[destIdx] = heat >= decay ? heat - decay : 0;
@@ -281,7 +288,7 @@ export function PixelFlameStreak({
         data[px + 3] = color[3];
       }
 
-      // 4. Update and render sparks / flying embers inside fire buffer
+      // 4. Update and render flying sparks / embers
       for (let s = sparks.length - 1; s >= 0; s--) {
         const spark = sparks[s];
         spark.x += spark.vx;
@@ -295,12 +302,16 @@ export function PixelFlameStreak({
           const p = (iy * W + ix) * 4;
           const lifeProgress = spark.life / spark.maxLife;
 
-          // Intense mint white when fresh, cooling to volt green
-          if (lifeProgress < 0.4) {
-            data[p] = 240;
+          if (lifeProgress < 0.35) {
+            data[p] = 245;
             data[p + 1] = 255;
-            data[p + 2] = 245;
+            data[p + 2] = 250;
             data[p + 3] = 255;
+          } else if (lifeProgress < 0.7) {
+            data[p] = 74;
+            data[p + 1] = 222;
+            data[p + 2] = 128;
+            data[p + 3] = 240;
           } else {
             data[p] = 34;
             data[p + 1] = 197;
@@ -313,7 +324,6 @@ export function PixelFlameStreak({
       }
 
       // 5. Stamp the pixelated number directly into the frame buffer!
-      // Heat shimmer floating motion:
       const shimmerY = Math.round(Math.sin(time * 0.004) * 0.8);
       const curStartY = numStartY + shimmerY;
 
@@ -330,7 +340,6 @@ export function PixelFlameStreak({
               const baseX = dX + c * digitScale;
               const baseY = curStartY + r * digitScale;
 
-              // Draw a 1-pixel dark border around each scaled pixel block
               for (let oy = -1; oy <= digitScale; oy++) {
                 for (let ox = -1; ox <= digitScale; ox++) {
                   const px = baseX + ox;
@@ -383,7 +392,6 @@ export function PixelFlameStreak({
       }
 
       // Pass 3: Translucent foreground fire licks across the bottom edge
-      // so the number feels embedded directly *inside* the burning inferno
       for (let x = numStartX - 2; x <= numStartX + totalNumWidth + 2; x++) {
         const lickY = curStartY + 7 * digitScale - 1;
         if (x >= 0 && x < W && lickY >= 0 && lickY < H) {
@@ -391,7 +399,6 @@ export function PixelFlameStreak({
           if (heatVal > 4 && Math.random() < 0.6) {
             const idx = (lickY * W + x) * 4;
             const c = VOLT_FIRE_PALETTE[heatVal];
-            // Blend foreground fire pixel
             data[idx] = Math.min(255, data[idx] + c[0]);
             data[idx + 1] = Math.min(255, data[idx + 1] + c[1]);
             data[idx + 2] = Math.min(255, data[idx + 2] + c[2]);
@@ -418,7 +425,7 @@ export function PixelFlameStreak({
     >
       {/* Radiant ST-Finance Volt glow behind the flame */}
       <div
-        className={`absolute w-36 h-36 rounded-full bg-emerald-500/25 blur-2xl pointer-events-none transition-all duration-300 ${
+        className={`absolute w-36 h-48 rounded-full bg-emerald-500/25 blur-2xl pointer-events-none transition-all duration-300 ${
           isStoked ? "scale-125 bg-emerald-400/40" : "scale-100"
         }`}
       />
@@ -430,7 +437,7 @@ export function PixelFlameStreak({
       />
 
       {/* Subtitle label in retro cyber font */}
-      <div className="mt-[-8px] z-10 px-3 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-[10px] font-mono font-bold tracking-widest uppercase text-emerald-300 shadow-[0_0_12px_rgba(34,197,94,0.35)] flex items-center gap-1.5 backdrop-blur-xs">
+      <div className="mt-[-6px] z-10 px-3 py-0.5 rounded-full bg-emerald-950/90 border border-emerald-500/40 text-[10px] font-mono font-bold tracking-widest uppercase text-emerald-300 shadow-[0_0_12px_rgba(34,197,94,0.35)] flex items-center gap-1.5 backdrop-blur-xs">
         <span className="w-1.5 h-1.5 bg-emerald-400 animate-pulse rounded-xs" />
         {streak === 1 ? "DAY STREAK" : "DAYS BURNING"}
       </div>
