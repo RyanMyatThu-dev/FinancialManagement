@@ -190,90 +190,98 @@ void main() {
   float orb_total_heat = (orb_body + core_heat * 0.68 + (arc1 + arc2 + arc3 + wisps + dot_sparks) * (1.0 - m * 0.85)) * orb_envelope;
 
   // ══════════════════════════════════════════════════
-  // 2. TAPERED MULTI-TONGUE FLAME SILHOUETTE
+  // 2. CURVED ORGANIC MULTI-TONGUE FLAME SILHOUETTE
   // ══════════════════════════════════════════════════
   // Vertical position: settle base smoothly from y = 0.36 to 0.15 during eruption
   float y_base = mix(0.36, 0.15, m);
   float dy = (y - y_base) / 0.80; // normalized flame height [0, 1]
 
   // Convective upward flow coordinate
-  float flow_y = dy * 3.8 - t * 5.2;
+  float flow_y = dy * 3.6 - t * 4.6;
 
   // Tongue sprouting progression during eruption
   float branch_sprout = smoothstep(0.12, 0.88, m);
   float spur_sprout = smoothstep(0.35, 0.98, m);
 
-  // A. Hearth Base & Belly (Rounded teardrop framing streak number at y = 0.40)
-  float belly_w = 0.28 * sqrt(max(0.0, 1.0 - pow((dy - 0.25) / 0.28, 2.0)));
-  float env_belly = clamp(1.0 - abs(x) / max(0.01, belly_w), 0.0, 1.0) * smoothstep(-0.05, 0.03, dy);
+  // A. Hearth Base & Belly (Enclosing streak number at dy ~ 0.25 / y = 0.35..0.45)
+  // Tapers above dy = 0.32 so branches distinctly emerge from body into silhouette
+  float belly_profile = clamp((dy - 0.24) / 0.18, -1.0, 1.0);
+  float belly_w = mix(0.24, 0.11, smoothstep(0.0, 1.0, belly_profile)) * sqrt(max(0.0, 1.0 - pow(clamp((dy - 0.24) / 0.26, -1.0, 1.0), 2.0)));
+  float env_belly = smoothstep(1.0, 0.20, abs(x) / max(0.01, belly_w)) * smoothstep(-0.04, 0.04, dy) * smoothstep(0.48, 0.32, dy);
 
-  // B. Central Plume (Natural height, curled tip, no isolated spike)
-  float tip_C = 0.83 + 0.04 * sin(t * 5.2);
-  float curl_C = 0.028 * sin(flow_y * 1.8 + t * 2.2) * pow(clamp(dy / tip_C, 0.0, 1.0), 1.6);
-  float sway_C = 0.012 * sin(flow_y * 1.3) + curl_C;
-  float w_C = 0.14 * pow(max(0.0, 1.0 - dy / tip_C), 0.70);
-  float env_C = clamp(1.0 - abs(x - sway_C) / max(0.01, w_C), 0.0, 1.0) * step(0.0, dy) * step(dy, tip_C);
+  // B. Central Plume (Curved S-waving tongue originating from hearth dy ~ 0.10)
+  float tip_C = 0.84 + 0.040 * sin(t * 3.8);
+  float p_C = clamp((dy - 0.10) / max(0.01, tip_C - 0.10), 0.0, 1.0);
+  // S-curving centerline: sweeps gently right then curls left at top
+  float sway_C = 0.065 * sin(p_C * 2.8 - 0.3) * pow(p_C, 1.1) + 0.035 * sin(p_C * 4.6 - t * 2.6) * pow(p_C, 1.4);
+  float w_C = 0.16 * pow(1.0 - p_C, 0.65) * (0.85 + 0.35 * sin(p_C * 3.14159));
+  float env_C = smoothstep(1.0, 0.20, abs(x - sway_C) / max(0.007, w_C)) * step(0.08, dy) * step(dy, tip_C);
 
-  // C. Left Primary Tongue (Reaches dy ~ 0.80 with natural curvature)
-  float tip_L = (0.80 + 0.05 * sin(t * 5.1 + 1.8)) * branch_sprout;
-  float curl_L = -0.026 * sin(flow_y * 2.0 + 0.8) * pow(clamp((dy - 0.15) / max(0.01, tip_L - 0.15), 0.0, 1.0), 1.4);
-  float sway_L = -0.17 - 0.02 * sin(flow_y * 1.5 + 1.2) + curl_L;
-  float w_L = 0.10 * pow(max(0.0, 1.0 - (dy - 0.14) / max(0.01, tip_L - 0.14)), 0.72);
-  float env_L = clamp(1.0 - abs(x - sway_L) / max(0.01, w_L), 0.0, 1.0) * step(0.12, dy) * step(dy, tip_L) * branch_sprout;
+  // C. Left Major Tongue (Grows from lower-middle body dy ~ 0.18, arches outward to -0.20, curls inward at tip)
+  float tip_L = (0.78 + 0.045 * sin(t * 4.2 + 1.5)) * branch_sprout;
+  float p_L = clamp((dy - 0.18) / max(0.01, tip_L - 0.18), 0.0, 1.0);
+  // Crescent C-curve: arches outward to x ~ -0.19 at mid-height, then curls back inward toward tip
+  float arc_L = -(0.17 + 0.040 * sin(t * 2.9 + 0.5)) * sin(p_L * 2.4) + 0.035 * sin(p_L * 5.0 - t * 3.2) * pow(p_L, 1.2);
+  float x_L = -0.04 + arc_L;
+  float w_L = 0.125 * pow(1.0 - p_L, 0.70) * (0.85 + 0.35 * sin(p_L * 3.14159));
+  float env_L = smoothstep(1.0, 0.20, abs(x - x_L) / max(0.007, w_L)) * step(0.18, dy) * step(dy, tip_L) * branch_sprout;
 
-  // D. Right Primary Tongue (Reaches dy ~ 0.86 with asymmetric outward-inward curl)
-  float tip_R = (0.86 + 0.05 * sin(t * 5.6 + 3.8)) * branch_sprout;
-  float curl_R = 0.028 * sin(flow_y * 2.0 + 1.2) * pow(clamp((dy - 0.15) / max(0.01, tip_R - 0.15), 0.0, 1.0), 1.4);
-  float sway_R = 0.18 + 0.02 * sin(flow_y * 1.5 + 3.5) + curl_R;
-  float w_R = 0.10 * pow(max(0.0, 1.0 - (dy - 0.14) / max(0.01, tip_R - 0.14)), 0.72);
-  float env_R = clamp(1.0 - abs(x - sway_R) / max(0.01, w_R), 0.0, 1.0) * step(0.12, dy) * step(dy, tip_R) * branch_sprout;
+  // D. Right Major Tongue (Grows from lower-middle body dy ~ 0.16, arches boldly outward to +0.20, curls at tip)
+  float tip_R = (0.82 + 0.045 * sin(t * 3.9 + 2.7)) * branch_sprout;
+  float p_R = clamp((dy - 0.16) / max(0.01, tip_R - 0.16), 0.0, 1.0);
+  // Crescent C-curve to the right: peaks at +0.20, hooks inward toward tip
+  float arc_R = (0.18 + 0.040 * sin(t * 2.6 + 2.1)) * sin(p_R * 2.3) - 0.035 * sin(p_R * 4.8 - t * 3.0) * pow(p_R, 1.2);
+  float x_R = 0.03 + arc_R;
+  float w_R = 0.130 * pow(1.0 - p_R, 0.70) * (0.85 + 0.35 * sin(p_R * 3.14159));
+  float env_R = smoothstep(1.0, 0.20, abs(x - x_R) / max(0.007, w_R)) * step(0.16, dy) * step(dy, tip_R) * branch_sprout;
 
-  // E. Intermediate Inner Sub-Tongues (Fill negative space and eliminate lonely peaks)
-  float tip_IL = (0.71 + 0.04 * sin(t * 6.0 + 2.2)) * branch_sprout;
-  float sway_IL = -0.08 - 0.02 * sin(flow_y * 2.2 + 2.4);
-  float w_IL = 0.065 * pow(max(0.0, 1.0 - (dy - 0.22) / max(0.01, tip_IL - 0.22)), 0.68);
-  float env_IL = clamp(1.0 - abs(x - sway_IL) / max(0.01, w_IL), 0.0, 1.0) * step(0.20, dy) * step(dy, tip_IL) * branch_sprout;
+  // E. Left Secondary Shoulder Tongue (Emerges from left shoulder dy ~ 0.20, sweeps outward and curls up)
+  float tip_FL = (0.54 + 0.035 * sin(t * 4.8 + 3.2)) * spur_sprout;
+  float p_FL = clamp((dy - 0.20) / max(0.01, tip_FL - 0.20), 0.0, 1.0);
+  float x_FL = -0.14 - (0.11 + 0.035 * sin(t * 3.8 + 1.1)) * sin(p_FL * 2.2) + 0.025 * sin(flow_y * 1.8);
+  float w_FL = 0.085 * pow(1.0 - p_FL, 0.75) * (0.85 + 0.30 * sin(p_FL * 3.14159));
+  float env_FL = smoothstep(1.0, 0.20, abs(x - x_FL) / max(0.007, w_FL)) * step(0.19, dy) * step(dy, tip_FL) * spur_sprout;
 
-  float tip_IR = (0.74 + 0.04 * sin(t * 6.2 + 4.0)) * branch_sprout;
-  float sway_IR = 0.09 + 0.02 * sin(flow_y * 2.2 + 4.2);
-  float w_IR = 0.065 * pow(max(0.0, 1.0 - (dy - 0.22) / max(0.01, tip_IR - 0.22)), 0.68);
-  float env_IR = clamp(1.0 - abs(x - sway_IR) / max(0.01, w_IR), 0.0, 1.0) * step(0.20, dy) * step(dy, tip_IR) * branch_sprout;
+  // F. Right Secondary Shoulder Tongue (Emerges from right shoulder dy ~ 0.22, sweeps outward and curls up)
+  float tip_FR = (0.58 + 0.035 * sin(t * 4.5 + 0.8)) * spur_sprout;
+  float p_FR = clamp((dy - 0.22) / max(0.01, tip_FR - 0.22), 0.0, 1.0);
+  float x_FR = 0.15 + (0.11 + 0.035 * sin(t * 3.9 + 2.5)) * sin(p_FR * 2.2) - 0.025 * sin(flow_y * 1.8);
+  float w_FR = 0.085 * pow(1.0 - p_FR, 0.75) * (0.85 + 0.30 * sin(p_FR * 3.14159));
+  float env_FR = smoothstep(1.0, 0.20, abs(x - x_FR) / max(0.007, w_FR)) * step(0.21, dy) * step(dy, tip_FR) * spur_sprout;
 
-  // F. Outer Flank Tendrils (Short licking spurs)
-  float sway_FL = -0.27 - 0.02 * sin(flow_y * 2.0);
-  float tip_FL = (0.54 + 0.04 * sin(t * 6.5 + 1.0)) * spur_sprout;
-  float w_FL = 0.065 * pow(max(0.0, 1.0 - (dy - 0.16) / max(0.01, tip_FL - 0.16)), 0.65);
-  float env_FL = clamp(1.0 - abs(x - sway_FL) / max(0.01, w_FL), 0.0, 1.0) * step(0.14, dy) * step(dy, tip_FL) * spur_sprout;
+  // G. Inner Layering Tongue (Emerges from mid-body dy ~ 0.34, x ~ -0.02 between center and left)
+  float tip_IN = (0.71 + 0.035 * sin(t * 4.1 + 1.8)) * branch_sprout;
+  float p_IN = clamp((dy - 0.34) / max(0.01, tip_IN - 0.34), 0.0, 1.0);
+  float x_IN = -0.02 - 0.06 * sin(p_IN * 2.7) + 0.025 * sin(flow_y * 2.0);
+  float w_IN = 0.08 * pow(1.0 - p_IN, 0.75) * (0.85 + 0.30 * sin(p_IN * 3.14159));
+  float env_IN = smoothstep(1.0, 0.20, abs(x - x_IN) / max(0.007, w_IN)) * step(0.32, dy) * step(dy, tip_IN) * branch_sprout;
 
-  float sway_FR = 0.28 + 0.02 * sin(flow_y * 2.0 + 2.7);
-  float tip_FR = (0.51 + 0.04 * sin(t * 6.2 + 3.4)) * spur_sprout;
-  float w_FR = 0.065 * pow(max(0.0, 1.0 - (dy - 0.16) / max(0.01, tip_FR - 0.16)), 0.65);
-  float env_FR = clamp(1.0 - abs(x - sway_FR) / max(0.01, w_FR), 0.0, 1.0) * step(0.14, dy) * step(dy, tip_FR) * spur_sprout;
+  // Dynamic valleys/clefts separating upper tongues (emerging naturally above dy ~ 0.36)
+  float cleft_L = clamp(1.0 - abs(x - mix(x_L, sway_C, 0.50)) / 0.026, 0.0, 1.0) * smoothstep(0.34, 0.46, dy) * step(dy, min(tip_L, tip_C));
+  float cleft_R = clamp(1.0 - abs(x - mix(x_R, sway_C, 0.50)) / 0.026, 0.0, 1.0) * smoothstep(0.34, 0.46, dy) * step(dy, min(tip_R, tip_C));
+  float cleft_FL = clamp(1.0 - abs(x - mix(x_FL, x_L, 0.50)) / 0.022, 0.0, 1.0) * smoothstep(0.25, 0.35, dy) * step(dy, tip_FL);
+  float cleft_FR = clamp(1.0 - abs(x - mix(x_FR, x_R, 0.50)) / 0.022, 0.0, 1.0) * smoothstep(0.25, 0.35, dy) * step(dy, tip_FR);
 
-  // Cleft Notches: Carve negative space between tongues
-  float cleft_L = clamp(1.0 - abs(x - (-0.11)) / 0.034, 0.0, 1.0) * step(0.34, dy) * step(dy, 0.78);
-  float cleft_R = clamp(1.0 - abs(x - (0.11)) / 0.034, 0.0, 1.0) * step(0.34, dy) * step(dy, 0.82);
-  float cleft_FL = clamp(1.0 - abs(x - (-0.22)) / 0.028, 0.0, 1.0) * step(0.22, dy) * step(dy, 0.52);
-  float cleft_FR = clamp(1.0 - abs(x - (0.22)) / 0.028, 0.0, 1.0) * step(0.22, dy) * step(dy, 0.50);
-
-  float composite_tongues = max(env_belly, max(env_C, max(max(env_L, env_R), max(max(env_IL, env_IR), max(env_FL, env_FR)))));
-  float carved_silhouette = clamp(composite_tongues - 0.62 * branch_sprout * max(max(cleft_L, cleft_R), max(cleft_FL, cleft_FR)), 0.0, 1.0);
+  float composite_tongues = max(env_belly, max(env_C, max(max(env_L, env_R), max(max(env_FL, env_FR), env_IN))));
+  float carved_silhouette = clamp(composite_tongues - 0.45 * branch_sprout * max(max(cleft_L, cleft_R), max(cleft_FL, cleft_FR)), 0.0, 1.0);
 
   // Micro-notches for authentic pixel fire irregularity
-  float micro_notches = 0.12 * fbm(vec2(x * 12.0, flow_y * 1.8));
-  float flame_silhouette = clamp(carved_silhouette + micro_notches * step(0.1, carved_silhouette), 0.0, 1.0);
+  float micro_notches = 0.10 * fbm(vec2(x * 10.0 + 0.15 * sin(flow_y * 1.5), flow_y * 1.6));
+  float flame_silhouette = clamp(carved_silhouette + micro_notches * step(0.12, carved_silhouette), 0.0, 1.0);
 
   // ══════════════════════════════════════════════════
   // 3. INTERNAL TEXTURE & HIERARCHY LAYERING
   // ══════════════════════════════════════════════════
-  float vert_filaments = 0.26 * ridgeFbm(vec2(x * 10.0, flow_y * 2.2));
-  float vert_streaks = 0.22 * fbm(vec2(x * 14.0, flow_y * 1.6));
+  // Convective swirling coordinates that flow and bend organically with the flame
+  vec2 flow_uv = vec2(x * 6.5 + 0.18 * sin(flow_y * 1.3), flow_y * 1.6);
+  float vert_filaments = 0.22 * ridgeFbm(flow_uv);
+  float vert_streaks = 0.18 * fbm(flow_uv * 1.25 + vec2(1.7, -0.8));
 
   // Concentrated Core shape centered around streak number (dy ~ 0.28)
   float core_flow = dy * 4.5 - t * 6.5;
-  float core_streaks = fbm(vec2(x * 16.0, core_flow));
-  float core_shape = exp(-pow(x / 0.10, 2.0) - pow((dy - 0.28) / 0.22, 2.0));
-  float flame_core_intensity = core_shape * (0.80 + 0.35 * core_streaks);
+  float core_streaks = fbm(vec2(x * 14.0 + 0.10 * sin(core_flow), core_flow));
+  float core_shape = exp(-pow(x / 0.11, 2.0) - pow((dy - 0.28) / 0.22, 2.0));
+  float flame_core_intensity = core_shape * (0.82 + 0.32 * core_streaks);
 
   // Layered edge separation: outer perimeter falls off into rich forest and pine
   float edge_falloff = smoothstep(0.04, 0.50, carved_silhouette);
@@ -409,6 +417,7 @@ export function PixelFlameStreak({
         gl!.shaderSource(shader, src);
         gl!.compileShader(shader);
         if (!gl!.getShaderParameter(shader, gl!.COMPILE_STATUS)) {
+          console.error("Shader compile error:", gl!.getShaderInfoLog(shader));
           gl!.deleteShader(shader);
           return null;
         }
