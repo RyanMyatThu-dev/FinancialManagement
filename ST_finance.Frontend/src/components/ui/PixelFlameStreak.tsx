@@ -103,18 +103,33 @@ const DIGIT_BITMAPS: Record<string, number[]> = {
   ],
 };
 
-// Clean 8-shade ST-Finance Volt Green palette:
-// Transparent -> Dark Emerald Edge -> Vivid Emerald -> Signature Volt -> Bright Lime -> Cyber Mint -> Incandescent Core
-const FLAME_PALETTE: [number, number, number, number][] = [
+// Rich 8-shade ST-Finance Volt Green Fire Palette:
+// Transparent -> Dark Pine Edge -> Forest Emerald -> Vivid Emerald -> Signature Volt -> Electric Lime -> Cyber Mint -> Incandescent Core
+const VOLT_FIRE_PALETTE: [number, number, number, number][] = [
   [0, 0, 0, 0],         // 0: transparent
-  [2, 38, 22, 240],     // 1: dark emerald border
-  [5, 78, 44, 255],     // 2: forest green
-  [10, 138, 75, 255],   // 3: vivid emerald
+  [2, 32, 18, 220],     // 1: dark pine edge
+  [4, 68, 38, 255],     // 2: forest emerald
+  [8, 128, 68, 255],    // 3: vivid emerald
   [34, 197, 94, 255],   // 4: signature ST-Finance volt
   [74, 222, 128, 255],  // 5: electric lime-volt
   [134, 239, 172, 255], // 6: cyber mint
-  [240, 253, 244, 255], // 7: incandescent white-mint
+  [240, 255, 246, 255], // 7: incandescent white-mint
 ];
+
+interface FireParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  heat: number;
+  size: number;
+  type: "orb" | "spin" | "spire" | "left_tongue" | "right_tongue" | "core" | "spark";
+  angle?: number;
+  radius?: number;
+  omega?: number;
+}
 
 export function PixelFlameStreak({
   streak,
@@ -124,17 +139,17 @@ export function PixelFlameStreak({
 }: PixelFlameStreakProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isStoked, setIsStoked] = useState(false);
-  const stokeFuelRef = useRef<number>(0);
+  const stokeRef = useRef<number>(0);
 
   const dimensions = {
-    sm: { w: 40, h: 56, cssW: "w-28", cssH: "h-40" },
-    md: { w: 48, h: 64, cssW: "w-36", cssH: "h-48" },
-    lg: { w: 56, h: 74, cssW: "w-44", cssH: "h-58" },
+    sm: { w: 42, h: 60, cssW: "w-28", cssH: "h-40" },
+    md: { w: 52, h: 72, cssW: "w-36", cssH: "h-50" },
+    lg: { w: 60, h: 84, cssW: "w-44", cssH: "h-62" },
   }[size];
 
   const handleStoke = useCallback(() => {
     if (!interactive) return;
-    stokeFuelRef.current = 24;
+    stokeRef.current = 28;
     setIsStoked(true);
     setTimeout(() => setIsStoked(false), 800);
   }, [interactive]);
@@ -149,27 +164,44 @@ export function PixelFlameStreak({
     canvas.width = W;
     canvas.height = H;
 
-    const fireBuffer = new Uint8Array(W * H);
     let animationFrameId: number;
     let lastTime = 0;
     let frameCount = 0;
     const targetFps = 34;
     const frameInterval = 1000 / targetFps;
 
-    // Geometry of the Flame Symbol & Starting Orb
+    // Anchor points for the flame model & starting orb
     const cx = Math.floor(W / 2);
-    const orbCenterY = Math.floor(H * 0.62);
-    const orbRadius = Math.floor(W * 0.28);
-    const flameBaseY = Math.floor(H * 0.84);
-    const flameTipY = Math.floor(H * 0.12);
+    const cy = Math.floor(H * 0.62);
+    const orbRadius = Math.floor(W * 0.26);
+
+    const particles: FireParticle[] = [];
+
+    // Pre-populate initial orb particles
+    for (let i = 0; i < 32; i++) {
+      const angle = (i / 32) * Math.PI * 2;
+      const r = orbRadius + (Math.random() - 0.5) * 2;
+      particles.push({
+        x: cx + Math.cos(angle) * r,
+        y: cy + Math.sin(angle) * r,
+        vx: 0,
+        vy: 0,
+        life: 0,
+        maxLife: 25 + Math.random() * 20,
+        heat: 4 + Math.floor(Math.random() * 3),
+        size: Math.random() < 0.6 ? 2 : 1,
+        type: "orb",
+        angle,
+        radius: r,
+        omega: 0.05 + Math.random() * 0.04,
+      });
+    }
 
     const numStr = Math.max(0, streak).toString();
-
-    // Scale digits to sit comfortably in the rounded base of the flame
     let digitScale = 2;
     if (numStr.length >= 3) {
       digitScale = 1;
-    } else if (numStr.length === 1 && W >= 48) {
+    } else if (numStr.length === 1 && W >= 50) {
       digitScale = 2;
     }
 
@@ -178,9 +210,9 @@ export function PixelFlameStreak({
     const totalNumWidth = numStr.length * digitWidth + (numStr.length - 1) * digitSpacing;
     const totalNumHeight = 7 * digitScale;
 
-    // Number sits in the belly of the flame / center of the orb
+    // Number is anchored inside the core of the orb / flame belly
     const numStartX = Math.floor(cx - totalNumWidth / 2);
-    const numStartY = Math.floor(orbCenterY - totalNumHeight / 2);
+    const numStartY = Math.floor(cy - totalNumHeight / 2);
 
     const render = (time: number) => {
       animationFrameId = requestAnimationFrame(render);
@@ -191,146 +223,236 @@ export function PixelFlameStreak({
 
       frameCount++;
 
-      const isBoosted = stokeFuelRef.current > 0;
-      if (isBoosted) {
-        stokeFuelRef.current--;
-      }
+      const isBoosted = stokeRef.current > 0;
+      if (isBoosted) stokeRef.current--;
 
-      // Morph Factor:
-      // Frame 0..16: Starts as a clean circular orb
-      // Frame 17..36: Ignites upward into the iconic flame symbol
-      // Frame 36+: Steady burning flame symbol
-      let morph = 1.0;
-      if (frameCount < 16) {
-        morph = 0.0;
-      } else if (frameCount < 36) {
-        const p = (frameCount - 16) / 20;
-        morph = Math.sin(p * Math.PI * 0.5);
-      } else {
-        morph = 1.0;
-      }
+      // Animation Stages:
+      // Stage 1 (frame 0..20): Particle Orb
+      // Stage 2 (frame 21..48): Flame spins around the orb (vortex)
+      // Stage 3 (frame 49+): Detailed multi-tongue flame model with active particles
+      const isOrbStage = frameCount < 20;
+      const isSpinStage = frameCount >= 20 && frameCount < 48;
+      const isFlameModel = frameCount >= 48;
 
       const t = time * 0.003;
-      // Natural flame tip sway
-      const tipSway = (Math.sin(t * 3.5) * 2.2 + Math.sin(t * 6.0) * 1.0) * morph;
 
-      // 1. Build the crisp geometric mask: Orb (morph=0) -> Flame Symbol (morph=1)
-      const inMask = new Uint8Array(W * H);
-      const isBorder = new Uint8Array(W * H);
+      // ── PARTICLE SPAWNERS ──────────────────────────────────────────
 
-      for (let y = 0; y < H; y++) {
-        let currentHalfW = 0;
-        let lineCx = cx;
+      // 1. Orb Spawner (Stage 1 & Stage 2)
+      if (isOrbStage || isSpinStage) {
+        const spawnCount = isSpinStage ? 5 : 2;
+        const spinSpeed = isSpinStage ? 0.22 : 0.06;
 
-        if (morph < 1.0) {
-          // Circle Orb shape
-          const dy = y - orbCenterY;
-          if (Math.abs(dy) <= orbRadius) {
-            currentHalfW = Math.sqrt(orbRadius * orbRadius - dy * dy);
+        for (let i = 0; i < spawnCount; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const r = orbRadius + (Math.random() - 0.5) * 3;
+          particles.push({
+            x: cx + Math.cos(angle) * r,
+            y: cy + Math.sin(angle) * r,
+            vx: isSpinStage ? -Math.sin(angle) * 1.8 : 0,
+            vy: isSpinStage ? Math.cos(angle) * 1.8 : 0,
+            life: 0,
+            maxLife: isSpinStage ? 18 + Math.random() * 15 : 24 + Math.random() * 20,
+            heat: isSpinStage ? 5 + Math.floor(Math.random() * 3) : 4 + Math.floor(Math.random() * 3),
+            size: Math.random() < 0.6 ? 2 : 1,
+            type: isSpinStage ? "spin" : "orb",
+            angle,
+            radius: r,
+            omega: spinSpeed * (Math.random() > 0.1 ? 1 : -1),
+          });
+        }
+      }
+
+      // 2. Detailed Multi-Tongue Flame Model Spawners (Stage 3 & Continuous)
+      if (isFlameModel) {
+        // A. Central Main Spire (tallest column, hot core)
+        const spireCount = isBoosted ? 5 : 3;
+        for (let i = 0; i < spireCount; i++) {
+          const sx = cx + (Math.random() - 0.5) * 8;
+          const sy = cy + 4 + Math.random() * 4;
+          const sway = Math.sin(t * 4 + sy * 0.1) * 0.6;
+          particles.push({
+            x: sx,
+            y: sy,
+            vx: (Math.random() - 0.5) * 0.8 + sway,
+            vy: -(1.6 + Math.random() * 1.8 + (isBoosted ? 0.8 : 0)),
+            life: 0,
+            maxLife: 26 + Math.random() * 16,
+            heat: 7,
+            size: Math.random() < 0.7 ? 2 : 1,
+            type: "spire",
+          });
+        }
+
+        // B. Left Tongue (articulated side tongue curling left-upward)
+        const leftCount = isBoosted ? 3 : 2;
+        for (let i = 0; i < leftCount; i++) {
+          const lx = cx - 6 + (Math.random() - 0.5) * 6;
+          const ly = cy + 2 + Math.random() * 4;
+          particles.push({
+            x: lx,
+            y: ly,
+            vx: -(0.5 + Math.random() * 0.9), // curls outward to the left
+            vy: -(1.2 + Math.random() * 1.4),
+            life: 0,
+            maxLife: 20 + Math.random() * 12,
+            heat: 6,
+            size: Math.random() < 0.5 ? 2 : 1,
+            type: "left_tongue",
+          });
+        }
+
+        // C. Right Tongue (articulated side tongue curling right-upward)
+        const rightCount = isBoosted ? 3 : 2;
+        for (let i = 0; i < rightCount; i++) {
+          const rx = cx + 6 + (Math.random() - 0.5) * 6;
+          const ry = cy + 2 + Math.random() * 4;
+          particles.push({
+            x: rx,
+            y: ry,
+            vx: 0.5 + Math.random() * 0.9, // curls outward to the right
+            vy: -(1.2 + Math.random() * 1.4),
+            life: 0,
+            maxLife: 20 + Math.random() * 12,
+            heat: 6,
+            size: Math.random() < 0.5 ? 2 : 1,
+            type: "right_tongue",
+          });
+        }
+
+        // D. Belly Base Cluster (hot burning bed around the number)
+        for (let i = 0; i < 2; i++) {
+          const bx = cx + (Math.random() - 0.5) * (orbRadius * 1.5);
+          const by = cy + (Math.random() - 0.5) * 8;
+          particles.push({
+            x: bx,
+            y: by,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: -(0.4 + Math.random() * 0.7),
+            life: 0,
+            maxLife: 15 + Math.random() * 10,
+            heat: 5 + Math.floor(Math.random() * 3),
+            size: 2,
+            type: "core",
+          });
+        }
+
+        // E. Detached Sparks breaking off the spires
+        if (Math.random() < (isBoosted ? 0.6 : 0.25)) {
+          const sparkSourceX = cx + (Math.random() - 0.5) * 12;
+          particles.push({
+            x: sparkSourceX,
+            y: cy - 14,
+            vx: (Math.random() - 0.5) * 1.2,
+            vy: -(1.8 + Math.random() * 1.5),
+            life: 0,
+            maxLife: 18 + Math.random() * 14,
+            heat: 6,
+            size: 1,
+            type: "spark",
+          });
+        }
+      }
+
+      // ── PARTICLE UPDATE & RENDER TO BUFFER ──────────────────────────
+
+      const buffer = new Uint8Array(W * H);
+
+      for (let pIdx = particles.length - 1; pIdx >= 0; pIdx--) {
+        const p = particles[pIdx];
+        p.life++;
+
+        if (p.life >= p.maxLife) {
+          particles.splice(pIdx, 1);
+          continue;
+        }
+
+        // Movement physics by particle type
+        if (p.type === "orb") {
+          if (p.angle !== undefined && p.radius !== undefined && p.omega !== undefined) {
+            p.angle += p.omega;
+            p.x = cx + Math.cos(p.angle) * p.radius;
+            p.y = cy + Math.sin(p.angle) * p.radius;
           }
+        } else if (p.type === "spin") {
+          if (p.angle !== undefined && p.radius !== undefined && p.omega !== undefined) {
+            p.angle += p.omega;
+            // Radius tightens slightly while spinning
+            p.radius = Math.max(orbRadius * 0.8, p.radius - 0.05);
+            p.x = cx + Math.cos(p.angle) * p.radius;
+            p.y = cy + Math.sin(p.angle) * p.radius;
+
+            // Transition: upward lift starts occurring toward the end of spin
+            if (frameCount > 40 && Math.sin(p.angle) < 0) {
+              p.type = "spire";
+              p.vy = -(1.8 + Math.random() * 1.2);
+              p.vx = (Math.random() - 0.5) * 1.0;
+            }
+          }
+        } else {
+          // Flame Model upward movement with natural aerodynamic pull
+          if (p.type === "left_tongue" && p.life > 6) {
+            // Left tongue curves back slightly toward the tip
+            p.vx += 0.04;
+          } else if (p.type === "right_tongue" && p.life > 6) {
+            // Right tongue curves back slightly toward the tip
+            p.vx -= 0.04;
+          }
+
+          p.x += p.vx;
+          p.y += p.vy;
         }
 
-        if (morph > 0.0 && y >= flameTipY && y <= flameBaseY) {
-          // Iconic Flame Symbol shape: rounded bulbous belly tapering to a sharp tip
-          const normY = (y - flameTipY) / (flameBaseY - flameTipY); // 0 at tip, 1 at base
-          const bulb = Math.sin(normY * Math.PI * 0.88);
-          const flameW = orbRadius * (1.18 * bulb * Math.pow(normY, 0.42));
-
-          // Tip sways organically
-          const lineSway = tipSway * (1 - normY);
-          lineCx = cx + lineSway;
-
-          // Blend between circle orb and flame symbol
-          currentHalfW = (1 - morph) * currentHalfW + morph * flameW;
+        // Heat cooling progression
+        const lifeFraction = p.life / p.maxLife;
+        if (p.type === "spark") {
+          p.heat = lifeFraction < 0.4 ? 6 : lifeFraction < 0.7 ? 4 : 2;
+        } else {
+          if (lifeFraction < 0.25) p.heat = Math.min(7, p.heat);
+          else if (lifeFraction < 0.55) p.heat = Math.max(4, p.heat - 1);
+          else if (lifeFraction < 0.8) p.heat = Math.max(2, p.heat - 2);
+          else p.heat = 1;
         }
 
-        if (currentHalfW > 0.5) {
-          const leftX = Math.max(0, Math.round(lineCx - currentHalfW));
-          const rightX = Math.min(W - 1, Math.round(lineCx + currentHalfW));
+        // Stamp onto pixel grid
+        const ix = Math.round(p.x);
+        const iy = Math.round(p.y);
 
-          for (let x = leftX; x <= rightX; x++) {
-            inMask[y * W + x] = 1;
-            // Detect outer 1px border
-            if (x === leftX || x === rightX || y === flameBaseY || y === flameTipY) {
-              isBorder[y * W + x] = 1;
+        for (let sy = 0; sy < p.size; sy++) {
+          for (let sx = 0; sx < p.size; sx++) {
+            const rx = ix + sx;
+            const ry = iy + sy;
+            if (rx >= 0 && rx < W && ry >= 0 && ry < H) {
+              const bIdx = ry * W + rx;
+              buffer[bIdx] = Math.max(buffer[bIdx], p.heat);
             }
           }
         }
       }
 
-      // 2. Burning Heat Simulation inside the Mask
-      for (let y = 1; y < H; y++) {
-        for (let x = 0; x < W; x++) {
-          const idx = y * W + x;
-          if (!inMask[idx]) {
-            fireBuffer[idx] = 0;
-            continue;
-          }
+      // ── CONVERT BUFFER TO IMAGEDATA ────────────────────────────────
 
-          if (isBorder[idx]) {
-            fireBuffer[idx] = 1; // Dark emerald crisp edge
-            continue;
-          }
-
-          // Distance from vertical center of the flame at this row
-          const distFromCenter = Math.abs(x - cx) / orbRadius;
-
-          // Moving upward flame heat waves
-          const heatWave = Math.sin(y * 0.4 - t * 7 + x * 0.25) * 0.8;
-          const flicker = (Math.sin(t * 12 + x * 0.5) + 1) * 0.4;
-          const boost = isBoosted ? 1.5 : 0;
-
-          // Hot inner core, cooling toward the edges
-          let heat = Math.floor(
-            6.2 - distFromCenter * 3.5 + heatWave + flicker + boost
-          );
-
-          // Base of the flame has maximum fuel
-          if (y >= orbCenterY && y <= flameBaseY - 2) {
-            heat = Math.max(heat, Math.floor(5.5 - distFromCenter * 2.0 + flicker));
-          }
-
-          // Tip of flame flickers sharply
-          if (y < flameTipY + 6) {
-            heat = Math.random() < 0.7 ? Math.min(4, heat) : 0;
-          }
-
-          fireBuffer[idx] = Math.max(1, Math.min(7, heat));
-        }
-      }
-
-      // 3. Render ImageData
       const imgData = ctx.createImageData(W, H);
       const data = imgData.data;
 
-      for (let i = 0; i < fireBuffer.length; i++) {
-        const heat = fireBuffer[i];
-        const color = FLAME_PALETTE[heat] || FLAME_PALETTE[0];
-        const px = i * 4;
-        data[px] = color[0];
-        data[px + 1] = color[1];
-        data[px + 2] = color[2];
-        data[px + 3] = color[3];
-      }
-
-      // 4. Clean Pixel Sparks breaking off the tip
-      if (morph > 0.6) {
-        const tipX = Math.round(cx + tipSway);
-        const sparkY = flameTipY - Math.floor((frameCount % 12) * 0.6);
-        if (sparkY >= 0 && sparkY < flameTipY && tipX >= 0 && tipX < W) {
-          const sIdx = (sparkY * W + tipX) * 4;
-          data[sIdx] = 74;
-          data[sIdx + 1] = 222;
-          data[sIdx + 2] = 128;
-          data[sIdx + 3] = 220;
+      for (let i = 0; i < buffer.length; i++) {
+        const heat = buffer[i];
+        if (heat > 0) {
+          const c = VOLT_FIRE_PALETTE[heat];
+          const px = i * 4;
+          data[px] = c[0];
+          data[px + 1] = c[1];
+          data[px + 2] = c[2];
+          data[px + 3] = c[3];
         }
       }
 
-      // 5. Stamp the Pixelated Number in the Belly of the Flame Symbol
-      const shimmerY = Math.round(Math.sin(time * 0.004) * 0.8);
+      // ── STAMP PIXELATED NUMBER IN CORE ──────────────────────────────
+
+      const shimmerY = Math.round(Math.sin(time * 0.005) * 0.8);
       const curStartY = numStartY + shimmerY;
 
-      // Pass 1: Crisp Dark Pixel Outline for Instant Readability
+      // Pass 1: Dark Obsidian Backplate for crisp pixel readability
       for (let i = 0; i < numStr.length; i++) {
         const digit = numStr[i];
         const bitmap = DIGIT_BITMAPS[digit] || DIGIT_BITMAPS["0"];
@@ -361,7 +483,7 @@ export function PixelFlameStreak({
         }
       }
 
-      // Pass 2: Bright Incandescent Mint-White Glyph Fill
+      // Pass 2: Bright Incandescent White-Mint Glyph Fill
       for (let i = 0; i < numStr.length; i++) {
         const digit = numStr[i];
         const bitmap = DIGIT_BITMAPS[digit] || DIGIT_BITMAPS["0"];
@@ -381,12 +503,29 @@ export function PixelFlameStreak({
                   if (px >= 0 && px < W && py >= 0 && py < H) {
                     const idx = (py * W + px) * 4;
                     data[idx] = 240;
-                    data[idx + 1] = 253;
-                    data[idx + 2] = 244;
+                    data[idx + 1] = 255;
+                    data[idx + 2] = 246;
                     data[idx + 3] = 255;
                   }
                 }
               }
+            }
+          }
+        }
+      }
+
+      // Pass 3: Translucent foreground fire particles licking across the number
+      for (let x = numStartX - 1; x <= numStartX + totalNumWidth + 1; x++) {
+        for (let y = curStartY; y <= curStartY + totalNumHeight; y++) {
+          if (x >= 0 && x < W && y >= 0 && y < H) {
+            const h = buffer[y * W + x];
+            if (h >= 4 && Math.random() < 0.3) {
+              const idx = (y * W + x) * 4;
+              const c = VOLT_FIRE_PALETTE[h];
+              data[idx] = Math.min(255, data[idx] + c[0] * 0.4);
+              data[idx + 1] = Math.min(255, data[idx + 1] + c[1] * 0.4);
+              data[idx + 2] = Math.min(255, data[idx + 2] + c[2] * 0.4);
+              data[idx + 3] = 255;
             }
           }
         }
@@ -408,9 +547,9 @@ export function PixelFlameStreak({
       onClick={handleStoke}
       title={interactive ? "Click or tap to stoke!" : undefined}
     >
-      {/* Subtle Neon Volt Aura behind the Flame Symbol */}
+      {/* Subtle Neon Volt Aura behind the Flame */}
       <div
-        className={`absolute w-32 h-40 rounded-full bg-emerald-500/20 blur-2xl pointer-events-none transition-all duration-300 ${
+        className={`absolute w-36 h-48 rounded-full bg-emerald-500/20 blur-2xl pointer-events-none transition-all duration-300 ${
           isStoked ? "scale-115 opacity-100" : "scale-100 opacity-80"
         }`}
       />
