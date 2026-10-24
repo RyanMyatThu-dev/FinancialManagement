@@ -89,19 +89,19 @@ export function StreakCelebrationModal({
           <div className="relative flex items-center justify-center mt-2 mb-3">
             {/* Floating Pixel Embers rising around the flame */}
             <div
-              className="absolute -top-3 left-[26%] w-1.5 h-1.5 bg-emerald-400 animate-ember pointer-events-none shadow-[0_0_6px_#22c55e]"
+              className="absolute -top-3 left-[26%] w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ember pointer-events-none shadow-[0_0_8px_#22c55e]"
               style={{ animationDelay: "0.15s", animationDuration: "1.4s" }}
             />
             <div
-              className="absolute -top-6 right-[24%] w-1.5 h-1.5 bg-lime-300 animate-ember pointer-events-none shadow-[0_0_6px_#86efac]"
+              className="absolute -top-6 right-[24%] w-1.5 h-1.5 rounded-full bg-lime-300 animate-ember pointer-events-none shadow-[0_0_8px_#86efac]"
               style={{ animationDelay: "0.65s", animationDuration: "1.8s" }}
             />
             <div
-              className="absolute -top-1 left-[48%] w-1 h-1 bg-white animate-ember pointer-events-none shadow-[0_0_8px_#ffffff]"
+              className="absolute -top-1 left-[48%] w-1 h-1 rounded-full bg-white animate-ember pointer-events-none shadow-[0_0_8px_#ffffff]"
               style={{ animationDelay: "1.05s", animationDuration: "1.2s" }}
             />
             <div
-              className="absolute top-4 right-[20%] w-1 h-1 bg-emerald-300 animate-ember pointer-events-none"
+              className="absolute top-4 right-[20%] w-1 h-1 rounded-full bg-emerald-300 animate-ember pointer-events-none shadow-[0_0_6px_#86efac]"
               style={{ animationDelay: "0.45s", animationDuration: "1.6s" }}
             />
 
