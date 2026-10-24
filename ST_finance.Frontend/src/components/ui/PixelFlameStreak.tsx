@@ -103,17 +103,17 @@ const DIGIT_BITMAPS: Record<string, number[]> = {
   ],
 };
 
-// ST-Finance Signature Neon Volt Fire Palette:
-// Transparent -> Deep Pine Rim -> Forest Emerald -> Vivid Emerald -> Signature Volt -> Bright Lime -> Cyber Mint -> Incandescent Core
+// High-Contrast 8-Grade Volt Flame Palette:
+// Transparent -> Deep Pine Outline -> Forest Emerald -> Vivid Emerald -> Signature Volt -> Bright Lime -> Cyber Mint -> Incandescent Core
 const FLAME_PALETTE: [number, number, number, number][] = [
   [0, 0, 0, 0],         // 0: transparent
-  [2, 34, 18, 220],     // 1: deep pine rim
-  [4, 68, 36, 255],     // 2: forest emerald
-  [8, 128, 68, 255],    // 3: vivid emerald
+  [2, 34, 18, 240],     // 1: deep pine contour
+  [4, 70, 38, 255],     // 2: forest emerald
+  [8, 130, 68, 255],    // 3: vivid emerald
   [34, 197, 94, 255],   // 4: signature ST-Finance volt
   [74, 222, 128, 255],  // 5: electric lime-volt
-  [134, 239, 172, 255], // 6: cyber mint
-  [240, 255, 246, 255], // 7: incandescent white-mint
+  [140, 245, 180, 255], // 6: cyber mint
+  [245, 255, 250, 255], // 7: incandescent white-mint
 ];
 
 interface SphereParticle {
@@ -138,9 +138,9 @@ export function PixelFlameStreak({
   const stokeRef = useRef<number>(0);
 
   const dimensions = {
-    sm: { w: 44, h: 62, cssW: "w-28", cssH: "h-40" },
-    md: { w: 54, h: 74, cssW: "w-36", cssH: "h-50" },
-    lg: { w: 62, h: 86, cssW: "w-44", cssH: "h-62" },
+    sm: { w: 46, h: 64, cssW: "w-28", cssH: "h-40" },
+    md: { w: 56, h: 78, cssW: "w-36", cssH: "h-50" },
+    lg: { w: 66, h: 90, cssW: "w-44", cssH: "h-62" },
   }[size];
 
   const handleStoke = useCallback(() => {
@@ -167,19 +167,19 @@ export function PixelFlameStreak({
     const targetFps = 34;
     const frameInterval = 1000 / targetFps;
 
-    // Anchor points for 3D sphere and burning flame
+    // Anchor points
     const cx = Math.floor(W / 2);
-    const cy = Math.floor(H * 0.62);
-    const sphereRadius = Math.floor(W * 0.26);
+    const cy = Math.floor(H * 0.65);
+    const sphereRadius = Math.floor(W * 0.28);
 
-    // Pre-calculate 3D Fibonacci sphere points (uniform 3D distribution)
-    const NUM_SPHERE_POINTS = 64;
-    const goldenRatio = (1 + Math.sqrt(5)) / 2;
-    const goldenAngle = 2 * Math.PI * (1 - 1 / goldenRatio);
-
+    // ── HIGH-INTENSITY 3D SPHERE GENERATOR (140 surface + 32 orbital points) ──
+    const NUM_SPHERE_POINTS = 140;
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
     const sphereParticles: SphereParticle[] = [];
+
+    // Surface volumetric points
     for (let i = 0; i < NUM_SPHERE_POINTS; i++) {
-      const y = 1 - (i / (NUM_SPHERE_POINTS - 1)) * 2; // -1 to 1
+      const y = 1 - (i / (NUM_SPHERE_POINTS - 1)) * 2;
       const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
       const theta = goldenAngle * i;
       const x = Math.cos(theta) * radiusAtY;
@@ -197,6 +197,23 @@ export function PixelFlameStreak({
       });
     }
 
+    // High-speed equatorial energy orbit rings for extra 3D intensity
+    const NUM_ORBIT_POINTS = 32;
+    for (let i = 0; i < NUM_ORBIT_POINTS; i++) {
+      const theta = (i / NUM_ORBIT_POINTS) * Math.PI * 2;
+      const r = sphereRadius * (0.95 + Math.random() * 0.15);
+      sphereParticles.push({
+        origX: Math.cos(theta) * r,
+        origY: (Math.random() - 0.5) * 3, // slightly flared equator
+        origZ: Math.sin(theta) * r,
+        projX: 0,
+        projY: 0,
+        depth: 0,
+        heat: 6 + Math.floor(Math.random() * 2), // white-hot / cyan mint
+        size: 2,
+      });
+    }
+
     // Cellular fire grid for authentic burning flames
     const fireBuffer = new Uint8Array(W * H);
 
@@ -204,7 +221,7 @@ export function PixelFlameStreak({
     let digitScale = 2;
     if (numStr.length >= 3) {
       digitScale = 1;
-    } else if (numStr.length === 1 && W >= 52) {
+    } else if (numStr.length === 1 && W >= 54) {
       digitScale = 2;
     }
 
@@ -213,7 +230,7 @@ export function PixelFlameStreak({
     const totalNumWidth = numStr.length * digitWidth + (numStr.length - 1) * digitSpacing;
     const totalNumHeight = 7 * digitScale;
 
-    // Number sits in the belly of the flame / center of the 3D sphere
+    // Number sits in the belly of the flame / center of 3D sphere
     const numStartX = Math.floor(cx - totalNumWidth / 2);
     const numStartY = Math.floor(cy - totalNumHeight / 2);
 
@@ -230,34 +247,34 @@ export function PixelFlameStreak({
       if (isBoosted) stokeRef.current--;
 
       // ── LIFECYCLE PROGRESSION ──────────────────────────────────────
-      // 0..22: 3D Particle Sphere rotating around number
-      // 23..48: 3D Flame Vortex Spin (accelerating spin around the sphere in 3D)
-      // 49..70: Ignites upward into true burning flame model
-      // 70+: Continuous authentic burning flames with living multi-tongue physics
-      let spinSpeed = 0.05;
+      // 0..24: Intense 3D Particle Sphere rotating around number
+      // 25..50: 3D Flame Vortex Spin (high-speed orbital spin in 3D)
+      // 51..72: Ignites upward into branching pixel flame model
+      // 72+: Continuous authentic branching green flames with living tongues
+      let spinSpeed = 0.06;
       let flameMorph = 0.0;
 
-      if (frameCount < 22) {
-        spinSpeed = 0.05;
+      if (frameCount < 24) {
+        spinSpeed = 0.06;
         flameMorph = 0.0;
-      } else if (frameCount < 48) {
-        const p = (frameCount - 22) / 26;
-        spinSpeed = 0.05 + p * 0.28; // Accelerate spin in 3D!
-        flameMorph = Math.max(0, (p - 0.6) / 0.4);
-      } else if (frameCount < 70) {
-        const p = (frameCount - 48) / 22;
-        spinSpeed = 0.33 * (1 - p);
+      } else if (frameCount < 50) {
+        const p = (frameCount - 24) / 26;
+        spinSpeed = 0.06 + p * 0.32; // Intense acceleration in 3D
+        flameMorph = Math.max(0, (p - 0.55) / 0.45);
+      } else if (frameCount < 74) {
+        const p = (frameCount - 50) / 24;
+        spinSpeed = 0.38 * (1 - p);
         flameMorph = 0.4 + 0.6 * Math.sin(p * Math.PI * 0.5);
       } else {
-        spinSpeed = isBoosted ? 0.12 : 0.0;
+        spinSpeed = isBoosted ? 0.15 : 0.0;
         flameMorph = 1.0;
       }
 
       currentSpinAngle += spinSpeed;
       const t = time * 0.003;
 
-      // ── 1. 3D SPHERE ROTATION & PERSPECTIVE PROJECTION ──────────────
-      const tiltAngle = 0.32; // Slight 3D tilt for depth visibility
+      // ── 1. INTENSE 3D SPHERE PROJECTION & DEPTH SORTING ─────────────
+      const tiltAngle = 0.36; // 3D tilt for rich spherical depth
       const cosTilt = Math.cos(tiltAngle);
       const sinTilt = Math.sin(tiltAngle);
       const cosSpin = Math.cos(currentSpinAngle);
@@ -275,86 +292,120 @@ export function PixelFlameStreak({
 
         p.projX = cx + x1;
         p.projY = cy + y2;
-        p.depth = z2; // from -sphereRadius (back) to +sphereRadius (front)
+        p.depth = z2; // -sphereRadius to +sphereRadius
 
-        // Depth shading: front particles are white-hot and larger; back are darker emerald
-        const depthNorm = (z2 + sphereRadius) / (sphereRadius * 2); // 0 (back) to 1 (front)
-        p.heat = Math.max(1, Math.min(7, Math.floor(2 + depthNorm * 5)));
-        p.size = depthNorm > 0.55 ? 2 : 1;
+        // High intensity depth shading
+        const depthNorm = (z2 + sphereRadius) / (sphereRadius * 2);
+        p.heat = Math.max(1, Math.min(7, Math.floor(2 + depthNorm * 5.2)));
+        // Front particles: large 2x2 phosphor bloom
+        p.size = depthNorm > 0.45 ? 2 : 1;
       }
 
-      // ── 2. AUTHENTIC BURNING FLAME CELLULAR SIMULATION ─────────────
-      // Flame geometry: wide burning base with articulated Center, Left, and Right licking tongues
-      const flameBaseY = Math.floor(H * 0.88);
-      const mainTipY = Math.floor(H * 0.10);
-      const leftTipY = Math.floor(H * 0.28);
-      const rightTipY = Math.floor(H * 0.24);
+      // ── 2. AUTHENTIC BRANCHING PIXEL FLAME SIMULATION ──────────────
+      // Multi-branch geometry:
+      // Base furnace belly around the number (y = cy - 2 to flameBaseY)
+      // Multiple separate branching spires reaching upward with deep V-notch air gaps!
+      const flameBaseY = Math.floor(H * 0.90);
+      const centerTipY = Math.floor(H * 0.08);
+      const leftTipY = Math.floor(H * 0.24);
+      const rightTipY = Math.floor(H * 0.20);
+      const branchRootY = Math.floor(H * 0.56);
 
-      // Sways and flickers for each tongue
-      const centerSway = Math.sin(t * 4.0) * 3.0 + Math.sin(t * 7.5) * 1.5;
-      const leftSway = Math.cos(t * 4.5) * 2.0;
-      const rightSway = -Math.sin(t * 5.0) * 2.2;
+      // Sways and curls for each independent branch tongue
+      const centerSway = Math.sin(t * 4.0) * 3.5 + Math.sin(t * 7.5) * 1.5;
+      const leftCurl = Math.sin(t * 4.8) * 2.2;
+      const rightCurl = -Math.cos(t * 5.2) * 2.4;
 
-      // Seed the burning furnace well at the base of the flame
+      // Seed the burning furnace well at the bottom base
       for (let x = 0; x < W; x++) {
-        const distFromCenter = Math.abs(x - cx) / (W * 0.38);
+        const distFromCenter = Math.abs(x - cx) / (W * 0.36);
         if (distFromCenter < 1.0) {
           const envelope = Math.cos(distFromCenter * (Math.PI / 2));
-          const noise = (Math.sin(t * 8 + x * 0.5) + 1) * 0.5;
+          const noise = (Math.sin(t * 8 + x * 0.6) + 1) * 0.5;
           const heatBoost = isBoosted ? 2 : 0;
           const baseHeat = Math.min(7, Math.floor((6 + heatBoost) * envelope * (0.8 + 0.2 * noise)));
 
           for (let r = 0; r < 3; r++) {
-            fireBuffer[(flameBaseY - r) * W + x] = Math.random() < 0.92 ? Math.max(0, baseHeat - r) : 0;
+            fireBuffer[(flameBaseY - r) * W + x] = Math.random() < 0.94 ? Math.max(0, baseHeat - r) : 0;
           }
         } else {
           for (let r = 0; r < 3; r++) fireBuffer[(flameBaseY - r) * W + x] = 0;
         }
       }
 
-      // Convection step bounded by authentic multi-tongue flame contours
+      // Convection step strictly sculptured into multiple distinct branches
       for (let y = 1; y < flameBaseY; y++) {
-        const normY = (y - mainTipY) / (flameBaseY - mainTipY); // 0 at tip, 1 at base
-
         for (let x = 0; x < W; x++) {
           const srcIdx = y * W + x;
           const heat = fireBuffer[srcIdx];
           if (heat === 0) continue;
 
-          // Multi-tongue flame mask: check distance to nearest tongue axis
-          const centerAxis = cx + centerSway * (1 - normY);
-          const leftAxis = cx - 8 + leftSway;
-          const rightAxis = cx + 8 + rightSway;
+          let inBranch = false;
+          let branchHeatBonus = 0;
 
-          const distCenter = Math.abs(x - centerAxis);
-          const distLeft = Math.abs(x - leftAxis);
-          const distRight = Math.abs(x - rightAxis);
+          // A. Base Furnace Belly (y >= branchRootY): broad rounded body around the number
+          if (y >= branchRootY) {
+            const p = (y - branchRootY) / (flameBaseY - branchRootY); // 0 to 1
+            const baseW = 15 * Math.sin(p * Math.PI * 0.85);
+            if (Math.abs(x - cx) <= baseW) {
+              inBranch = true;
+              branchHeatBonus = 1;
+            }
+          }
 
-          // Tongue widths
-          const centerW = Math.max(1, 14 * Math.sin(normY * Math.PI * 0.85));
-          const leftW = y > leftTipY ? Math.max(1, 6 * Math.sin(((y - leftTipY) / (flameBaseY - leftTipY)) * Math.PI)) : 0;
-          const rightW = y > rightTipY ? Math.max(1, 6 * Math.sin(((y - rightTipY) / (flameBaseY - rightTipY)) * Math.PI)) : 0;
+          // B. Upper Branching Spires (y < branchRootY + 2):
+          // Three distinct articulated branches separated by air gaps!
+          if (y <= branchRootY + 2 && y >= centerTipY) {
+            // 1. Center Main Spire
+            const pC = (y - centerTipY) / (branchRootY - centerTipY);
+            const centerAxis = cx + centerSway * (1 - pC);
+            const centerW = 6.0 * Math.sin(Math.min(1, pC) * Math.PI * 0.9);
+            if (Math.abs(x - centerAxis) <= centerW) {
+              inBranch = true;
+              if (Math.abs(x - centerAxis) <= 2) branchHeatBonus = 2; // hot core column
+            }
 
-          const inFlame = distCenter <= centerW || distLeft <= leftW || distRight <= rightW;
+            // 2. Left Branch Tongue (branches way out to the left)
+            if (y >= leftTipY) {
+              const pL = (y - leftTipY) / (branchRootY - leftTipY);
+              const leftAxis = cx - 12 * Math.sin(pL * Math.PI * 0.72) + leftCurl;
+              const leftW = 3.8 * Math.sin(pL * Math.PI);
+              if (Math.abs(x - leftAxis) <= leftW) {
+                inBranch = true;
+              }
+            }
 
-          if (!inFlame) {
-            fireBuffer[srcIdx] = Math.max(0, heat - 2);
+            // 3. Right Branch Tongue (branches way out to the right)
+            if (y >= rightTipY) {
+              const pR = (y - rightTipY) / (branchRootY - rightTipY);
+              const rightAxis = cx + 13 * Math.sin(pR * Math.PI * 0.75) + rightCurl;
+              const rightW = 4.0 * Math.sin(pR * Math.PI);
+              if (Math.abs(x - rightAxis) <= rightW) {
+                inBranch = true;
+              }
+            }
+          }
+
+          if (!inBranch) {
+            // Empty space between branches!
+            fireBuffer[srcIdx] = 0;
             continue;
           }
 
-          // Natural flame upward draft
-          const stepY = (normY < 0.6 && Math.random() < 0.35) ? 2 : 1;
-          const wind = Math.sin(t * 3.0 + y * 0.08) * 0.8;
-          const drift = Math.round((Math.random() - 0.5) * 1.6 + wind);
+          // Upward convection step along the branch
+          const stepY = (y < branchRootY && Math.random() < 0.35) ? 2 : 1;
+          const wind = Math.sin(t * 3.5 + y * 0.09) * 0.7;
+          const drift = Math.round((Math.random() - 0.5) * 1.5 + wind);
 
           const destX = Math.min(W - 1, Math.max(0, x + drift));
           const destY = Math.max(0, y - stepY);
 
-          // Natural fire decay: lower in hot center, higher near edges/tips
-          const decayProb = (distCenter < 3 && normY > 0.4) ? 0.15 : 0.38;
+          // Decay rate
+          const decayProb = branchHeatBonus > 1 ? 0.12 : 0.32;
           const decay = Math.random() < decayProb ? 1 : 0;
 
-          fireBuffer[destY * W + destX] = heat >= decay ? heat - decay : 0;
+          const finalHeat = Math.min(7, heat + (branchHeatBonus > 1 ? 1 : 0));
+          fireBuffer[destY * W + destX] = finalHeat >= decay ? finalHeat - decay : 0;
         }
       }
 
@@ -373,7 +424,7 @@ export function PixelFlameStreak({
         }
       };
 
-      // Layer A: Flame simulation (morph weighted)
+      // Layer A: Branching Flame Simulation (weighted by flameMorph)
       if (flameMorph > 0.0) {
         for (let i = 0; i < fireBuffer.length; i++) {
           const heat = fireBuffer[i];
@@ -406,7 +457,7 @@ export function PixelFlameStreak({
       const shimmerY = Math.round(Math.sin(time * 0.005) * 0.8);
       const curStartY = numStartY + shimmerY;
 
-      // Pass 1: Obsidian shadow backing for maximum contrast
+      // Pass 1: Obsidian shadow backing for crisp pixel readability
       for (let i = 0; i < numStr.length; i++) {
         const digit = numStr[i];
         const bitmap = DIGIT_BITMAPS[digit] || DIGIT_BITMAPS["0"];
@@ -456,9 +507,9 @@ export function PixelFlameStreak({
                   const py = baseY + sy;
                   if (px >= 0 && px < W && py >= 0 && py < H) {
                     const idx = (py * W + px) * 4;
-                    data[idx] = 240;
+                    data[idx] = 245;
                     data[idx + 1] = 255;
-                    data[idx + 2] = 246;
+                    data[idx + 2] = 250;
                     data[idx + 3] = 255;
                   }
                 }
@@ -505,12 +556,27 @@ export function PixelFlameStreak({
         }
       }
 
-      // Layer F: Floating Pixel Embers detaching from the flame spires
-      if (flameMorph > 0.5) {
+      // Layer F: Floating Pixel Embers detaching from the tips of each branch!
+      if (flameMorph > 0.45) {
+        // Center branch ember
         const emberX = Math.round(cx + centerSway * 0.9);
-        const emberY = mainTipY - Math.floor((frameCount % 14) * 0.8);
-        if (emberY >= 0 && emberY < mainTipY && emberX >= 0 && emberX < W) {
-          setPixel(emberX, emberY, 5);
+        const emberY = centerTipY - Math.floor((frameCount % 14) * 0.8);
+        if (emberY >= 0 && emberY < centerTipY && emberX >= 0 && emberX < W) {
+          setPixel(emberX, emberY, 6);
+        }
+
+        // Left branch ember
+        const leftEmberX = Math.round(cx - 10 + leftCurl);
+        const leftEmberY = leftTipY - Math.floor(((frameCount + 4) % 12) * 0.7);
+        if (leftEmberY >= 0 && leftEmberY < leftTipY && leftEmberX >= 0 && leftEmberX < W) {
+          setPixel(leftEmberX, leftEmberY, 5);
+        }
+
+        // Right branch ember
+        const rightEmberX = Math.round(cx + 11 + rightCurl);
+        const rightEmberY = rightTipY - Math.floor(((frameCount + 8) % 12) * 0.7);
+        if (rightEmberY >= 0 && rightEmberY < rightTipY && rightEmberX >= 0 && rightEmberX < W) {
+          setPixel(rightEmberX, rightEmberY, 5);
         }
       }
 
@@ -528,12 +594,12 @@ export function PixelFlameStreak({
     <div
       className={`relative flex flex-col items-center justify-center select-none group cursor-pointer ${className}`}
       onClick={handleStoke}
-      title={interactive ? "Click or tap to stoke!" : undefined}
+      title={interactive ? "Click or tap to stoke the flames!" : undefined}
     >
-      {/* Subtle Neon Volt Aura behind the Flame */}
+      {/* Radiant Neon Volt Aura behind the Flame */}
       <div
-        className={`absolute w-36 h-48 rounded-full bg-emerald-500/20 blur-2xl pointer-events-none transition-all duration-300 ${
-          isStoked ? "scale-115 opacity-100" : "scale-100 opacity-80"
+        className={`absolute w-36 h-48 rounded-full bg-emerald-500/25 blur-2xl pointer-events-none transition-all duration-300 ${
+          isStoked ? "scale-120 opacity-100" : "scale-100 opacity-80"
         }`}
       />
 
