@@ -12,10 +12,10 @@ export default function FlamePreviewPage() {
     <div className="min-h-screen bg-[#020704] text-white p-8 flex flex-col items-center gap-8">
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-3xl font-black font-mono tracking-wider text-emerald-400">
-          PIXEL FLAME STREAK TEST BENCH
+          TARGETED FLAME POLISH VERIFICATION
         </h1>
         <p className="text-sm text-zinc-400">
-          Visual verification across animation phases (single & multi-digit) & streak modal
+          Testing: (1) Zero green block artifacts during transition & (2) Natural flame crown tips without long central spike
         </p>
         <div className="flex gap-4 mt-2">
           <button
@@ -25,88 +25,93 @@ export default function FlamePreviewPage() {
             Open Celebration Modal
           </button>
           <button
-            onClick={() => setStreakVal((s) => (s === 7 ? 14 : s === 14 ? 42 : s === 42 ? 100 : 7))}
+            onClick={() => setStreakVal((s) => (s === 7 ? 14 : s === 14 ? 42 : 7))}
             className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded font-mono text-xs font-bold cursor-pointer"
           >
-            Current Streak: {streakVal} (Click to Cycle)
+            Streak: {streakVal} (Click to Cycle)
           </button>
         </div>
       </div>
 
-      {/* Row 1: The 5 Phases (with streak = 7) */}
+      {/* Row 1: The 5 Critical Transition & Flame Stages */}
       <div className="w-full max-w-6xl">
         <h2 className="text-lg font-mono font-bold text-emerald-300 mb-3 border-b border-emerald-900/50 pb-1">
-          Single Digit (Streak: 7) — 5 Animation Phases
+          Stage Verification (Streak: {streakVal}) — Check Background & Flame Crown
         </h2>
         <div className="grid grid-cols-5 gap-4">
+          {/* Stage 1: Orb Before Eruption */}
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">1. Arcane Wind-up (0.3s)</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">1. Orb Before Eruption (0.8s)</span>
             <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={7} size="md" manualTime={0.3} />
+              <PixelFlameStreak streak={streakVal} size="md" manualTime={0.8} />
             </div>
           </div>
 
+          {/* Stage 2: Peak Flash / Pre-Eruption */}
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">2. Charged Orb (0.8s)</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">2. Flash Core (0.96s) [No Blocks!]</span>
             <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={7} size="md" manualTime={0.8} />
+              <PixelFlameStreak streak={streakVal} size="md" manualTime={0.96} />
             </div>
           </div>
 
+          {/* Stage 3: Mid-Transition Eruption */}
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">3. Mid-Eruption (1.25s)</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">3. Mid-Transition (1.20s)</span>
             <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={7} size="md" manualTime={1.25} />
+              <PixelFlameStreak streak={streakVal} size="md" manualTime={1.20} />
             </div>
           </div>
 
+          {/* Stage 4: First Fully Formed Flame */}
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">4. Branching Flame (1.75s)</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">4. Formed Flame (1.70s)</span>
             <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={7} size="md" manualTime={1.75} />
+              <PixelFlameStreak streak={streakVal} size="md" manualTime={1.70} />
             </div>
           </div>
 
+          {/* Stage 5: Living Flame Crown */}
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">5. Living Flame (3.0s)</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">5. Living Flame (3.0s) [No Spike!]</span>
             <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={7} size="md" manualTime={3.0} />
+              <PixelFlameStreak streak={streakVal} size="md" manualTime={3.0} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Row 2: Multi-digit Legibility Check (Streak: 14) */}
+      {/* Row 2: Double-digit Multi-stage Check */}
       <div className="w-full max-w-6xl">
         <h2 className="text-lg font-mono font-bold text-emerald-300 mb-3 border-b border-emerald-900/50 pb-1">
-          Two Digits (Streak: 14) — Legibility Across Core & Arcs
+          Double-Digit (Streak: 14) — Verified Clean Background & Multi-Tongue Crown
         </h2>
         <div className="grid grid-cols-5 gap-4">
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">1. Wind-up (0.3s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={14} size="md" manualTime={0.3} />
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">2. Charged Orb (0.8s)</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">1. Orb (0.8s)</span>
             <div className="w-44 h-52 flex items-center justify-center">
               <PixelFlameStreak streak={14} size="md" manualTime={0.8} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">3. Eruption (1.25s)</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">2. Flash (0.96s)</span>
             <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={14} size="md" manualTime={1.25} />
+              <PixelFlameStreak streak={14} size="md" manualTime={0.96} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">4. Branching (1.75s)</span>
+            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">3. Transition (1.20s)</span>
             <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={14} size="md" manualTime={1.75} />
+              <PixelFlameStreak streak={14} size="md" manualTime={1.20} />
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
+            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">4. Formed (1.70s)</span>
+            <div className="w-44 h-52 flex items-center justify-center">
+              <PixelFlameStreak streak={14} size="md" manualTime={1.70} />
             </div>
           </div>
 
@@ -114,35 +119,6 @@ export default function FlamePreviewPage() {
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">5. Living Flame (3.0s)</span>
             <div className="w-44 h-52 flex items-center justify-center">
               <PixelFlameStreak streak={14} size="md" manualTime={3.0} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 3: Different Sizes (sm, md, lg) in Living Flame */}
-      <div className="w-full max-w-6xl">
-        <h2 className="text-lg font-mono font-bold text-emerald-300 mb-3 border-b border-emerald-900/50 pb-1">
-          Size Variants (sm, md, lg) — Responsive Outline Scaling
-        </h2>
-        <div className="grid grid-cols-3 gap-6">
-          <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">Small (size="sm", 1.2px outline)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={30} size="sm" manualTime={3.0} />
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">Medium (size="md", 1.5px outline)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={30} size="md" manualTime={3.0} />
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
-            <span className="text-xs font-mono font-bold text-emerald-400 mb-2">Large (size="lg", 2.0px outline)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
-              <PixelFlameStreak streak={30} size="lg" manualTime={3.0} />
             </div>
           </div>
         </div>

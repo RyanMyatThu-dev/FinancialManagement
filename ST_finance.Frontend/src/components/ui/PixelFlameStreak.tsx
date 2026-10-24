@@ -137,10 +137,10 @@ void main() {
   // Luminous Concentrated Mint Core
   float core_pulse = 0.07 * sin(t * (7.0 + 13.0 * t_charge));
   float core_r = (0.50 - 0.16 * t_charge) + core_pulse;
-  float core_heat = smoothstep(core_r, 0.0, r_norm);
-  // Controlled pre-eruption flash (t ~ 0.92s - 1.02s)
+  float core_base = smoothstep(core_r, 0.0, r_norm);
+  // Controlled pre-eruption flash - strictly confined to the orb core mask!
   float flash = smoothstep(0.85, 0.98, t_charge) * (1.0 - t_erupt) * 0.45;
-  core_heat += flash;
+  float core_heat = core_base + flash * smoothstep(core_r * 1.35, 0.0, r_norm);
 
   // Rotating Irregular Arcane Arcs wrapping in 3D perspective
   float arc_rot = t * (4.2 + 5.5 * t_charge);
@@ -184,9 +184,10 @@ void main() {
   float dot_sparks = step(0.93, sin(ang_orb * 6.0 - arc_rot * 2.0) * sin(r_orb * 42.0 + t * 6.0))
                    * smoothstep(R_curr * 1.45, R_curr * 0.65, r_orb) * 0.45;
 
-  // Composite Arcane Energy Orb Heat
+  // Composite Arcane Energy Orb Heat with strict spatial boundary
+  float orb_envelope = smoothstep(R_curr * 1.82, R_curr * 1.55, r_orb);
   float orb_body = orb_edge * (0.42 + 0.36 * z_sph + 0.16 * orb_turb);
-  float orb_total_heat = orb_body + core_heat * 0.68 + (arc1 + arc2 + arc3 + wisps + dot_sparks) * (1.0 - m * 0.85);
+  float orb_total_heat = (orb_body + core_heat * 0.68 + (arc1 + arc2 + arc3 + wisps + dot_sparks) * (1.0 - m * 0.85)) * orb_envelope;
 
   // ══════════════════════════════════════════════════
   // 2. TAPERED MULTI-TONGUE FLAME SILHOUETTE
@@ -206,49 +207,60 @@ void main() {
   float belly_w = 0.28 * sqrt(max(0.0, 1.0 - pow((dy - 0.25) / 0.28, 2.0)));
   float env_belly = clamp(1.0 - abs(x) / max(0.01, belly_w), 0.0, 1.0) * smoothstep(-0.05, 0.03, dy);
 
-  // B. Central Spire (Primary tallest energetic plume)
-  float tip_flick_C = 0.030 * sin(flow_y * 2.2 + 1.0) * smoothstep(0.55, 0.95, dy);
-  float sway_C = 0.020 * sin(flow_y * 1.4) + tip_flick_C;
-  float tip_C = 0.95 + 0.05 * sin(t * 5.8);
-  float w_C = 0.16 * pow(max(0.0, 1.0 - dy / tip_C), 0.85);
+  // B. Central Plume (Natural height, curled tip, no isolated spike)
+  float tip_C = 0.83 + 0.04 * sin(t * 5.2);
+  float curl_C = 0.028 * sin(flow_y * 1.8 + t * 2.2) * pow(clamp(dy / tip_C, 0.0, 1.0), 1.6);
+  float sway_C = 0.012 * sin(flow_y * 1.3) + curl_C;
+  float w_C = 0.14 * pow(max(0.0, 1.0 - dy / tip_C), 0.70);
   float env_C = clamp(1.0 - abs(x - sway_C) / max(0.01, w_C), 0.0, 1.0) * step(0.0, dy) * step(dy, tip_C);
 
-  // C. Left Major Branch Tongue (Tapered, reaches dy ~ 0.74)
-  float tip_flick_L = 0.022 * sin(flow_y * 2.4) * smoothstep(0.40, 0.74, dy);
-  float sway_L = -0.19 - 0.03 * sin(flow_y * 1.6 + 1.2) + tip_flick_L;
-  float tip_L = (0.74 + 0.06 * sin(t * 5.2 + 2.1)) * branch_sprout;
-  float w_L = 0.11 * pow(max(0.0, 1.0 - (dy - 0.14) / max(0.01, tip_L - 0.14)), 0.80);
+  // C. Left Primary Tongue (Reaches dy ~ 0.80 with natural curvature)
+  float tip_L = (0.80 + 0.05 * sin(t * 5.1 + 1.8)) * branch_sprout;
+  float curl_L = -0.026 * sin(flow_y * 2.0 + 0.8) * pow(clamp((dy - 0.15) / max(0.01, tip_L - 0.15), 0.0, 1.0), 1.4);
+  float sway_L = -0.17 - 0.02 * sin(flow_y * 1.5 + 1.2) + curl_L;
+  float w_L = 0.10 * pow(max(0.0, 1.0 - (dy - 0.14) / max(0.01, tip_L - 0.14)), 0.72);
   float env_L = clamp(1.0 - abs(x - sway_L) / max(0.01, w_L), 0.0, 1.0) * step(0.12, dy) * step(dy, tip_L) * branch_sprout;
 
-  // D. Right Major Branch Tongue (Asymmetric organic height, reaches dy ~ 0.82)
-  float tip_flick_R = 0.022 * sin(flow_y * 2.4 + 2.0) * smoothstep(0.40, 0.82, dy);
-  float sway_R = 0.20 + 0.03 * sin(flow_y * 1.6 + 3.8) + tip_flick_R;
-  float tip_R = (0.82 + 0.06 * sin(t * 5.5 + 4.2)) * branch_sprout;
-  float w_R = 0.11 * pow(max(0.0, 1.0 - (dy - 0.14) / max(0.01, tip_R - 0.14)), 0.80);
+  // D. Right Primary Tongue (Reaches dy ~ 0.86 with asymmetric outward-inward curl)
+  float tip_R = (0.86 + 0.05 * sin(t * 5.6 + 3.8)) * branch_sprout;
+  float curl_R = 0.028 * sin(flow_y * 2.0 + 1.2) * pow(clamp((dy - 0.15) / max(0.01, tip_R - 0.15), 0.0, 1.0), 1.4);
+  float sway_R = 0.18 + 0.02 * sin(flow_y * 1.5 + 3.5) + curl_R;
+  float w_R = 0.10 * pow(max(0.0, 1.0 - (dy - 0.14) / max(0.01, tip_R - 0.14)), 0.72);
   float env_R = clamp(1.0 - abs(x - sway_R) / max(0.01, w_R), 0.0, 1.0) * step(0.12, dy) * step(dy, tip_R) * branch_sprout;
 
-  // E. Outer Flank Tendrils (Short licking spurs)
-  float sway_FL = -0.28 - 0.02 * sin(flow_y * 2.0);
-  float tip_FL = (0.50 + 0.05 * sin(t * 6.5 + 1.0)) * spur_sprout;
+  // E. Intermediate Inner Sub-Tongues (Fill negative space and eliminate lonely peaks)
+  float tip_IL = (0.71 + 0.04 * sin(t * 6.0 + 2.2)) * branch_sprout;
+  float sway_IL = -0.08 - 0.02 * sin(flow_y * 2.2 + 2.4);
+  float w_IL = 0.065 * pow(max(0.0, 1.0 - (dy - 0.22) / max(0.01, tip_IL - 0.22)), 0.68);
+  float env_IL = clamp(1.0 - abs(x - sway_IL) / max(0.01, w_IL), 0.0, 1.0) * step(0.20, dy) * step(dy, tip_IL) * branch_sprout;
+
+  float tip_IR = (0.74 + 0.04 * sin(t * 6.2 + 4.0)) * branch_sprout;
+  float sway_IR = 0.09 + 0.02 * sin(flow_y * 2.2 + 4.2);
+  float w_IR = 0.065 * pow(max(0.0, 1.0 - (dy - 0.22) / max(0.01, tip_IR - 0.22)), 0.68);
+  float env_IR = clamp(1.0 - abs(x - sway_IR) / max(0.01, w_IR), 0.0, 1.0) * step(0.20, dy) * step(dy, tip_IR) * branch_sprout;
+
+  // F. Outer Flank Tendrils (Short licking spurs)
+  float sway_FL = -0.27 - 0.02 * sin(flow_y * 2.0);
+  float tip_FL = (0.54 + 0.04 * sin(t * 6.5 + 1.0)) * spur_sprout;
   float w_FL = 0.065 * pow(max(0.0, 1.0 - (dy - 0.16) / max(0.01, tip_FL - 0.16)), 0.65);
   float env_FL = clamp(1.0 - abs(x - sway_FL) / max(0.01, w_FL), 0.0, 1.0) * step(0.14, dy) * step(dy, tip_FL) * spur_sprout;
 
-  float sway_FR = 0.29 + 0.02 * sin(flow_y * 2.0 + 2.7);
-  float tip_FR = (0.48 + 0.05 * sin(t * 6.2 + 3.4)) * spur_sprout;
+  float sway_FR = 0.28 + 0.02 * sin(flow_y * 2.0 + 2.7);
+  float tip_FR = (0.51 + 0.04 * sin(t * 6.2 + 3.4)) * spur_sprout;
   float w_FR = 0.065 * pow(max(0.0, 1.0 - (dy - 0.16) / max(0.01, tip_FR - 0.16)), 0.65);
   float env_FR = clamp(1.0 - abs(x - sway_FR) / max(0.01, w_FR), 0.0, 1.0) * step(0.14, dy) * step(dy, tip_FR) * spur_sprout;
 
   // Cleft Notches: Carve negative space between tongues
-  float cleft_L = clamp(1.0 - abs(x - (-0.098)) / 0.034, 0.0, 1.0) * step(0.34, dy) * step(dy, 0.75);
-  float cleft_R = clamp(1.0 - abs(x - (0.098)) / 0.034, 0.0, 1.0) * step(0.34, dy) * step(dy, 0.82);
-  float cleft_FL = clamp(1.0 - abs(x - (-0.235)) / 0.028, 0.0, 1.0) * step(0.22, dy) * step(dy, 0.52);
-  float cleft_FR = clamp(1.0 - abs(x - (0.240)) / 0.028, 0.0, 1.0) * step(0.22, dy) * step(dy, 0.50);
+  float cleft_L = clamp(1.0 - abs(x - (-0.11)) / 0.034, 0.0, 1.0) * step(0.34, dy) * step(dy, 0.78);
+  float cleft_R = clamp(1.0 - abs(x - (0.11)) / 0.034, 0.0, 1.0) * step(0.34, dy) * step(dy, 0.82);
+  float cleft_FL = clamp(1.0 - abs(x - (-0.22)) / 0.028, 0.0, 1.0) * step(0.22, dy) * step(dy, 0.52);
+  float cleft_FR = clamp(1.0 - abs(x - (0.22)) / 0.028, 0.0, 1.0) * step(0.22, dy) * step(dy, 0.50);
 
-  float composite_tongues = max(env_belly, max(env_C, max(env_L, max(env_R, max(env_FL, env_FR)))));
-  float carved_silhouette = clamp(composite_tongues - 0.65 * branch_sprout * max(max(cleft_L, cleft_R), max(cleft_FL, cleft_FR)), 0.0, 1.0);
+  float composite_tongues = max(env_belly, max(env_C, max(max(env_L, env_R), max(max(env_IL, env_IR), max(env_FL, env_FR)))));
+  float carved_silhouette = clamp(composite_tongues - 0.62 * branch_sprout * max(max(cleft_L, cleft_R), max(cleft_FL, cleft_FR)), 0.0, 1.0);
 
   // Micro-notches for authentic pixel fire irregularity
-  float micro_notches = 0.14 * fbm(vec2(x * 12.0, flow_y * 1.8));
+  float micro_notches = 0.12 * fbm(vec2(x * 12.0, flow_y * 1.8));
   float flame_silhouette = clamp(carved_silhouette + micro_notches * step(0.1, carved_silhouette), 0.0, 1.0);
 
   // ══════════════════════════════════════════════════
@@ -268,9 +280,9 @@ void main() {
   float flame_heat = flame_silhouette * (0.22 + 0.38 * edge_falloff + vert_filaments + vert_streaks) + flame_core_intensity * 0.65;
   flame_heat *= step(0.04, flame_silhouette);
 
-  // Sparks breaking off tips
+  // Sparks breaking off tips (confined strictly within plume boundaries)
   float spark_grid = fbm(vec2(x * 22.0, flow_y * 3.5));
-  float sparks = step(0.68, spark_grid) * step(0.65, dy) * step(dy, 0.98) * clamp(1.0 - abs(x) / 0.35, 0.0, 1.0) * 0.35;
+  float sparks = step(0.72, spark_grid) * step(0.68, dy) * step(dy, 0.92) * clamp(1.0 - abs(x) / 0.26, 0.0, 1.0) * 0.32;
   flame_heat += sparks;
 
   // ══════════════════════════════════════════════════
@@ -284,6 +296,18 @@ void main() {
     float flame_env_x = smoothstep(0.24 * (1.0 - (y - 0.38) * 1.5), 0.0, abs(x));
     float tear_wisps = 0.30 * erupt_burst * flame_env_x * fbm(vec2(x * 14.0, (y - 0.40) * 12.0 - t * 8.0));
     total_heat += tear_wisps * smoothstep(0.38, 0.55, y);
+  }
+
+  // Master spatial boundary: STRICTLY guarantee 0 alpha & 0 color outside active flame/orb geometry
+  float active_envelope = max(orb_envelope * (1.0 - m * 0.9), flame_silhouette);
+  total_heat *= smoothstep(0.01, 0.06, active_envelope);
+
+  total_heat *= (1.0 + 0.22 * u_boost);
+
+  // Strict transparent background cutoff: pixels outside flame/orb MUST be zero RGB and zero alpha
+  if (total_heat < 0.10) {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+    return;
   }
 
   total_heat *= (1.0 + 0.22 * u_boost);
