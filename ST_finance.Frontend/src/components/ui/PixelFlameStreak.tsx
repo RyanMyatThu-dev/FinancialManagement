@@ -103,12 +103,12 @@ const DIGIT_BITMAPS: Record<string, number[]> = {
   ],
 };
 
-// Rich 8-shade ST-Finance Volt Green Fire Palette:
-// Transparent -> Dark Pine Edge -> Forest Emerald -> Vivid Emerald -> Signature Volt -> Electric Lime -> Cyber Mint -> Incandescent Core
-const VOLT_FIRE_PALETTE: [number, number, number, number][] = [
+// ST-Finance Signature Neon Volt Fire Palette:
+// Transparent -> Deep Pine Rim -> Forest Emerald -> Vivid Emerald -> Signature Volt -> Bright Lime -> Cyber Mint -> Incandescent Core
+const FLAME_PALETTE: [number, number, number, number][] = [
   [0, 0, 0, 0],         // 0: transparent
-  [2, 32, 18, 220],     // 1: dark pine edge
-  [4, 68, 38, 255],     // 2: forest emerald
+  [2, 34, 18, 220],     // 1: deep pine rim
+  [4, 68, 36, 255],     // 2: forest emerald
   [8, 128, 68, 255],    // 3: vivid emerald
   [34, 197, 94, 255],   // 4: signature ST-Finance volt
   [74, 222, 128, 255],  // 5: electric lime-volt
@@ -116,19 +116,15 @@ const VOLT_FIRE_PALETTE: [number, number, number, number][] = [
   [240, 255, 246, 255], // 7: incandescent white-mint
 ];
 
-interface FireParticle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
+interface SphereParticle {
+  origX: number;
+  origY: number;
+  origZ: number;
+  projX: number;
+  projY: number;
+  depth: number;
   heat: number;
   size: number;
-  type: "orb" | "spin" | "spire" | "left_tongue" | "right_tongue" | "core" | "spark";
-  angle?: number;
-  radius?: number;
-  omega?: number;
 }
 
 export function PixelFlameStreak({
@@ -142,14 +138,14 @@ export function PixelFlameStreak({
   const stokeRef = useRef<number>(0);
 
   const dimensions = {
-    sm: { w: 42, h: 60, cssW: "w-28", cssH: "h-40" },
-    md: { w: 52, h: 72, cssW: "w-36", cssH: "h-50" },
-    lg: { w: 60, h: 84, cssW: "w-44", cssH: "h-62" },
+    sm: { w: 44, h: 62, cssW: "w-28", cssH: "h-40" },
+    md: { w: 54, h: 74, cssW: "w-36", cssH: "h-50" },
+    lg: { w: 62, h: 86, cssW: "w-44", cssH: "h-62" },
   }[size];
 
   const handleStoke = useCallback(() => {
     if (!interactive) return;
-    stokeRef.current = 28;
+    stokeRef.current = 26;
     setIsStoked(true);
     setTimeout(() => setIsStoked(false), 800);
   }, [interactive]);
@@ -167,41 +163,48 @@ export function PixelFlameStreak({
     let animationFrameId: number;
     let lastTime = 0;
     let frameCount = 0;
+    let currentSpinAngle = 0;
     const targetFps = 34;
     const frameInterval = 1000 / targetFps;
 
-    // Anchor points for the flame model & starting orb
+    // Anchor points for 3D sphere and burning flame
     const cx = Math.floor(W / 2);
     const cy = Math.floor(H * 0.62);
-    const orbRadius = Math.floor(W * 0.26);
+    const sphereRadius = Math.floor(W * 0.26);
 
-    const particles: FireParticle[] = [];
+    // Pre-calculate 3D Fibonacci sphere points (uniform 3D distribution)
+    const NUM_SPHERE_POINTS = 64;
+    const goldenRatio = (1 + Math.sqrt(5)) / 2;
+    const goldenAngle = 2 * Math.PI * (1 - 1 / goldenRatio);
 
-    // Pre-populate initial orb particles
-    for (let i = 0; i < 32; i++) {
-      const angle = (i / 32) * Math.PI * 2;
-      const r = orbRadius + (Math.random() - 0.5) * 2;
-      particles.push({
-        x: cx + Math.cos(angle) * r,
-        y: cy + Math.sin(angle) * r,
-        vx: 0,
-        vy: 0,
-        life: 0,
-        maxLife: 25 + Math.random() * 20,
+    const sphereParticles: SphereParticle[] = [];
+    for (let i = 0; i < NUM_SPHERE_POINTS; i++) {
+      const y = 1 - (i / (NUM_SPHERE_POINTS - 1)) * 2; // -1 to 1
+      const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = goldenAngle * i;
+      const x = Math.cos(theta) * radiusAtY;
+      const z = Math.sin(theta) * radiusAtY;
+
+      sphereParticles.push({
+        origX: x * sphereRadius,
+        origY: y * sphereRadius,
+        origZ: z * sphereRadius,
+        projX: 0,
+        projY: 0,
+        depth: 0,
         heat: 4 + Math.floor(Math.random() * 3),
-        size: Math.random() < 0.6 ? 2 : 1,
-        type: "orb",
-        angle,
-        radius: r,
-        omega: 0.05 + Math.random() * 0.04,
+        size: 1,
       });
     }
+
+    // Cellular fire grid for authentic burning flames
+    const fireBuffer = new Uint8Array(W * H);
 
     const numStr = Math.max(0, streak).toString();
     let digitScale = 2;
     if (numStr.length >= 3) {
       digitScale = 1;
-    } else if (numStr.length === 1 && W >= 50) {
+    } else if (numStr.length === 1 && W >= 52) {
       digitScale = 2;
     }
 
@@ -210,7 +213,7 @@ export function PixelFlameStreak({
     const totalNumWidth = numStr.length * digitWidth + (numStr.length - 1) * digitSpacing;
     const totalNumHeight = 7 * digitScale;
 
-    // Number is anchored inside the core of the orb / flame belly
+    // Number sits in the belly of the flame / center of the 3D sphere
     const numStartX = Math.floor(cx - totalNumWidth / 2);
     const numStartY = Math.floor(cy - totalNumHeight / 2);
 
@@ -226,233 +229,184 @@ export function PixelFlameStreak({
       const isBoosted = stokeRef.current > 0;
       if (isBoosted) stokeRef.current--;
 
-      // Animation Stages:
-      // Stage 1 (frame 0..20): Particle Orb
-      // Stage 2 (frame 21..48): Flame spins around the orb (vortex)
-      // Stage 3 (frame 49+): Detailed multi-tongue flame model with active particles
-      const isOrbStage = frameCount < 20;
-      const isSpinStage = frameCount >= 20 && frameCount < 48;
-      const isFlameModel = frameCount >= 48;
+      // ── LIFECYCLE PROGRESSION ──────────────────────────────────────
+      // 0..22: 3D Particle Sphere rotating around number
+      // 23..48: 3D Flame Vortex Spin (accelerating spin around the sphere in 3D)
+      // 49..70: Ignites upward into true burning flame model
+      // 70+: Continuous authentic burning flames with living multi-tongue physics
+      let spinSpeed = 0.05;
+      let flameMorph = 0.0;
 
+      if (frameCount < 22) {
+        spinSpeed = 0.05;
+        flameMorph = 0.0;
+      } else if (frameCount < 48) {
+        const p = (frameCount - 22) / 26;
+        spinSpeed = 0.05 + p * 0.28; // Accelerate spin in 3D!
+        flameMorph = Math.max(0, (p - 0.6) / 0.4);
+      } else if (frameCount < 70) {
+        const p = (frameCount - 48) / 22;
+        spinSpeed = 0.33 * (1 - p);
+        flameMorph = 0.4 + 0.6 * Math.sin(p * Math.PI * 0.5);
+      } else {
+        spinSpeed = isBoosted ? 0.12 : 0.0;
+        flameMorph = 1.0;
+      }
+
+      currentSpinAngle += spinSpeed;
       const t = time * 0.003;
 
-      // ── PARTICLE SPAWNERS ──────────────────────────────────────────
+      // ── 1. 3D SPHERE ROTATION & PERSPECTIVE PROJECTION ──────────────
+      const tiltAngle = 0.32; // Slight 3D tilt for depth visibility
+      const cosTilt = Math.cos(tiltAngle);
+      const sinTilt = Math.sin(tiltAngle);
+      const cosSpin = Math.cos(currentSpinAngle);
+      const sinSpin = Math.sin(currentSpinAngle);
 
-      // 1. Orb Spawner (Stage 1 & Stage 2)
-      if (isOrbStage || isSpinStage) {
-        const spawnCount = isSpinStage ? 5 : 2;
-        const spinSpeed = isSpinStage ? 0.22 : 0.06;
+      for (let i = 0; i < sphereParticles.length; i++) {
+        const p = sphereParticles[i];
+        // Rotate around Y
+        const x1 = p.origX * cosSpin + p.origZ * sinSpin;
+        const z1 = -p.origX * sinSpin + p.origZ * cosSpin;
 
-        for (let i = 0; i < spawnCount; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const r = orbRadius + (Math.random() - 0.5) * 3;
-          particles.push({
-            x: cx + Math.cos(angle) * r,
-            y: cy + Math.sin(angle) * r,
-            vx: isSpinStage ? -Math.sin(angle) * 1.8 : 0,
-            vy: isSpinStage ? Math.cos(angle) * 1.8 : 0,
-            life: 0,
-            maxLife: isSpinStage ? 18 + Math.random() * 15 : 24 + Math.random() * 20,
-            heat: isSpinStage ? 5 + Math.floor(Math.random() * 3) : 4 + Math.floor(Math.random() * 3),
-            size: Math.random() < 0.6 ? 2 : 1,
-            type: isSpinStage ? "spin" : "orb",
-            angle,
-            radius: r,
-            omega: spinSpeed * (Math.random() > 0.1 ? 1 : -1),
-          });
-        }
+        // Tilt around X
+        const y2 = p.origY * cosTilt - z1 * sinTilt;
+        const z2 = p.origY * sinTilt + z1 * cosTilt;
+
+        p.projX = cx + x1;
+        p.projY = cy + y2;
+        p.depth = z2; // from -sphereRadius (back) to +sphereRadius (front)
+
+        // Depth shading: front particles are white-hot and larger; back are darker emerald
+        const depthNorm = (z2 + sphereRadius) / (sphereRadius * 2); // 0 (back) to 1 (front)
+        p.heat = Math.max(1, Math.min(7, Math.floor(2 + depthNorm * 5)));
+        p.size = depthNorm > 0.55 ? 2 : 1;
       }
 
-      // 2. Detailed Multi-Tongue Flame Model Spawners (Stage 3 & Continuous)
-      if (isFlameModel) {
-        // A. Central Main Spire (tallest column, hot core)
-        const spireCount = isBoosted ? 5 : 3;
-        for (let i = 0; i < spireCount; i++) {
-          const sx = cx + (Math.random() - 0.5) * 8;
-          const sy = cy + 4 + Math.random() * 4;
-          const sway = Math.sin(t * 4 + sy * 0.1) * 0.6;
-          particles.push({
-            x: sx,
-            y: sy,
-            vx: (Math.random() - 0.5) * 0.8 + sway,
-            vy: -(1.6 + Math.random() * 1.8 + (isBoosted ? 0.8 : 0)),
-            life: 0,
-            maxLife: 26 + Math.random() * 16,
-            heat: 7,
-            size: Math.random() < 0.7 ? 2 : 1,
-            type: "spire",
-          });
-        }
+      // ── 2. AUTHENTIC BURNING FLAME CELLULAR SIMULATION ─────────────
+      // Flame geometry: wide burning base with articulated Center, Left, and Right licking tongues
+      const flameBaseY = Math.floor(H * 0.88);
+      const mainTipY = Math.floor(H * 0.10);
+      const leftTipY = Math.floor(H * 0.28);
+      const rightTipY = Math.floor(H * 0.24);
 
-        // B. Left Tongue (articulated side tongue curling left-upward)
-        const leftCount = isBoosted ? 3 : 2;
-        for (let i = 0; i < leftCount; i++) {
-          const lx = cx - 6 + (Math.random() - 0.5) * 6;
-          const ly = cy + 2 + Math.random() * 4;
-          particles.push({
-            x: lx,
-            y: ly,
-            vx: -(0.5 + Math.random() * 0.9), // curls outward to the left
-            vy: -(1.2 + Math.random() * 1.4),
-            life: 0,
-            maxLife: 20 + Math.random() * 12,
-            heat: 6,
-            size: Math.random() < 0.5 ? 2 : 1,
-            type: "left_tongue",
-          });
-        }
+      // Sways and flickers for each tongue
+      const centerSway = Math.sin(t * 4.0) * 3.0 + Math.sin(t * 7.5) * 1.5;
+      const leftSway = Math.cos(t * 4.5) * 2.0;
+      const rightSway = -Math.sin(t * 5.0) * 2.2;
 
-        // C. Right Tongue (articulated side tongue curling right-upward)
-        const rightCount = isBoosted ? 3 : 2;
-        for (let i = 0; i < rightCount; i++) {
-          const rx = cx + 6 + (Math.random() - 0.5) * 6;
-          const ry = cy + 2 + Math.random() * 4;
-          particles.push({
-            x: rx,
-            y: ry,
-            vx: 0.5 + Math.random() * 0.9, // curls outward to the right
-            vy: -(1.2 + Math.random() * 1.4),
-            life: 0,
-            maxLife: 20 + Math.random() * 12,
-            heat: 6,
-            size: Math.random() < 0.5 ? 2 : 1,
-            type: "right_tongue",
-          });
-        }
+      // Seed the burning furnace well at the base of the flame
+      for (let x = 0; x < W; x++) {
+        const distFromCenter = Math.abs(x - cx) / (W * 0.38);
+        if (distFromCenter < 1.0) {
+          const envelope = Math.cos(distFromCenter * (Math.PI / 2));
+          const noise = (Math.sin(t * 8 + x * 0.5) + 1) * 0.5;
+          const heatBoost = isBoosted ? 2 : 0;
+          const baseHeat = Math.min(7, Math.floor((6 + heatBoost) * envelope * (0.8 + 0.2 * noise)));
 
-        // D. Belly Base Cluster (hot burning bed around the number)
-        for (let i = 0; i < 2; i++) {
-          const bx = cx + (Math.random() - 0.5) * (orbRadius * 1.5);
-          const by = cy + (Math.random() - 0.5) * 8;
-          particles.push({
-            x: bx,
-            y: by,
-            vx: (Math.random() - 0.5) * 0.5,
-            vy: -(0.4 + Math.random() * 0.7),
-            life: 0,
-            maxLife: 15 + Math.random() * 10,
-            heat: 5 + Math.floor(Math.random() * 3),
-            size: 2,
-            type: "core",
-          });
-        }
-
-        // E. Detached Sparks breaking off the spires
-        if (Math.random() < (isBoosted ? 0.6 : 0.25)) {
-          const sparkSourceX = cx + (Math.random() - 0.5) * 12;
-          particles.push({
-            x: sparkSourceX,
-            y: cy - 14,
-            vx: (Math.random() - 0.5) * 1.2,
-            vy: -(1.8 + Math.random() * 1.5),
-            life: 0,
-            maxLife: 18 + Math.random() * 14,
-            heat: 6,
-            size: 1,
-            type: "spark",
-          });
-        }
-      }
-
-      // ── PARTICLE UPDATE & RENDER TO BUFFER ──────────────────────────
-
-      const buffer = new Uint8Array(W * H);
-
-      for (let pIdx = particles.length - 1; pIdx >= 0; pIdx--) {
-        const p = particles[pIdx];
-        p.life++;
-
-        if (p.life >= p.maxLife) {
-          particles.splice(pIdx, 1);
-          continue;
-        }
-
-        // Movement physics by particle type
-        if (p.type === "orb") {
-          if (p.angle !== undefined && p.radius !== undefined && p.omega !== undefined) {
-            p.angle += p.omega;
-            p.x = cx + Math.cos(p.angle) * p.radius;
-            p.y = cy + Math.sin(p.angle) * p.radius;
-          }
-        } else if (p.type === "spin") {
-          if (p.angle !== undefined && p.radius !== undefined && p.omega !== undefined) {
-            p.angle += p.omega;
-            // Radius tightens slightly while spinning
-            p.radius = Math.max(orbRadius * 0.8, p.radius - 0.05);
-            p.x = cx + Math.cos(p.angle) * p.radius;
-            p.y = cy + Math.sin(p.angle) * p.radius;
-
-            // Transition: upward lift starts occurring toward the end of spin
-            if (frameCount > 40 && Math.sin(p.angle) < 0) {
-              p.type = "spire";
-              p.vy = -(1.8 + Math.random() * 1.2);
-              p.vx = (Math.random() - 0.5) * 1.0;
-            }
+          for (let r = 0; r < 3; r++) {
+            fireBuffer[(flameBaseY - r) * W + x] = Math.random() < 0.92 ? Math.max(0, baseHeat - r) : 0;
           }
         } else {
-          // Flame Model upward movement with natural aerodynamic pull
-          if (p.type === "left_tongue" && p.life > 6) {
-            // Left tongue curves back slightly toward the tip
-            p.vx += 0.04;
-          } else if (p.type === "right_tongue" && p.life > 6) {
-            // Right tongue curves back slightly toward the tip
-            p.vx -= 0.04;
-          }
-
-          p.x += p.vx;
-          p.y += p.vy;
-        }
-
-        // Heat cooling progression
-        const lifeFraction = p.life / p.maxLife;
-        if (p.type === "spark") {
-          p.heat = lifeFraction < 0.4 ? 6 : lifeFraction < 0.7 ? 4 : 2;
-        } else {
-          if (lifeFraction < 0.25) p.heat = Math.min(7, p.heat);
-          else if (lifeFraction < 0.55) p.heat = Math.max(4, p.heat - 1);
-          else if (lifeFraction < 0.8) p.heat = Math.max(2, p.heat - 2);
-          else p.heat = 1;
-        }
-
-        // Stamp onto pixel grid
-        const ix = Math.round(p.x);
-        const iy = Math.round(p.y);
-
-        for (let sy = 0; sy < p.size; sy++) {
-          for (let sx = 0; sx < p.size; sx++) {
-            const rx = ix + sx;
-            const ry = iy + sy;
-            if (rx >= 0 && rx < W && ry >= 0 && ry < H) {
-              const bIdx = ry * W + rx;
-              buffer[bIdx] = Math.max(buffer[bIdx], p.heat);
-            }
-          }
+          for (let r = 0; r < 3; r++) fireBuffer[(flameBaseY - r) * W + x] = 0;
         }
       }
 
-      // ── CONVERT BUFFER TO IMAGEDATA ────────────────────────────────
+      // Convection step bounded by authentic multi-tongue flame contours
+      for (let y = 1; y < flameBaseY; y++) {
+        const normY = (y - mainTipY) / (flameBaseY - mainTipY); // 0 at tip, 1 at base
 
+        for (let x = 0; x < W; x++) {
+          const srcIdx = y * W + x;
+          const heat = fireBuffer[srcIdx];
+          if (heat === 0) continue;
+
+          // Multi-tongue flame mask: check distance to nearest tongue axis
+          const centerAxis = cx + centerSway * (1 - normY);
+          const leftAxis = cx - 8 + leftSway;
+          const rightAxis = cx + 8 + rightSway;
+
+          const distCenter = Math.abs(x - centerAxis);
+          const distLeft = Math.abs(x - leftAxis);
+          const distRight = Math.abs(x - rightAxis);
+
+          // Tongue widths
+          const centerW = Math.max(1, 14 * Math.sin(normY * Math.PI * 0.85));
+          const leftW = y > leftTipY ? Math.max(1, 6 * Math.sin(((y - leftTipY) / (flameBaseY - leftTipY)) * Math.PI)) : 0;
+          const rightW = y > rightTipY ? Math.max(1, 6 * Math.sin(((y - rightTipY) / (flameBaseY - rightTipY)) * Math.PI)) : 0;
+
+          const inFlame = distCenter <= centerW || distLeft <= leftW || distRight <= rightW;
+
+          if (!inFlame) {
+            fireBuffer[srcIdx] = Math.max(0, heat - 2);
+            continue;
+          }
+
+          // Natural flame upward draft
+          const stepY = (normY < 0.6 && Math.random() < 0.35) ? 2 : 1;
+          const wind = Math.sin(t * 3.0 + y * 0.08) * 0.8;
+          const drift = Math.round((Math.random() - 0.5) * 1.6 + wind);
+
+          const destX = Math.min(W - 1, Math.max(0, x + drift));
+          const destY = Math.max(0, y - stepY);
+
+          // Natural fire decay: lower in hot center, higher near edges/tips
+          const decayProb = (distCenter < 3 && normY > 0.4) ? 0.15 : 0.38;
+          const decay = Math.random() < decayProb ? 1 : 0;
+
+          fireBuffer[destY * W + destX] = heat >= decay ? heat - decay : 0;
+        }
+      }
+
+      // ── 3. COMPOSITE RENDER TO CANVAS ──────────────────────────────
       const imgData = ctx.createImageData(W, H);
       const data = imgData.data;
 
-      for (let i = 0; i < buffer.length; i++) {
-        const heat = buffer[i];
-        if (heat > 0) {
-          const c = VOLT_FIRE_PALETTE[heat];
-          const px = i * 4;
-          data[px] = c[0];
-          data[px + 1] = c[1];
-          data[px + 2] = c[2];
-          data[px + 3] = c[3];
+      const setPixel = (px: number, py: number, heat: number) => {
+        if (px >= 0 && px < W && py >= 0 && py < H && heat > 0) {
+          const idx = (py * W + px) * 4;
+          const c = FLAME_PALETTE[heat];
+          data[idx] = c[0];
+          data[idx + 1] = c[1];
+          data[idx + 2] = c[2];
+          data[idx + 3] = c[3];
+        }
+      };
+
+      // Layer A: Flame simulation (morph weighted)
+      if (flameMorph > 0.0) {
+        for (let i = 0; i < fireBuffer.length; i++) {
+          const heat = fireBuffer[i];
+          if (heat > 0) {
+            const px = i % W;
+            const py = Math.floor(i / W);
+            const blendedHeat = Math.min(7, Math.floor(heat * flameMorph));
+            if (blendedHeat > 0) {
+              setPixel(px, py, blendedHeat);
+            }
+          }
         }
       }
 
-      // ── STAMP PIXELATED NUMBER IN CORE ──────────────────────────────
+      // Layer B: Back 3D Sphere Particles (rendered behind the number)
+      if (flameMorph < 1.0) {
+        const sphereAlpha = 1.0 - flameMorph * 0.85;
+        for (let i = 0; i < sphereParticles.length; i++) {
+          const p = sphereParticles[i];
+          if (p.depth < 0) {
+            const ix = Math.round(p.projX);
+            const iy = Math.round(p.projY);
+            const h = Math.max(1, Math.floor(p.heat * sphereAlpha));
+            setPixel(ix, iy, h);
+          }
+        }
+      }
 
+      // Layer C: Pixelated Streak Number
       const shimmerY = Math.round(Math.sin(time * 0.005) * 0.8);
       const curStartY = numStartY + shimmerY;
 
-      // Pass 1: Dark Obsidian Backplate for crisp pixel readability
+      // Pass 1: Obsidian shadow backing for maximum contrast
       for (let i = 0; i < numStr.length; i++) {
         const digit = numStr[i];
         const bitmap = DIGIT_BITMAPS[digit] || DIGIT_BITMAPS["0"];
@@ -514,20 +468,49 @@ export function PixelFlameStreak({
         }
       }
 
-      // Pass 3: Translucent foreground fire particles licking across the number
-      for (let x = numStartX - 1; x <= numStartX + totalNumWidth + 1; x++) {
-        for (let y = curStartY; y <= curStartY + totalNumHeight; y++) {
-          if (x >= 0 && x < W && y >= 0 && y < H) {
-            const h = buffer[y * W + x];
-            if (h >= 4 && Math.random() < 0.3) {
-              const idx = (y * W + x) * 4;
-              const c = VOLT_FIRE_PALETTE[h];
-              data[idx] = Math.min(255, data[idx] + c[0] * 0.4);
-              data[idx + 1] = Math.min(255, data[idx + 1] + c[1] * 0.4);
-              data[idx + 2] = Math.min(255, data[idx + 2] + c[2] * 0.4);
-              data[idx + 3] = 255;
+      // Layer D: Front 3D Sphere Particles (rendered in front of the number)
+      if (flameMorph < 1.0) {
+        const sphereAlpha = 1.0 - flameMorph * 0.85;
+        for (let i = 0; i < sphereParticles.length; i++) {
+          const p = sphereParticles[i];
+          if (p.depth >= 0) {
+            const ix = Math.round(p.projX);
+            const iy = Math.round(p.projY);
+            const h = Math.max(1, Math.floor(p.heat * sphereAlpha));
+            for (let sy = 0; sy < p.size; sy++) {
+              for (let sx = 0; sx < p.size; sx++) {
+                setPixel(ix + sx, iy + sy, h);
+              }
             }
           }
+        }
+      }
+
+      // Layer E: Translucent flame wisps curling across the number
+      if (flameMorph > 0.3) {
+        for (let x = numStartX - 1; x <= numStartX + totalNumWidth + 1; x++) {
+          for (let y = curStartY; y <= curStartY + totalNumHeight; y++) {
+            if (x >= 0 && x < W && y >= 0 && y < H) {
+              const h = fireBuffer[y * W + x];
+              if (h >= 4 && Math.random() < 0.28) {
+                const idx = (y * W + x) * 4;
+                const c = FLAME_PALETTE[h];
+                data[idx] = Math.min(255, data[idx] + c[0] * 0.35);
+                data[idx + 1] = Math.min(255, data[idx + 1] + c[1] * 0.35);
+                data[idx + 2] = Math.min(255, data[idx + 2] + c[2] * 0.35);
+                data[idx + 3] = 255;
+              }
+            }
+          }
+        }
+      }
+
+      // Layer F: Floating Pixel Embers detaching from the flame spires
+      if (flameMorph > 0.5) {
+        const emberX = Math.round(cx + centerSway * 0.9);
+        const emberY = mainTipY - Math.floor((frameCount % 14) * 0.8);
+        if (emberY >= 0 && emberY < mainTipY && emberX >= 0 && emberX < W) {
+          setPixel(emberX, emberY, 5);
         }
       }
 
