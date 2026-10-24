@@ -103,34 +103,37 @@ const DIGIT_BITMAPS: Record<string, number[]> = {
   ],
 };
 
-// ST-Finance Signature Neon Volt Green 16-shade palette:
-// Transparent -> Dark Pine -> Vivid Emerald -> Neon Volt -> Cyber Mint -> Incandescent White
-const VOLT_FIRE_PALETTE: [number, number, number, number][] = [
+// Mysterio-style Arcane Green Palette:
+// Spectral Smoke -> Toxic Jade -> Vivid Volt -> Ethereal Cyan-Mint -> Blinding White Core
+const ARCANE_FIRE_PALETTE: [number, number, number, number][] = [
   [0, 0, 0, 0],         // 0: transparent
-  [2, 24, 14, 180],     // 1: shadowy pine
-  [4, 45, 26, 215],     // 2: dark forest
-  [5, 72, 42, 240],     // 3: forest green
-  [5, 105, 60, 255],    // 4: deep emerald
-  [6, 142, 78, 255],    // 5: emerald
-  [16, 180, 96, 255],   // 6: rich emerald
-  [34, 197, 94, 255],   // 7: signature ST-Finance Neon Volt
-  [52, 211, 110, 255],  // 8: electric lime-volt
-  [74, 222, 128, 255],  // 9: bright neon volt
-  [110, 231, 160, 255], // 10: cyber mint
-  [150, 245, 190, 255], // 11: bright mint
-  [187, 247, 208, 255], // 12: radiant mint
-  [220, 252, 231, 255], // 13: phosphor white-mint
-  [240, 253, 244, 255], // 14: incandescent white-mint
-  [255, 255, 255, 255], // 15: pure white core
+  [1, 20, 14, 180],     // 1: shadowy teal smoke
+  [2, 42, 28, 215],     // 2: dark arcane jade
+  [4, 70, 46, 240],     // 3: mystical deep green
+  [6, 102, 64, 255],    // 4: spectral emerald
+  [10, 140, 80, 255],   // 5: arcane emerald
+  [18, 180, 96, 255],   // 6: toxic mist green
+  [34, 215, 96, 255],   // 7: signature Mysterio volt green
+  [58, 235, 115, 255],  // 8: electric sorcery lime
+  [88, 248, 142, 255],  // 9: ethereal plasma mint
+  [125, 252, 175, 255], // 10: radiant cyan-mint
+  [170, 254, 208, 255], // 11: phosphor white-mint
+  [215, 255, 235, 255], // 12: blinding arcane mint
+  [242, 255, 250, 255], // 13: incandescent white-mint
+  [255, 255, 255, 255], // 14: pure sorcery white core
 ];
 
-interface Spark {
+interface ArcaneParticle {
   x: number;
   y: number;
   vx: number;
   vy: number;
+  angle: number;
+  dist: number;
+  orbitSpeed: number;
   life: number;
   maxLife: number;
+  isOrbiting: boolean;
 }
 
 export function PixelFlameStreak({
@@ -143,16 +146,15 @@ export function PixelFlameStreak({
   const [isStoked, setIsStoked] = useState(false);
   const stokeFuelRef = useRef<number>(0);
 
-  // Height increased significantly so flames have full vertical room to leap and lick
   const dimensions = {
-    sm: { w: 46, h: 72, cssW: "w-32", cssH: "h-48" },
-    md: { w: 56, h: 88, cssW: "w-44", cssH: "h-64" },
-    lg: { w: 66, h: 104, cssW: "w-56", cssH: "h-80" },
+    sm: { w: 48, h: 76, cssW: "w-32", cssH: "h-48" },
+    md: { w: 60, h: 96, cssW: "w-44", cssH: "h-68" },
+    lg: { w: 70, h: 112, cssW: "w-56", cssH: "h-84" },
   }[size];
 
   const handleStoke = useCallback(() => {
     if (!interactive) return;
-    stokeFuelRef.current = 28; // boost fire for 28 frames
+    stokeFuelRef.current = 32;
     setIsStoked(true);
     setTimeout(() => setIsStoked(false), 900);
   }, [interactive]);
@@ -168,17 +170,22 @@ export function PixelFlameStreak({
     canvas.height = H;
 
     const fireBuffer = new Uint8Array(W * H);
-    const sparks: Spark[] = [];
-    const maxPaletteIdx = VOLT_FIRE_PALETTE.length - 1;
+    const particles: ArcaneParticle[] = [];
+    const maxPaletteIdx = ARCANE_FIRE_PALETTE.length - 1;
 
     let animationFrameId: number;
     let lastTime = 0;
+    let frameCount = 0;
     const targetFps = 34;
     const frameInterval = 1000 / targetFps;
 
+    // Orb Center & Radius: positioned to cleanly engulf the number
+    const orbCx = Math.floor(W / 2);
+    const orbCy = Math.floor(H * 0.62);
+    const baseOrbR = Math.floor(W * 0.28);
+
     const numStr = Math.max(0, streak).toString();
 
-    // Determine scale of pixel digits to fit naturally inside the flame
     let digitScale = 2;
     if (numStr.length >= 3) {
       digitScale = 1;
@@ -189,9 +196,11 @@ export function PixelFlameStreak({
     const digitWidth = 5 * digitScale;
     const digitSpacing = 1 * digitScale;
     const totalNumWidth = numStr.length * digitWidth + (numStr.length - 1) * digitSpacing;
-    const numStartX = Math.floor((W - totalNumWidth) / 2);
-    // Position the number in the lower-middle body so tall flames lick high above it
-    const numStartY = Math.floor(H * 0.54);
+    const totalNumHeight = 7 * digitScale;
+
+    // Number sits precisely in the center of the orb
+    const numStartX = Math.floor(orbCx - totalNumWidth / 2);
+    const numStartY = Math.floor(orbCy - totalNumHeight / 2);
 
     const render = (time: number) => {
       animationFrameId = requestAnimationFrame(render);
@@ -200,87 +209,153 @@ export function PixelFlameStreak({
       if (delta < frameInterval) return;
       lastTime = time - (delta % frameInterval);
 
+      frameCount++;
+
       const isBoosted = stokeFuelRef.current > 0;
       if (isBoosted) {
         stokeFuelRef.current--;
       }
 
-      // 1. Seed bottom base rows with a deeper, hotter furnace well
-      const wave = Math.sin(time * 0.005) * 0.9;
-      for (let x = 0; x < W; x++) {
-        const distFromCenter = Math.abs(x - (W / 2 + wave * 2.5)) / (W / 2);
+      // Ignition Progression:
+      // Frame 0..24: Arcane Orb forms and engulfs the center
+      // Frame 25..50: Orb ignites upwards into tall Mysterio flames
+      // Frame 50+: Continuous roaring arcane burning with persistent glowing orb
+      let orbIntensity = 1.0;
+      let upwardIgnition = 1.0;
 
-        // Teardrop / bell curve mask so fire shapes naturally like a flame
-        if (distFromCenter < 0.74) {
-          const envelope = Math.cos((distFromCenter / 0.74) * (Math.PI / 2));
-          const noise = (Math.sin(time * 0.014 + x * 0.45) + 1) * 0.5;
-          const heatBoost = isBoosted ? 3 : 0;
+      if (frameCount < 24) {
+        orbIntensity = Math.min(1.0, frameCount / 22);
+        upwardIgnition = 0.05 + 0.1 * (frameCount / 24);
+      } else if (frameCount < 52) {
+        orbIntensity = 1.0;
+        const p = (frameCount - 24) / 28;
+        upwardIgnition = 0.15 + 0.85 * Math.sin(p * Math.PI * 0.5);
+      } else {
+        orbIntensity = 1.0;
+        upwardIgnition = 1.0;
+      }
 
-          // Hottest center base
-          const baseHeat = Math.min(
-            maxPaletteIdx,
-            Math.floor((maxPaletteIdx - 1 + heatBoost) * Math.pow(envelope, 0.8) * (0.8 + 0.2 * noise))
-          );
+      if (isBoosted) {
+        orbIntensity = 1.2;
+        upwardIgnition = Math.max(upwardIgnition, 1.25);
+      }
 
-          // Seed bottom 4 rows to give strong thermal momentum
-          for (let rowOffset = 1; rowOffset <= 4; rowOffset++) {
-            const idx = (H - rowOffset) * W + x;
-            fireBuffer[idx] = Math.random() < (0.96 - rowOffset * 0.05) ? Math.max(0, baseHeat - (rowOffset - 1)) : 0;
-          }
+      // 1. Seed Arcane Circular Orb (engulfing the number)
+      const t = time * 0.003;
+      const orbWobble = Math.sin(t * 2.5) * 1.5;
 
-          // Sparks shooting out of the roaring flame
-          if (distFromCenter < 0.38 && Math.random() < (isBoosted ? 0.45 : 0.12)) {
-            sparks.push({
-              x: x + (Math.random() * 2 - 1),
-              y: H - 8,
-              vx: (Math.random() - 0.5) * 1.0 + wave * 0.6,
-              vy: -(1.6 + Math.random() * 2.2 + (isBoosted ? 1.2 : 0)),
-              life: 0,
-              maxLife: 26 + Math.random() * 32,
-            });
-          }
-        } else {
-          for (let rowOffset = 1; rowOffset <= 4; rowOffset++) {
-            fireBuffer[(H - rowOffset) * W + x] = 0;
+      for (let y = Math.max(0, orbCy - baseOrbR - 5); y <= Math.min(H - 1, orbCy + baseOrbR + 5); y++) {
+        for (let x = Math.max(0, orbCx - baseOrbR - 5); x <= Math.min(W - 1, orbCx + baseOrbR + 5); x++) {
+          const dx = x - orbCx;
+          const dy = y - orbCy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx);
+
+          // Arcane swirling boundary ripples
+          const boundaryMod =
+            Math.sin(angle * 3 + t * 4) * 1.6 +
+            Math.cos(angle * 5 - t * 3) * 1.0 +
+            orbWobble;
+          const currentR = baseOrbR + boundaryMod;
+
+          if (dist <= currentR + 1.8) {
+            // Hot perimeter ring + churning interior plasma
+            const rimDist = Math.abs(dist - currentR);
+            const rimFactor = Math.exp(-Math.pow(rimDist / 2.0, 2));
+            const coreFactor = (1 - (dist / currentR) * 0.4) * (0.65 + 0.35 * Math.sin(t * 3 + angle * 2));
+            const noise = (Math.sin(t * 4 + x * 0.4 + y * 0.3) + 1) * 0.5;
+
+            const baseHeat = Math.min(
+              maxPaletteIdx,
+              Math.floor(
+                (maxPaletteIdx * (rimFactor * 1.05 + coreFactor * 0.75) + noise * 2) *
+                  orbIntensity
+              )
+            );
+
+            const idx = y * W + x;
+            fireBuffer[idx] = Math.max(fireBuffer[idx], baseHeat);
+
+            // Spawn orbiting mystical sparks on the orb perimeter
+            if (rimDist < 1.4 && Math.random() < (isBoosted ? 0.3 : 0.07)) {
+              particles.push({
+                x,
+                y,
+                vx: 0,
+                vy: 0,
+                angle,
+                dist: currentR,
+                orbitSpeed: 0.12 * (Math.random() > 0.5 ? 1 : -1),
+                life: 0,
+                maxLife: 28 + Math.random() * 24,
+                isOrbiting: true,
+              });
+            }
           }
         }
       }
 
-      // 2. High-Reach Convection and Turbulence
+      // Ensure the space below the orb is clean (not a bottom stove/campfire)
+      for (let y = orbCy + baseOrbR + 4; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          fireBuffer[y * W + x] = 0;
+        }
+      }
+
+      // 2. Arcane Upward Convection (ignites upwards from the orb into the sky)
       for (let y = 1; y < H; y++) {
         for (let x = 0; x < W; x++) {
           const srcIdx = y * W + x;
           const heat = fireBuffer[srcIdx];
           if (heat === 0) continue;
 
-          const dist = Math.abs(x - W / 2) / (W / 2);
-          
-          // Low decay in the center column so flames lick high up the canvas
-          const decayProb = dist < 0.28 ? 0.18 : dist < 0.5 ? 0.34 : 0.65;
-          const decay = Math.random() < decayProb ? 1 : 0;
+          const dx = x - orbCx;
+          const dy = y - orbCy;
+          const distFromCenter = Math.abs(dx) / (W / 2);
 
-          // Upward convection step: center column surges 2 rows at once frequently
-          const stepY = (dist < 0.38 && Math.random() < 0.35) ? 2 : 1;
+          // Convection speed depends on upwardIgnition stage
+          let stepY = 1;
+          if (y <= orbCy && Math.random() < 0.4 * upwardIgnition) {
+            stepY = 2;
+          }
 
-          // Sinusoidal turbulent wind sway
-          const windDrift = Math.sin(time * 0.007 + y * 0.08) * 0.8;
-          const drift = Math.round((Math.random() - 0.5) * 1.8 + windDrift);
+          // Arcane swirling drift around the orb + mystical wind whipping upwards
+          let swirlDrift = 0;
+          if (y >= orbCy - baseOrbR && y <= orbCy + baseOrbR) {
+            swirlDrift = Math.round(-Math.sign(dy) * Math.sin(t * 3) * 1.2);
+          }
+
+          const windWhip = Math.sin(t * 2.2 + y * 0.07) * 0.9;
+          const randomDrift = Math.floor(Math.random() * 3) - 1;
+          const drift = Math.round(randomDrift + windWhip + swirlDrift * 0.5);
 
           const destX = Math.min(W - 1, Math.max(0, x + drift));
           const destY = Math.max(0, y - stepY);
+
+          // Decay rate: low decay in rising plume above orb once ignited
+          let decayProb = 0.4;
+          if (y <= orbCy) {
+            // Plume rising above orb
+            decayProb = distFromCenter < 0.28 ? 0.16 / upwardIgnition : 0.38;
+          } else {
+            // Bottom of orb decays quickly to keep the circle defined
+            decayProb = 0.55;
+          }
+
+          const decay = Math.random() < decayProb ? 1 : 0;
           const destIdx = destY * W + destX;
 
           fireBuffer[destIdx] = heat >= decay ? heat - decay : 0;
         }
       }
 
-      // 3. Create ImageData and map fireBuffer to colors
+      // 3. Render fireBuffer to ImageData
       const imgData = ctx.createImageData(W, H);
       const data = imgData.data;
 
       for (let i = 0; i < fireBuffer.length; i++) {
         const heat = fireBuffer[i];
-        const color = VOLT_FIRE_PALETTE[heat] || VOLT_FIRE_PALETTE[0];
+        const color = ARCANE_FIRE_PALETTE[heat] || ARCANE_FIRE_PALETTE[0];
         const px = i * 4;
         data[px] = color[0];
         data[px + 1] = color[1];
@@ -288,46 +363,60 @@ export function PixelFlameStreak({
         data[px + 3] = color[3];
       }
 
-      // 4. Update and render flying sparks / embers
-      for (let s = sparks.length - 1; s >= 0; s--) {
-        const spark = sparks[s];
-        spark.x += spark.vx;
-        spark.y += spark.vy;
-        spark.life++;
+      // 4. Update & Render Mystical Orbiting Sparks & Rising Embers
+      for (let s = particles.length - 1; s >= 0; s--) {
+        const p = particles[s];
+        p.life++;
 
-        const ix = Math.round(spark.x);
-        const iy = Math.round(spark.y);
+        if (p.isOrbiting) {
+          p.angle += p.orbitSpeed;
+          p.x = orbCx + Math.cos(p.angle) * p.dist;
+          p.y = orbCy + Math.sin(p.angle) * p.dist;
 
-        if (ix >= 0 && ix < W && iy >= 0 && iy < H && spark.life < spark.maxLife) {
-          const p = (iy * W + ix) * 4;
-          const lifeProgress = spark.life / spark.maxLife;
-
-          if (lifeProgress < 0.35) {
-            data[p] = 245;
-            data[p + 1] = 255;
-            data[p + 2] = 250;
-            data[p + 3] = 255;
-          } else if (lifeProgress < 0.7) {
-            data[p] = 74;
-            data[p + 1] = 222;
-            data[p + 2] = 128;
-            data[p + 3] = 240;
-          } else {
-            data[p] = 34;
-            data[p + 1] = 197;
-            data[p + 2] = 94;
-            data[p + 3] = Math.floor(255 * (1 - lifeProgress));
+          // Detach and ignite upward into smoke
+          if (p.life > 10 && Math.sin(p.angle) < 0 && upwardIgnition > 0.3) {
+            p.isOrbiting = false;
+            p.vx = (Math.random() - 0.5) * 0.8 + Math.cos(p.angle) * 0.5;
+            p.vy = -(1.5 + Math.random() * 2.0 * upwardIgnition);
           }
         } else {
-          sparks.splice(s, 1);
+          p.x += p.vx;
+          p.y += p.vy;
+        }
+
+        const ix = Math.round(p.x);
+        const iy = Math.round(p.y);
+
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H && p.life < p.maxLife) {
+          const idx = (iy * W + ix) * 4;
+          const lifeProgress = p.life / p.maxLife;
+
+          if (lifeProgress < 0.3) {
+            data[idx] = 250;
+            data[idx + 1] = 255;
+            data[idx + 2] = 252;
+            data[idx + 3] = 255;
+          } else if (lifeProgress < 0.65) {
+            data[idx] = 88;
+            data[idx + 1] = 248;
+            data[idx + 2] = 142;
+            data[idx + 3] = 240;
+          } else {
+            data[idx] = 34;
+            data[idx + 1] = 215;
+            data[idx + 2] = 96;
+            data[idx + 3] = Math.floor(255 * (1 - lifeProgress));
+          }
+        } else {
+          particles.splice(s, 1);
         }
       }
 
-      // 5. Stamp the pixelated number directly into the frame buffer!
-      const shimmerY = Math.round(Math.sin(time * 0.004) * 0.8);
+      // 5. Stamp the Pixelated Number into the Core of the Orb
+      const shimmerY = Math.round(Math.sin(time * 0.005) * 0.8);
       const curStartY = numStartY + shimmerY;
 
-      // Pass 1: Outline / Backplate for contrast against fire
+      // Pass 1: Dark Obsidian Backplate for crisp pixel readability
       for (let i = 0; i < numStr.length; i++) {
         const digit = numStr[i];
         const bitmap = DIGIT_BITMAPS[digit] || DIGIT_BITMAPS["0"];
@@ -346,9 +435,9 @@ export function PixelFlameStreak({
                   const py = baseY + oy;
                   if (px >= 0 && px < W && py >= 0 && py < H) {
                     const idx = (py * W + px) * 4;
-                    // Dark charcoal backplate with slight volt tint
-                    data[idx] = 3;
-                    data[idx + 1] = 16;
+                    // Obsidian-jade shadow border
+                    data[idx] = 2;
+                    data[idx + 1] = 14;
                     data[idx + 2] = 9;
                     data[idx + 3] = 245;
                   }
@@ -359,7 +448,7 @@ export function PixelFlameStreak({
         }
       }
 
-      // Pass 2: The glowing pixel digits themselves
+      // Pass 2: Phosphor White-Mint Pixel Glyph Fill
       for (let i = 0; i < numStr.length; i++) {
         const digit = numStr[i];
         const bitmap = DIGIT_BITMAPS[digit] || DIGIT_BITMAPS["0"];
@@ -378,10 +467,9 @@ export function PixelFlameStreak({
                   const py = baseY + sy;
                   if (px >= 0 && px < W && py >= 0 && py < H) {
                     const idx = (py * W + px) * 4;
-                    // Bright phosphor white-mint center with electric volt tone
-                    data[idx] = 240;
+                    data[idx] = 242;
                     data[idx + 1] = 255;
-                    data[idx + 2] = 244;
+                    data[idx + 2] = 248;
                     data[idx + 3] = 255;
                   }
                 }
@@ -391,18 +479,20 @@ export function PixelFlameStreak({
         }
       }
 
-      // Pass 3: Translucent foreground fire licks across the bottom edge
-      for (let x = numStartX - 2; x <= numStartX + totalNumWidth + 2; x++) {
-        const lickY = curStartY + 7 * digitScale - 1;
-        if (x >= 0 && x < W && lickY >= 0 && lickY < H) {
-          const heatVal = fireBuffer[lickY * W + x];
-          if (heatVal > 4 && Math.random() < 0.6) {
-            const idx = (lickY * W + x) * 4;
-            const c = VOLT_FIRE_PALETTE[heatVal];
-            data[idx] = Math.min(255, data[idx] + c[0]);
-            data[idx + 1] = Math.min(255, data[idx + 1] + c[1]);
-            data[idx + 2] = Math.min(255, data[idx + 2] + c[2]);
-            data[idx + 3] = 255;
+      // Pass 3: Translucent Arcane Wisps curling across the number
+      // so it sits truly submerged inside the center of the mystical orb
+      for (let x = numStartX - 1; x <= numStartX + totalNumWidth + 1; x++) {
+        for (let y = curStartY - 1; y <= curStartY + totalNumHeight + 1; y++) {
+          if (x >= 0 && x < W && y >= 0 && y < H) {
+            const heatVal = fireBuffer[y * W + x];
+            if (heatVal > 5 && Math.random() < 0.4) {
+              const idx = (y * W + x) * 4;
+              const c = ARCANE_FIRE_PALETTE[heatVal];
+              data[idx] = Math.min(255, data[idx] + c[0] * 0.6);
+              data[idx + 1] = Math.min(255, data[idx + 1] + c[1] * 0.6);
+              data[idx + 2] = Math.min(255, data[idx + 2] + c[2] * 0.6);
+              data[idx + 3] = 255;
+            }
           }
         }
       }
@@ -421,12 +511,12 @@ export function PixelFlameStreak({
     <div
       className={`relative flex flex-col items-center justify-center select-none group cursor-pointer ${className}`}
       onClick={handleStoke}
-      title={interactive ? "Click or tap to stoke the flames!" : undefined}
+      title={interactive ? "Click or tap to unleash arcane surge!" : undefined}
     >
-      {/* Radiant ST-Finance Volt glow behind the flame */}
+      {/* Mysterio-style Arcane Green Radial Glow & Smoke Aura */}
       <div
-        className={`absolute w-36 h-48 rounded-full bg-emerald-500/25 blur-2xl pointer-events-none transition-all duration-300 ${
-          isStoked ? "scale-125 bg-emerald-400/40" : "scale-100"
+        className={`absolute w-44 h-56 rounded-full bg-[radial-gradient(circle_at_50%_62%,rgba(34,215,96,0.32)_0%,rgba(16,185,129,0.15)_45%,transparent_75%)] blur-2xl pointer-events-none transition-all duration-300 ${
+          isStoked ? "scale-125 opacity-100" : "scale-100 opacity-90"
         }`}
       />
 
@@ -437,9 +527,9 @@ export function PixelFlameStreak({
       />
 
       {/* Subtitle label in retro cyber font */}
-      <div className="mt-[-6px] z-10 px-3 py-0.5 rounded-full bg-emerald-950/90 border border-emerald-500/40 text-[10px] font-mono font-bold tracking-widest uppercase text-emerald-300 shadow-[0_0_12px_rgba(34,197,94,0.35)] flex items-center gap-1.5 backdrop-blur-xs">
+      <div className="mt-[-4px] z-10 px-3 py-0.5 rounded-full bg-emerald-950/90 border border-emerald-500/40 text-[10px] font-mono font-bold tracking-widest uppercase text-emerald-300 shadow-[0_0_12px_rgba(34,197,94,0.35)] flex items-center gap-1.5 backdrop-blur-xs">
         <span className="w-1.5 h-1.5 bg-emerald-400 animate-pulse rounded-xs" />
-        {streak === 1 ? "DAY STREAK" : "DAYS BURNING"}
+        {streak === 1 ? "ARCANE STREAK" : "DAYS ENGULFED"}
       </div>
     </div>
   );
