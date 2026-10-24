@@ -468,30 +468,34 @@ button:active:not(:disabled),
 /* ---- Streak Flame & Embers Animations ---- */
 @keyframes flame-flicker {
   0%, 100% {
-    transform: scale(1) rotate(-1deg);
-    filter: drop-shadow(0 0 16px rgba(249, 115, 22, 0.7));
+    transform: scale(1) rotate(-0.5deg);
+    filter: drop-shadow(0 0 16px rgba(34, 197, 94, 0.5));
   }
   25% {
-    transform: scale(1.06) rotate(1.5deg);
-    filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.9));
+    transform: scale(1.03) rotate(0.8deg);
+    filter: drop-shadow(0 0 24px rgba(74, 222, 128, 0.7));
   }
   50% {
-    transform: scale(0.98) rotate(-1.5deg);
-    filter: drop-shadow(0 0 18px rgba(239, 68, 68, 0.75));
+    transform: scale(0.98) rotate(-0.8deg);
+    filter: drop-shadow(0 0 18px rgba(16, 185, 129, 0.6));
   }
   75% {
-    transform: scale(1.04) rotate(1deg);
-    filter: drop-shadow(0 0 28px rgba(249, 115, 22, 0.85));
+    transform: scale(1.02) rotate(0.5deg);
+    filter: drop-shadow(0 0 26px rgba(34, 197, 94, 0.65));
   }
 }
 
 @keyframes ember-rise {
   0% {
-    transform: translateY(0) scale(0.8);
-    opacity: 0.9;
+    transform: translateY(0) scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translateY(-24px) scale(0.8);
+    opacity: 0.7;
   }
   100% {
-    transform: translateY(-44px) scale(0);
+    transform: translateY(-50px) scale(0.2);
     opacity: 0;
   }
 }
