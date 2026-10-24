@@ -10,6 +10,7 @@ interface StreakCelebrationModalProps {
   onClose: () => void;
   currentStreak: number;
   longestStreak?: number;
+  manualTime?: number;
 }
 
 export function StreakCelebrationModal({
@@ -17,6 +18,7 @@ export function StreakCelebrationModal({
   onClose,
   currentStreak,
   longestStreak = 0,
+  manualTime,
 }: StreakCelebrationModalProps) {
   useEffect(() => {
     if (!isOpen) return;
@@ -106,7 +108,7 @@ export function StreakCelebrationModal({
             />
 
             {/* ST-Finance Green Pixelated Flame with Pixel Number */}
-            <PixelFlameStreak streak={currentStreak} size="md" />
+            <PixelFlameStreak streak={currentStreak} size="md" manualTime={manualTime} />
           </div>
 
           {/* Record Chip */}
