@@ -636,7 +636,15 @@ export function PixelFlameStreak({
 
       // Update streak number position and animation
       if (streakNumRef.current) {
-        streakNumRef.current.style.top = "60%";
+        if (effectiveTime < 1.00) {
+          streakNumRef.current.style.top = "60%";
+        } else if (effectiveTime < 1.50) {
+          const eruptNorm = (effectiveTime - 1.00) / 0.50;
+          const smooth = 0.5 - 0.5 * Math.cos(eruptNorm * Math.PI);
+          streakNumRef.current.style.top = `${60 + 9 * smooth}%`;
+        } else {
+          streakNumRef.current.style.top = "69%";
+        }
         if (effectiveTime < 0.25) {
           const fadeIn = Math.min(1.0, effectiveTime / 0.25);
           streakNumRef.current.style.opacity = fadeIn.toString();
@@ -771,10 +779,10 @@ export function PixelFlameStreak({
           className="absolute inset-0 w-full h-full pointer-events-none z-20"
         />
 
-        {/* Crisp Streak Number Centered in the Flame Belly */}
+        {/* Crisp Streak Number Centered in the Flame Core */}
         <div
           ref={streakNumRef}
-          className="absolute top-[60%] left-1/2 pointer-events-none select-none flex flex-col items-center justify-center transition-transform duration-75 z-30"
+          className="absolute top-[69%] left-1/2 pointer-events-none select-none flex flex-col items-center justify-center transition-transform duration-75 z-30"
           style={{
             opacity: manualTime !== undefined ? 1 : 0,
             transform: "translate(-50%, -50%) scale(0.95)",
