@@ -433,6 +433,12 @@ function PixelDigitBadge({ value, size }: { value: number; size: "sm" | "md" | "
   );
 }
 
+const DIMENSIONS_MAP = {
+  sm: { cssW: "w-20", cssH: "h-28", numSize: "text-lg", auraW: "w-24", auraH: "h-28" },
+  md: { cssW: "w-24", cssH: "h-36", numSize: "text-2xl", auraW: "w-32", auraH: "h-36" },
+  lg: { cssW: "w-32", cssH: "h-44", numSize: "text-3xl", auraW: "w-40", auraH: "h-44" },
+} as const;
+
 export function PixelFlameStreak({
   streak,
   size = "md",
@@ -446,24 +452,37 @@ export function PixelFlameStreak({
   const [isStoked, setIsStoked] = useState(false);
   const stokeRef = useRef<number>(0);
   const eruptBurstFiredRef = useRef<boolean>(false);
+  const startTimeRef = useRef<number>(0);
+  const particlesRef = useRef<EmberParticle[]>([]);
+  const stokeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const dimensions = {
-    sm: { cssW: "w-20", cssH: "h-28", numSize: "text-lg", auraW: "w-24", auraH: "h-28" },
-    md: { cssW: "w-24", cssH: "h-36", numSize: "text-2xl", auraW: "w-32", auraH: "h-36" },
-    lg: { cssW: "w-32", cssH: "h-44", numSize: "text-3xl", auraW: "w-40", auraH: "h-44" },
-  }[size];
+  const dimensions = DIMENSIONS_MAP[size];
 
   const handleStoke = useCallback(() => {
     if (!interactive) return;
+    // Cleanly restart the animation from Phase 1 without reinitializing the WebGL context
+    startTimeRef.current = performance.now();
+    eruptBurstFiredRef.current = false;
+    particlesRef.current.length = 0;
     stokeRef.current = 1.0;
+
     setIsStoked(true);
-    setTimeout(() => setIsStoked(false), 700);
+    if (stokeTimeoutRef.current) {
+      clearTimeout(stokeTimeoutRef.current);
+    }
+    stokeTimeoutRef.current = setTimeout(() => {
+      setIsStoked(false);
+    }, 700);
   }, [interactive]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const pCanvas = particleCanvasRef.current;
     if (!canvas || !pCanvas) return;
+
+    startTimeRef.current = performance.now();
+    eruptBurstFiredRef.current = false;
+    particlesRef.current.length = 0;
 
     let gl: WebGLRenderingContext | null = null;
     let program: WebGLProgram | null = null;
@@ -549,7 +568,7 @@ export function PixelFlameStreak({
     }
 
     // Dynamic Arcane & Pixel Embers Simulation
-    const particles: EmberParticle[] = [];
+    const particles = particlesRef.current;
     const MAX_PARTICLES = 40;
 
     const spawnEmber = (t: number, isBurst = false): EmberParticle => {
@@ -622,7 +641,6 @@ export function PixelFlameStreak({
     };
 
     let animationFrameId: number;
-    const startTime = performance.now();
 
     const prefersReducedMotion =
       typeof window !== "undefined" &&
@@ -631,7 +649,8 @@ export function PixelFlameStreak({
     const render = (now: number) => {
       animationFrameId = requestAnimationFrame(render);
 
-      const elapsedSec = manualTime !== undefined ? manualTime : (now - startTime) * 0.001;
+      const elapsedSec =
+        manualTime !== undefined ? manualTime : (now - startTimeRef.current) * 0.001;
       const effectiveTime = prefersReducedMotion ? elapsedSec * 0.4 : elapsedSec;
 
       // Update streak number position and animation
@@ -745,18 +764,21 @@ export function PixelFlameStreak({
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      if (stokeTimeoutRef.current) {
+        clearTimeout(stokeTimeoutRef.current);
+      }
       if (gl) {
         if (program) gl.deleteProgram(program);
         if (positionBuffer) gl.deleteBuffer(positionBuffer);
       }
     };
-  }, [dimensions, size, manualTime]);
+  }, [size, manualTime]);
 
   return (
     <div
       className={`relative flex flex-col items-center justify-center select-none group cursor-pointer ${className}`}
       onClick={handleStoke}
-      title={interactive ? "Click or tap to stoke the roaring flame!" : undefined}
+      title={interactive ? "Click or tap to restart flame animation!" : undefined}
     >
       {/* Radiant Emerald Aura behind the Flame */}
       <div
