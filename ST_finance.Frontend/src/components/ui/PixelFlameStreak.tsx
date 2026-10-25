@@ -362,7 +362,7 @@ const PIXEL_DIGITS: Record<string, string[]> = {
 
 function PixelDigitBadge({ value, size }: { value: number; size: "sm" | "md" | "lg" }) {
   const numStr = Math.max(0, Math.floor(value)).toString();
-  const px = size === "lg" ? 4.5 : size === "sm" ? 2.8 : 3.8;
+  const px = size === "lg" ? 3.4 : size === "sm" ? 2.0 : 2.6;
   const H = 7;
   const W_single = 5;
   const spacing = 1;
@@ -453,7 +453,7 @@ export function PixelFlameStreak({
   manualTime,
 }: PixelFlameStreakProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const flameImgRef = useRef<HTMLImageElement | null>(null);
+  const flameCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const particleCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const streakNumRef = useRef<HTMLDivElement | null>(null);
   const [isStoked, setIsStoked] = useState(false);
@@ -463,9 +463,9 @@ export function PixelFlameStreak({
   const isStreak2 = streak === 2;
 
   const dimensions = {
-    sm: { cssW: "w-32", cssH: "h-40", numSize: "text-2xl" },
-    md: { cssW: "w-44", cssH: "h-52", numSize: "text-3xl" },
-    lg: { cssW: "w-52", cssH: "h-62", numSize: "text-4xl" },
+    sm: { cssW: "w-20", cssH: "h-28", numSize: "text-lg", auraW: "w-24", auraH: "h-28" },
+    md: { cssW: "w-24", cssH: "h-36", numSize: "text-2xl", auraW: "w-32", auraH: "h-36" },
+    lg: { cssW: "w-32", cssH: "h-44", numSize: "text-3xl", auraW: "w-40", auraH: "h-44" },
   }[size];
 
   const handleStoke = useCallback(() => {
@@ -477,8 +477,9 @@ export function PixelFlameStreak({
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    const fCanvas = flameCanvasRef.current;
     const pCanvas = particleCanvasRef.current;
-    if (!canvas || !pCanvas) return;
+    if (!canvas || !fCanvas || !pCanvas) return;
 
     let gl: WebGLRenderingContext | null = null;
     let program: WebGLProgram | null = null;
@@ -495,19 +496,47 @@ export function PixelFlameStreak({
       gl = null;
     }
 
+    const fCtx = fCanvas.getContext("2d");
     const pCtx = pCanvas.getContext("2d");
 
     const rect = canvas.getBoundingClientRect();
-    const cssW = rect.width || 176;
-    const cssH = rect.height || 208;
+    const cssW = rect.width || (size === "sm" ? 80 : size === "lg" ? 128 : 96);
+    const cssH = rect.height || (size === "sm" ? 112 : size === "lg" ? 176 : 144);
     const dpr = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
     const W = Math.round(cssW * dpr);
     const H = Math.round(cssH * dpr);
 
     canvas.width = W;
     canvas.height = H;
+    fCanvas.width = W;
+    fCanvas.height = H;
     pCanvas.width = W;
     pCanvas.height = H;
+
+    // Load living flame sprite (badge sprite for streak 2, blank sprite for other numbers)
+    const flameImg = new Image();
+    flameImg.src = isStreak2
+      ? "/flame-stages/flame_badge_sprite.png"
+      : "/flame-stages/flame_blank_sprite.png";
+
+    // Aspect ratio fit calculations (sprite is 600x854, aspect ~0.7025)
+    const targetAspect = 600 / 854;
+    const containerAspect = W / H;
+    let drawW = W;
+    let drawH = H;
+    let drawX = 0;
+    let drawY = 0;
+
+    if (containerAspect > targetAspect) {
+      drawW = Math.round(H * targetAspect);
+      drawX = Math.round((W - drawW) / 2);
+    } else {
+      drawH = Math.round(W / targetAspect);
+      drawY = Math.round((H - drawH) / 2);
+    }
+
+    // Digit center position inside the teardrop white core (measured at 72.38% from sprite top)
+    const digitTopPercent = ((drawY + drawH * 0.7238) / H) * 100;
 
     let uResolutionLoc: WebGLUniformLocation | null = null;
     let uTimeLoc: WebGLUniformLocation | null = null;
@@ -576,39 +605,39 @@ export function PixelFlameStreak({
       if (t < 0.60) {
         // Phase 1: Arcane gathering - Orbiting sparks
         const ang = Math.random() * Math.PI * 2;
-        const r = (20 + Math.random() * 26) * dpr;
+        const r = (14 + Math.random() * 18) * dpr;
         originX = W * 0.5 + Math.cos(ang) * r;
         originY = H * 0.60 + Math.sin(ang) * (r * 0.85);
         const tang = ang + Math.PI * 0.5;
-        const speed = (0.7 + Math.random() * 0.9);
+        const speed = 0.6 + Math.random() * 0.8;
         vx = Math.cos(tang) * speed * dpr;
         vy = Math.sin(tang) * speed * 0.85 * dpr;
       } else if (t < 1.00) {
         // Phase 2: Charging - Accelerating inward spiral
         const ang = Math.random() * Math.PI * 2;
-        const r = (18 + Math.random() * 32) * dpr;
+        const r = (12 + Math.random() * 22) * dpr;
         originX = W * 0.5 + Math.cos(ang) * r;
         originY = H * 0.60 + Math.sin(ang) * (r * 0.85);
         const tang = ang + Math.PI * 0.5;
-        const speed = (1.4 + Math.random() * 1.6);
+        const speed = 1.2 + Math.random() * 1.4;
         vx = (Math.cos(tang) - Math.cos(ang) * 0.35) * speed * dpr;
         vy = (Math.sin(tang) - Math.sin(ang) * 0.35) * speed * 0.85 * dpr;
       } else if (t < 1.40 || isBurst) {
         // Phase 3: Eruption burst
-        originX = W * 0.5 + (Math.random() - 0.5) * 28 * dpr;
-        originY = H * 0.60 + (Math.random() - 0.5) * 20 * dpr;
+        originX = W * 0.5 + (Math.random() - 0.5) * 20 * dpr;
+        originY = H * 0.60 + (Math.random() - 0.5) * 16 * dpr;
         const angle = -Math.PI * 0.5 + (Math.random() - 0.5) * 1.5;
-        const speed = (isBurst ? 2.2 : 1.6) + Math.random() * 2.4;
+        const speed = (isBurst ? 1.8 : 1.4) + Math.random() * 1.8;
         vx = Math.cos(angle) * speed * dpr;
         vy = Math.sin(angle) * speed * dpr;
       } else {
         // Phase 5: Living flame steady rising embers
-        originX = W * 0.5 + (Math.random() - 0.5) * 52 * dpr;
-        originY = H * (0.80 - Math.random() * 0.55);
+        originX = W * 0.5 + (Math.random() - 0.5) * (drawW * 0.65);
+        originY = drawY + drawH * (0.60 - Math.random() * 0.50);
         const angle = -Math.PI * 0.5 + (Math.random() - 0.5) * 0.85;
-        const speed = 0.7 + Math.random() * 1.4;
+        const speed = 0.6 + Math.random() * 1.2;
         vx = Math.cos(angle) * speed * dpr;
-        vy = -Math.abs(Math.sin(angle)) * speed * 1.5 * dpr;
+        vy = -Math.abs(Math.sin(angle)) * speed * 1.4 * dpr;
       }
 
       const driftSeed = Math.random() * 1000;
@@ -627,7 +656,7 @@ export function PixelFlameStreak({
         y: originY,
         vx,
         vy,
-        size: Math.max(2, Math.round((1.5 + Math.random() * 1.8) * dpr)),
+        size: Math.max(2, Math.round((1.2 + Math.random() * 1.5) * dpr)),
         color,
         alpha: 0.85 + Math.random() * 0.15,
         life: 0,
@@ -650,11 +679,11 @@ export function PixelFlameStreak({
       const effectiveTime = prefersReducedMotion ? elapsedSec * 0.4 : elapsedSec;
 
       // Update layers across animation phases
-      if (flameImgRef.current && canvasRef.current) {
+      if (flameCanvasRef.current && canvasRef.current) {
         if (effectiveTime < 1.00) {
-          // Arcane energy orb (0.0s - 1.0s): Orb canvas fully active, flame sprite hidden
+          // Arcane energy orb (0.0s - 1.0s): Orb canvas fully active, flame canvas hidden
           canvasRef.current.style.opacity = "1";
-          flameImgRef.current.style.opacity = "0";
+          flameCanvasRef.current.style.opacity = "0";
 
           if (streakNumRef.current) {
             streakNumRef.current.style.top = "60%";
@@ -676,33 +705,33 @@ export function PixelFlameStreak({
           // Eruption phase (1.0s - 1.5s): Smooth crossfade & scale up
           const eruptNorm = (effectiveTime - 1.00) / 0.50;
           canvasRef.current.style.opacity = (1.0 - eruptNorm * 0.95).toString();
-          flameImgRef.current.style.opacity = eruptNorm.toString();
+          flameCanvasRef.current.style.opacity = eruptNorm.toString();
           const scaleVal = 0.88 + 0.12 * eruptNorm;
-          flameImgRef.current.style.transform = `scale(${scaleVal})`;
+          flameCanvasRef.current.style.transform = `scale(${scaleVal})`;
 
           if (streakNumRef.current) {
             if (isStreak2) {
               streakNumRef.current.style.opacity = (1.0 - eruptNorm).toString();
             } else {
-              streakNumRef.current.style.top = "72.4%";
+              streakNumRef.current.style.top = `${digitTopPercent.toFixed(1)}%`;
               streakNumRef.current.style.opacity = "1";
               streakNumRef.current.style.transform = `translate(-50%, -50%) scale(${scaleVal})`;
             }
           }
         } else {
-          // Living flame phase (> 1.5s): Identical to pixel_flame_badge_2.jpg
+          // Living flame phase (> 1.5s): Actively moving flame
           canvasRef.current.style.opacity = "0";
-          flameImgRef.current.style.opacity = "1";
+          flameCanvasRef.current.style.opacity = "1";
 
-          const stokeScale = stokeRef.current > 0.01 ? 1.06 : 1.0;
-          const flicker = (1.0 + 0.012 * Math.sin(effectiveTime * 6.5) + 0.008 * Math.cos(effectiveTime * 11.0)) * stokeScale;
-          flameImgRef.current.style.transform = `scale(${flicker})`;
+          const stokeScale = stokeRef.current > 0.01 ? 1.05 : 1.0;
+          const flicker = (1.0 + 0.008 * Math.sin(effectiveTime * 6.5)) * stokeScale;
+          flameCanvasRef.current.style.transform = `scale(${flicker})`;
 
           if (streakNumRef.current) {
             if (isStreak2) {
               streakNumRef.current.style.opacity = "0";
             } else {
-              streakNumRef.current.style.top = "72.4%";
+              streakNumRef.current.style.top = `${digitTopPercent.toFixed(1)}%`;
               streakNumRef.current.style.opacity = "1";
               streakNumRef.current.style.transform = `translate(-50%, -50%) scale(${flicker})`;
             }
@@ -730,7 +759,7 @@ export function PixelFlameStreak({
         stokeRef.current = 0.0;
       }
 
-      // ── 1. RENDER WEBGL PIXEL FLAME BODY ──
+      // ── 1. RENDER WEBGL ARCANE ORB BODY (UNTOUCHED ORB PHASE) ──
       if (gl && program) {
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -745,7 +774,67 @@ export function PixelFlameStreak({
         pCtx.clearRect(0, 0, W, H);
       }
 
-      // ── 2. RENDER PIXEL EMBERS ON CANVAS 2D ──
+      // ── 2. RENDER LIVING MOVING PIXEL FLAME (CANVAS 2D) ──
+      if (fCtx && (flameImg.complete || flameImg.naturalWidth > 0)) {
+        fCtx.imageSmoothingEnabled = false;
+        fCtx.clearRect(0, 0, W, H);
+
+        if (effectiveTime >= 0.95) {
+          const imgW = flameImg.naturalWidth || 600;
+          const imgH = flameImg.naturalHeight || 854;
+
+          // Slicing: discrete chunky pixel strips
+          const stripH = Math.max(2, Math.round(drawH / 44));
+          const numStrips = Math.ceil(drawH / stripH);
+          const stokeVal = stokeRef.current;
+
+          for (let i = 0; i < numStrips; i++) {
+            const dstStripY = drawY + i * stripH;
+            const normY = 1.0 - (i * stripH + stripH * 0.5) / drawH;
+
+            let shiftX = 0;
+            let shiftY = 0;
+
+            // Lower 48% is egg teardrop base, white core, and digit (ANCHORED & SOLID)
+            if (normY > 0.46) {
+              const tonguePower = Math.min(1.0, (normY - 0.46) / 0.46);
+              const stokeMul = 1.0 + stokeVal * 0.9;
+
+              // Convective sway
+              const wave1 = Math.sin(effectiveTime * 3.8 + normY * 7.5) * 2.8;
+              const wave2 = Math.sin(effectiveTime * 7.2 - normY * 11.0) * 1.3;
+              const sway = (wave1 + wave2) * Math.pow(tonguePower, 1.3) * stokeMul * dpr;
+
+              // Vertical lick & bob
+              const lick1 = Math.sin(effectiveTime * 6.0 - normY * 8.5) * 1.8;
+              const lick2 = Math.cos(effectiveTime * 3.4) * 0.7;
+              const lick = (lick1 + lick2) * Math.pow(tonguePower, 1.5) * stokeMul * dpr;
+
+              // Quantize to integer device pixels for chunky retro pixel stepping
+              const pxStep = Math.max(1, Math.round(dpr));
+              shiftX = Math.round(sway / pxStep) * pxStep;
+              shiftY = Math.round(lick / pxStep) * pxStep;
+            }
+
+            const srcY = Math.round((i * stripH / drawH) * imgH);
+            const srcStripH = Math.round(((stripH + 1) / drawH) * imgH);
+
+            fCtx.drawImage(
+              flameImg,
+              0,
+              Math.max(0, Math.min(imgH - 1, srcY)),
+              imgW,
+              Math.min(imgH - srcY, srcStripH),
+              drawX + shiftX,
+              dstStripY + shiftY,
+              drawW,
+              stripH + 1
+            );
+          }
+        }
+      }
+
+      // ── 3. RENDER PIXEL EMBERS ON CANVAS 2D ──
       if (pCtx) {
         pCtx.clearRect(0, 0, W, H);
 
@@ -802,7 +891,7 @@ export function PixelFlameStreak({
     >
       {/* Radiant Emerald Aura behind the Flame */}
       <div
-        className={`absolute w-44 h-48 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none transition-all duration-300 ${
+        className={`absolute ${dimensions.auraW} ${dimensions.auraH} rounded-full bg-emerald-500/20 blur-2xl pointer-events-none transition-all duration-300 ${
           isStoked ? "scale-125 opacity-100 bg-emerald-400/30" : "scale-100 opacity-70"
         }`}
       />
@@ -812,16 +901,13 @@ export function PixelFlameStreak({
         {/* WebGL Arcane Energy Orb Canvas (Ignition & Charge) */}
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-150"
+          className="absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-150 z-10"
         />
 
-        {/* Living Pixel Flame Sprite - Identical to pixel_flame_badge_2.jpg */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          ref={flameImgRef}
-          src={isStreak2 ? "/flame-stages/flame_badge_sprite.png" : "/flame-stages/flame_blank_sprite.png"}
-          alt="Flame Streak Badge"
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-10"
+        {/* Living Moving Pixel Flame Canvas - Identical to pixel_flame_badge_2.jpg */}
+        <canvas
+          ref={flameCanvasRef}
+          className="absolute inset-0 w-full h-full pointer-events-none select-none z-15"
           style={{
             imageRendering: "pixelated",
             opacity: manualTime !== undefined ? (manualTime >= 1.0 ? 1 : 0) : 0,
@@ -849,7 +935,7 @@ export function PixelFlameStreak({
       </div>
 
       {/* Pill Badge */}
-      <div className="mt-[-2px] z-10 px-3 py-0.5 rounded-full bg-emerald-950/90 border border-emerald-500/40 text-[10px] font-mono font-bold tracking-widest uppercase text-emerald-300 shadow-[0_0_12px_rgba(34,197,94,0.3)] flex items-center gap-1.5 backdrop-blur-xs">
+      <div className="mt-[-2px] z-10 px-2.5 py-0.5 rounded-full bg-emerald-950/90 border border-emerald-500/40 text-[9px] font-mono font-bold tracking-widest uppercase text-emerald-300 shadow-[0_0_12px_rgba(34,197,94,0.3)] flex items-center gap-1.5 backdrop-blur-xs">
         <span className="w-1.5 h-1.5 bg-emerald-400 animate-pulse rounded-full" />
         {streak === 1 ? "DAY STREAK" : "DAYS BURNING"}
       </div>

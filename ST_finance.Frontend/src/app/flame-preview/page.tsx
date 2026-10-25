@@ -41,35 +41,35 @@ export default function FlamePreviewPage() {
         <div className="grid grid-cols-5 gap-4">
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">1. Branch Formation (1.7s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={streakVal} size="md" manualTime={1.7} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">2. Fully Formed (2.0s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={streakVal} size="md" manualTime={2.0} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">3. Living Frame A (2.5s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={streakVal} size="md" manualTime={2.5} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">4. Living Frame B (3.2s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={streakVal} size="md" manualTime={3.2} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">5. Living Frame C (3.9s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={streakVal} size="md" manualTime={3.9} />
             </div>
           </div>
@@ -84,35 +84,35 @@ export default function FlamePreviewPage() {
         <div className="grid grid-cols-5 gap-4">
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">1. Formed (2.0s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={14} size="md" manualTime={2.0} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">2. Living A (2.5s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={14} size="md" manualTime={2.5} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">3. Living B (3.2s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={14} size="md" manualTime={3.2} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">4. Living C (3.9s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={14} size="md" manualTime={3.9} />
             </div>
           </div>
 
           <div className="flex flex-col items-center bg-zinc-950/80 border border-emerald-900/50 p-4 rounded-2xl">
             <span className="text-xs font-mono font-bold text-emerald-400 mb-2">5. Orb Check (0.5s)</span>
-            <div className="w-44 h-52 flex items-center justify-center">
+            <div className="w-28 h-40 flex items-center justify-center">
               <PixelFlameStreak streak={14} size="md" manualTime={0.5} />
             </div>
           </div>
