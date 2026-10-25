@@ -300,6 +300,7 @@ void main() {
 
   float edge_dist = smoothstep(0.04, 0.28, flame_silhouette);
   float body_heat = 0.32 + 0.44 * edge_dist;
+  float flow_y = dy * 4.2 - t * 4.8;
   float filaments = 0.05 * sin(x * 32.0 + sin(flow_y * 2.0));
 
   float flame_heat = (body_heat + core_v * 0.68 + spines + filaments) * flame_silhouette;
