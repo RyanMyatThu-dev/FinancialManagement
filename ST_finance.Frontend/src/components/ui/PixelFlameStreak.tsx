@@ -32,6 +32,14 @@ void main() {
 }
 `;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ARCANE ORB → LIVING PIXEL FLAME (100% Procedural GPU Shader)
+// Structure matches the AxUEj.jpg reference:
+//   · Phase 1 (0.0 - 0.6s): Arcane Energy Orb (swelling spherical core + orbital arcs)
+//   · Phase 2 (0.6 - 1.0s): Compression & Charging (accelerating spin + flash)
+//   · Phase 3 (1.0 - 1.5s): Eruption & Morphing (bursts upward into living flame)
+//   · Phase 4 & 5 (> 1.5s): Living Pixel Flame (7 distinct tongues with organic living warp)
+// ─────────────────────────────────────────────────────────────────────────────
 const FRAGMENT_SHADER_SRC = `
 precision highp float;
 
@@ -85,24 +93,40 @@ float ridgeFbm(vec2 p) {
   return v;
 }
 
+// One flame tongue. Returns (envelope, swayX, tip, width).
+vec4 tongue(float tipA, float tipS, float ph0, float ph1, float base,
+            float swayA, float swayF, float w0, float wp, float dy0,
+            float dy, float xw, float t, float boost) {
+  float tip = tipA + tipS * sin(t * ph0 + ph1) + 0.04 * boost;
+  float p = clamp((dy - dy0) / max(0.01, tip - dy0), 0.0, 1.0);
+  float sw = base + swayA * sin(p * swayF) + 0.014 * sin(t * ph0 * 0.8 + p * 3.5 + ph1);
+  float w = w0 * pow(1.0 - p, wp) * (0.88 + 0.22 * sin(p * 3.14159));
+  float env = smoothstep(1.0, 0.15, abs(xw - sw) / max(0.006, w))
+            * step(dy0, dy) * step(dy, tip);
+  return vec4(env, sw, tip, w);
+}
+
+// Cleft carving between two tongues (creates the distinct tongue separation).
+float cleft(float sa, float sb, float wa, float d0, float tipa, float tipb,
+            float x, float dy) {
+  float c = 1.0 - abs(x - (sa + sb) * 0.5) / wa;
+  return clamp(c, 0.0, 1.0) * step(d0, dy) * step(dy, min(tipa, tipb));
+}
+
 void main() {
-  // Quantize coordinates to discrete pixel art grid (~42x60 for sharp retro pixel steps)
-  vec2 pixelGrid = vec2(42.0, 60.0);
+  // Quantize to a discrete pixel-art grid for crisp retro pixel steps
+  vec2 pixelGrid = vec2(44.0, 66.0);
   vec2 uv = (floor(v_uv * pixelGrid) + 0.5) / pixelGrid;
 
-  // Aspect ratio correction: width / height
   float aspect = u_resolution.x / u_resolution.y;
   float x = (uv.x - 0.5) * aspect * 2.0; // x = 0 is exact horizontal center
-  float y = uv.y;                       // y = 0 at bottom, 1 at top
-
+  float y = uv.y;                        // y = 0 at bottom, 1 at top
   float t = u_time;
+  float boost = u_boost;
 
-  // Animation timeline phases:
-  // Phase 1 (0.0 - 0.6s): Arcane energy wind-up (compact spherical orb)
-  // Phase 2 (0.6 - 1.0s): Charge & compression (pulse, accelerating arcs)
-  // Phase 3 (1.0 - 1.5s): Eruption (stretches upward into flames)
-  // Phase 4 (1.5 - 2.0s): Flame formation (branches extend)
-  // Phase 5 (> 2.0s):     Living flame (continuous organic flicker)
+  // ══════════════════════════════════════════════════
+  // TIMELINE & MORPH FACTOR (Orb -> Eruption -> Flame)
+  // ══════════════════════════════════════════════════
   float t_windup = clamp(t / 0.60, 0.0, 1.0);
   float t_charge = clamp((t - 0.60) / 0.40, 0.0, 1.0);
   float t_erupt = clamp((t - 1.00) / 0.50, 0.0, 1.0);
@@ -180,112 +204,81 @@ void main() {
   float orb_total_heat = (orb_body + core_heat * 0.68 + (arc1 + arc2 + arc3 + wisps + dot_sparks) * (1.0 - m * 0.85)) * orb_envelope;
 
   // ══════════════════════════════════════════════════
-  // 2. PROCEDURAL MULTI-TONGUE FLAME (MATCHING AxUEj.jpg)
+  // 2. PROCEDURAL LIVING FLAME (AxUEj.jpg SILHOUETTE ENGINE)
   // ══════════════════════════════════════════════════
-  float y_base = mix(0.38, 0.14, m);
-  float dy = (y - y_base) / 0.78;
+  float y_base = mix(0.38, 0.13, m);
+  float dy = (y - y_base) / 0.80; // 0 at hearth, ~1 at the tallest tip
 
-  float flow_y = dy * 4.2 - t * 4.8;
   float body_sprout = smoothstep(0.02, 0.70, m);
   float branch_sprout = smoothstep(0.10, 0.88, m);
 
-  // A. Sharp V-Hearth Bottom (angles up from central point x=0, dy=0)
-  float v_bottom = 0.52 * abs(x);
+  // ── Organic living-flame warp: upward-flowing fbm + sine sway ──
+  // This is what makes the tongues continuously writhe instead of sliding.
+  float flow = fbm(vec2(x * 6.0, dy * 3.0 - t * 2.6));
+  float flow2 = noise(vec2(x * 14.0 + 40.0, dy * 7.0 - t * 4.2));
+  float sway = 0.028 * sin(t * 1.9 + dy * 3.0) + 0.018 * sin(t * 3.3 + dy * 5.2);
+  float xw = x - sway * dy - (flow - 0.5) * 0.10 * dy - (flow2 - 0.5) * 0.05 * dy;
+
+  // ── A. Sharp V-hearth bottom ──
+  float v_bottom = 0.55 * abs(x);
   float in_v = step(v_bottom - 0.012, dy);
 
-  // B. Full Connected Flame Body (fuller belly width to 0.46)
+  // ── B. Connected belly mass (fuller lower body) ──
   float dy_mid = dy - 0.30;
-  float w_belly = 0.46 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_mid) / 0.28, 1.8))));
+  float w_belly = 0.38 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_mid) / 0.28, 1.8))));
   if (dy > 0.46) {
-    w_belly = 0.46 * max(0.0, 1.0 - (dy - 0.46) / 0.42);
+    w_belly = 0.38 * max(0.0, 1.0 - (dy - 0.46) / 0.42);
   }
-  float env_belly = smoothstep(1.0, 0.15, abs(x) / max(0.008, w_belly)) * step(0.0, dy) * step(dy, 0.46) * body_sprout;
+  float env_belly = smoothstep(1.0, 0.15, abs(x) / max(0.008, w_belly))
+                  * step(0.0, dy) * step(dy, 0.46) * body_sprout;
 
-  // C. Distinct Flame Tongues
-  // Center Spire: tip lowered to 0.92, thicker width 0.26, pow falloff 0.72
-  float tip_C = 0.92 + 0.035 * sin(t * 3.4) + 0.05 * u_boost;
-  float p_C = clamp((dy - 0.18) / max(0.01, tip_C - 0.18), 0.0, 1.0);
-  float sway_C = (-0.026 * sin(p_C * 2.6) + 0.020 * sin(t * 2.8 + p_C * 3.8) + 0.010 * sin(p_C * 6.5 - t * 4.5)) * pow(p_C, 1.1);
-  float w_C = 0.26 * pow(1.0 - p_C, 0.72) * (0.86 + 0.32 * sin(p_C * 3.14159));
-  float env_C = smoothstep(1.0, 0.15, abs(x - sway_C) / max(0.006, w_C)) * step(0.16, dy) * step(dy, tip_C) * branch_sprout;
+  // ── C. Seven distinct tongues (matching reference silhouette) ──
+  vec4 C  = tongue(0.95, 0.030, 3.4, 0.0,  0.0,   -0.026, 2.6, 0.210, 0.85, 0.18, dy, xw, t, boost);
+  vec4 L1 = tongue(0.70, 0.030, 3.8, 1.2, -0.07,  -0.13,  1.5, 0.145, 0.80, 0.16, dy, xw, t, boost);
+  vec4 R1 = tongue(0.70, 0.030, 3.6, 2.3,  0.07,   0.13,  1.5, 0.145, 0.80, 0.16, dy, xw, t, boost);
+  vec4 L2 = tongue(0.47, 0.020, 4.2, 0.7, -0.135, -0.13,  1.4, 0.110, 0.75, 0.12, dy, xw, t, boost);
+  vec4 R2 = tongue(0.47, 0.020, 4.0, 2.1,  0.135,  0.13,  1.4, 0.110, 0.75, 0.12, dy, xw, t, boost);
+  vec4 L3 = tongue(0.33, 0.018, 4.6, 1.8, -0.20,  -0.08,  1.2, 0.075, 1.10, 0.10, dy, xw, t, boost);
+  vec4 R3 = tongue(0.33, 0.018, 4.4, 3.1,  0.20,   0.08,  1.2, 0.075, 1.10, 0.10, dy, xw, t, boost);
 
-  // Inner Left Tongue (L1): Lowered to 0.72, fuller (0.175), sway base -0.07
-  float tip_L1 = 0.72 + 0.030 * sin(t * 3.8 + 1.2);
-  float p_L1 = clamp((dy - 0.16) / max(0.01, tip_L1 - 0.16), 0.0, 1.0);
-  float sway_L1 = -0.07 - 0.13 * sin(p_L1 * 1.5) + 0.016 * sin(t * 3.2 + p_L1 * 3.5);
-  float w_L1 = 0.175 * pow(1.0 - p_L1, 0.68) * (0.86 + 0.28 * sin(p_L1 * 3.14159));
-  float env_L1 = smoothstep(1.0, 0.15, abs(x - sway_L1) / max(0.006, w_L1)) * step(0.16, dy) * step(dy, tip_L1) * branch_sprout;
+  float body_mass = max(env_belly * 0.96, max(C.x, max(L1.x, max(R1.x,
+                    max(L2.x, max(R2.x, max(L3.x, R3.x)))))) * branch_sprout);
 
-  // Inner Right Tongue (R1): Lowered to 0.72, fuller (0.175), sway base +0.07
-  float tip_R1 = 0.72 + 0.030 * sin(t * 3.6 + 2.3);
-  float p_R1 = clamp((dy - 0.16) / max(0.01, tip_R1 - 0.16), 0.0, 1.0);
-  float sway_R1 = 0.07 + 0.13 * sin(p_R1 * 1.5) - 0.016 * sin(t * 3.0 + p_R1 * 3.5);
-  float w_R1 = 0.175 * pow(1.0 - p_R1, 0.68) * (0.86 + 0.28 * sin(p_R1 * 3.14159));
-  float env_R1 = smoothstep(1.0, 0.15, abs(x - sway_R1) / max(0.006, w_R1)) * step(0.16, dy) * step(dy, tip_R1) * branch_sprout;
+  // ── Deep clefts between neighbouring tongues ──
+  float cmax = max(
+    max(cleft(C.y, L1.y, 0.028, 0.42, C.z, L1.z, x, dy),
+        cleft(C.y, R1.y, 0.028, 0.42, C.z, R1.z, x, dy)),
+    max(cleft(L1.y, L2.y, 0.022, 0.34, L1.z, L2.z, x, dy),
+        cleft(R1.y, R2.y, 0.022, 0.34, R1.z, R2.z, x, dy)));
+  cmax = max(cmax,
+    max(cleft(L2.y, L3.y, 0.018, 0.26, L2.z, L3.z, x, dy),
+        cleft(R2.y, R3.y, 0.018, 0.26, R2.z, R3.z, x, dy)));
 
-  // Outer Left Tongue (L2): Lowered to 0.48, closer (-0.13), width 0.13
-  float tip_L2 = 0.48 + 0.022 * sin(t * 4.2 + 0.7);
-  float p_L2 = clamp((dy - 0.12) / max(0.01, tip_L2 - 0.12), 0.0, 1.0);
-  float sway_L2 = -0.13 - 0.13 * sin(p_L2 * 1.4);
-  float w_L2 = 0.13 * pow(1.0 - p_L2, 0.65) * (0.85 + 0.25 * sin(p_L2 * 3.14159));
-  float env_L2 = smoothstep(1.0, 0.15, abs(x - sway_L2) / max(0.006, w_L2)) * step(0.12, dy) * step(dy, tip_L2) * branch_sprout;
+  float silhouette = clamp(body_mass - 0.74 * cmax * branch_sprout, 0.0, 1.0) * in_v;
 
-  // Outer Right Tongue (R2): Lowered to 0.48, closer (+0.13), width 0.13
-  float tip_R2 = 0.48 + 0.022 * sin(t * 4.0 + 2.1);
-  float p_R2 = clamp((dy - 0.12) / max(0.01, tip_R2 - 0.12), 0.0, 1.0);
-  float sway_R2 = 0.13 + 0.13 * sin(p_R2 * 1.4);
-  float w_R2 = 0.13 * pow(1.0 - p_R2, 0.65) * (0.85 + 0.25 * sin(p_R2 * 3.14159));
-  float env_R2 = smoothstep(1.0, 0.15, abs(x - sway_R2) / max(0.006, w_R2)) * step(0.12, dy) * step(dy, tip_R2) * branch_sprout;
+  // ── White V-core, sitting low in the belly (holds the streak digit) ──
+  float dy_core = dy - 0.19;
+  float core_w = 0.145 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_core) / 0.20, 1.8))));
+  float core_v = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w))
+               * step(-0.16, dy_core) * step(dy_core, 0.20);
 
-  // Left & Right Flank Teeth (L3, R3): Lowered to 0.34, closer (+-0.19), width 0.09
-  float tip_L3 = 0.34 + 0.018 * sin(t * 4.6 + 1.8);
-  float p_L3 = clamp((dy - 0.10) / max(0.01, tip_L3 - 0.10), 0.0, 1.0);
-  float sway_L3 = -0.19 - 0.08 * sin(p_L3 * 1.2);
-  float w_L3 = 0.09 * (1.0 - p_L3);
-  float env_L3 = smoothstep(1.0, 0.15, abs(x - sway_L3) / max(0.006, w_L3)) * step(0.10, dy) * step(dy, tip_L3) * branch_sprout;
+  // ── Luminous spine channels running up the three main tongues ──
+  float spines =
+      smoothstep(C.w * 0.35, 0.0, abs(xw - C.y))  * step(0.20, dy) * step(dy, C.z - 0.10) * 0.22
+    + smoothstep(L1.w * 0.35, 0.0, abs(xw - L1.y)) * step(0.18, dy) * step(dy, L1.z - 0.10) * 0.16
+    + smoothstep(R1.w * 0.35, 0.0, abs(xw - R1.y)) * step(0.18, dy) * step(dy, R1.z - 0.10) * 0.16;
 
-  float tip_R3 = 0.34 + 0.018 * sin(t * 4.4 + 3.1);
-  float p_R3 = clamp((dy - 0.10) / max(0.01, tip_R3 - 0.10), 0.0, 1.0);
-  float sway_R3 = 0.19 + 0.08 * sin(p_R3 * 1.2);
-  float w_R3 = 0.09 * (1.0 - p_R3);
-  float env_R3 = smoothstep(1.0, 0.15, abs(x - sway_R3) / max(0.006, w_R3)) * step(0.10, dy) * step(dy, tip_R3) * branch_sprout;
+  // ── Heat field → banded pixel palette ──
+  float edge_dist = smoothstep(0.04, 0.28, silhouette);
+  float fil = 0.05 * sin(x * 32.0 + sin(dy * 8.0 - t * 3.0) * 1.5);
+  float ridges = 0.09 * ridgeFbm(vec2(xw * 9.0, dy * 5.5 - t * 3.2));
+  float flame_heat = (0.30 + 0.46 * edge_dist + core_v * 0.60 + spines + fil + ridges) * silhouette;
 
-  // Full connected body mass
-  float body_mass = max(env_belly * 0.96, max(env_C, max(env_L1, max(env_R1, max(env_L2, max(env_R2, max(env_L3, env_R3)))))));
-
-  // Clefts: Deepened main clefts between center and L1/R1 for clear tongue separation
-  float cleft_CL = clamp(1.0 - abs(x - (sway_C + sway_L1) * 0.5) / 0.030, 0.0, 1.0) * step(0.40, dy) * step(dy, min(tip_C, tip_L1));
-  float cleft_CR = clamp(1.0 - abs(x - (sway_C + sway_R1) * 0.5) / 0.030, 0.0, 1.0) * step(0.40, dy) * step(dy, min(tip_C, tip_R1));
-  float cleft_LL2 = clamp(1.0 - abs(x - (sway_L1 + sway_L2) * 0.5) / 0.024, 0.0, 1.0) * step(0.32, dy) * step(dy, min(tip_L1, tip_L2));
-  float cleft_RR2 = clamp(1.0 - abs(x - (sway_R1 + sway_R2) * 0.5) / 0.024, 0.0, 1.0) * step(0.32, dy) * step(dy, min(tip_R1, tip_R2));
-  float cleft_LL3 = clamp(1.0 - abs(x - (sway_L2 + sway_L3) * 0.5) / 0.020, 0.0, 1.0) * step(0.24, dy) * step(dy, min(tip_L2, tip_L3));
-  float cleft_RR3 = clamp(1.0 - abs(x - (sway_R2 + sway_R3) * 0.5) / 0.020, 0.0, 1.0) * step(0.24, dy) * step(dy, min(tip_R2, tip_R3));
-
-  float cleft_max = max(cleft_CL, max(cleft_CR, max(cleft_LL2, max(cleft_RR2, max(cleft_LL3, cleft_RR3)))));
-  float flame_silhouette = clamp(body_mass - 0.55 * branch_sprout * cleft_max, 0.0, 1.0) * in_v;
-
-  // Core: Soft diamond / V-core centered slightly higher at dy ~ 0.20
-  float dy_core = dy - 0.20;
-  float core_w = 0.18 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_core) / 0.20, 1.8))));
-  float core_v = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w)) * step(-0.16, dy_core) * step(dy_core, 0.20);
-
-  // Tongue Spines: Luminous channels running up C, L1, R1
-  float spine_C = smoothstep(w_C * 0.40, 0.0, abs(x - sway_C)) * step(0.18, dy) * step(dy, tip_C - 0.08);
-  float spine_L1 = smoothstep(w_L1 * 0.40, 0.0, abs(x - sway_L1)) * step(0.16, dy) * step(dy, tip_L1 - 0.08);
-  float spine_R1 = smoothstep(w_R1 * 0.40, 0.0, abs(x - sway_R1)) * step(0.16, dy) * step(dy, tip_R1 - 0.08);
-  float spines = spine_C * 0.28 + spine_L1 * 0.20 + spine_R1 * 0.20;
-
-  float edge_dist = smoothstep(0.04, 0.28, flame_silhouette);
-  float body_heat = 0.32 + 0.46 * edge_dist;
-  float filaments = 0.06 * sin(x * 32.0 + sin(flow_y * 2.0));
-
-  float flame_heat = (body_heat + core_v * 0.65 + spines + filaments) * flame_silhouette;
-
-  // Floating detached sparks
-  float spark_hash = sin(dot(uv * pixelGrid, vec2(127.1, 311.7)) + t * 4.5) * 43758.5453;
+  // ── Detached floating sparks above the flame ──
+  float spark_hash = sin(dot(floor(v_uv * pixelGrid), vec2(127.1, 311.7)) + t * 4.5) * 43758.5453;
   float spark_val = fract(spark_hash);
-  if (spark_val > 0.962 && dy > 0.40 && dy < 0.98 && abs(x) < 0.44 && flame_silhouette < 0.06) {
-    flame_heat += 0.85;
+  if (spark_val > 0.984 && dy > 0.52 && dy < 0.99 && abs(x) < 0.40 && silhouette < 0.06) {
+    flame_heat += 0.80;
   }
 
   // ══════════════════════════════════════════════════
@@ -300,35 +293,32 @@ void main() {
     total_heat += tear_wisps * smoothstep(0.38, 0.55, y);
   }
 
-  float active_envelope = max(orb_envelope * (1.0 - m * 0.9), flame_silhouette);
+  float active_envelope = max(orb_envelope * (1.0 - m * 0.9), silhouette);
   total_heat *= smoothstep(0.01, 0.06, active_envelope);
+
+  total_heat *= (1.0 + 0.22 * boost);
 
   if (total_heat < 0.10) {
     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
     return;
   }
 
-  total_heat *= (1.0 + 0.22 * u_boost);
-
-  // ══════════════════════════════════════════════════
-  // 4. PURE NEON GREEN & WHITE CORE PIXEL PALETTE (AxUEj.jpg)
-  // ══════════════════════════════════════════════════
+  // ── 4. PALETTE MATCHED TO AxUEj.jpg ──
   vec4 color = vec4(0.0);
-
-  if (total_heat >= 0.10 && total_heat < 0.26) {
+  if (total_heat < 0.26) {
     color = vec4(0.01, 0.11, 0.06, 0.92); // Deep pine border contour
-  } else if (total_heat >= 0.26 && total_heat < 0.44) {
+  } else if (total_heat < 0.44) {
     color = vec4(0.02, 0.27, 0.14, 0.96); // Dark forest emerald
-  } else if (total_heat >= 0.44 && total_heat < 0.62) {
+  } else if (total_heat < 0.62) {
     color = vec4(0.00, 0.68, 0.34, 1.0);  // Deep neon green
-  } else if (total_heat >= 0.62 && total_heat < 0.78) {
-    color = vec4(0.00, 1.00, 0.50, 1.0);  // Signature Neon Green (#00FF7F)
-  } else if (total_heat >= 0.78 && total_heat < 0.88) {
-    color = vec4(0.00, 1.00, 0.56, 1.0);  // Signature Neon Mint (#00FF88)
-  } else if (total_heat >= 0.88 && total_heat < 0.96) {
-    color = vec4(0.66, 1.00, 0.86, 1.0);  // High-contrast Cyber Mint highlight
-  } else if (total_heat >= 0.96) {
-    color = vec4(1.00, 1.00, 1.00, 1.0);  // Bright Incandescent White Core
+  } else if (total_heat < 0.78) {
+    color = vec4(0.00, 1.00, 0.50, 1.0);  // Signature Neon Green
+  } else if (total_heat < 0.88) {
+    color = vec4(0.00, 1.00, 0.56, 1.0);  // Signature Neon Mint
+  } else if (total_heat < 0.96) {
+    color = vec4(0.66, 1.00, 0.86, 1.0);  // Cyber Mint highlight
+  } else {
+    color = vec4(1.00, 1.00, 1.00, 1.0);  // Incandescent White Core
   }
 
   gl_FragColor = color;
@@ -390,31 +380,16 @@ function PixelDigitBadge({ value, size }: { value: number; size: "sm" | "md" | "
     for (let c = 0; c < total_w + 2; c++) {
       if (borderGrid[r][c] && !fillGrid[r][c]) {
         rects.push(
-          <rect
-            key={`b-${r}-${c}`}
-            x={c * px}
-            y={r * px}
-            width={px}
-            height={px}
-            fill="#02160e"
-          />
+          <rect key={`b-${r}-${c}`} x={c * px} y={r * px} width={px} height={px} fill="#02160e" />
         );
       }
     }
   }
-
   for (let r = 0; r < H + 2; r++) {
     for (let c = 0; c < total_w + 2; c++) {
       if (fillGrid[r][c]) {
         rects.push(
-          <rect
-            key={`f-${r}-${c}`}
-            x={c * px}
-            y={r * px}
-            width={px}
-            height={px}
-            fill="#ffffff"
-          />
+          <rect key={`f-${r}-${c}`} x={c * px} y={r * px} width={px} height={px} fill="#ffffff" />
         );
       }
     }
@@ -489,12 +464,13 @@ export function PixelFlameStreak({
     let positionBuffer: WebGLBuffer | null = null;
 
     try {
-      gl = canvas.getContext("webgl", {
-        alpha: true,
-        premultipliedAlpha: false,
-        antialias: false, // Crisp pixel art edges
-        depth: false,
-      }) || (canvas.getContext("experimental-webgl") as WebGLRenderingContext | null);
+      gl =
+        canvas.getContext("webgl", {
+          alpha: true,
+          premultipliedAlpha: false,
+          antialias: false, // crisp pixel-art edges
+          depth: false,
+        }) || (canvas.getContext("experimental-webgl") as WebGLRenderingContext | null);
     } catch {
       gl = null;
     }
@@ -789,7 +765,7 @@ export function PixelFlameStreak({
 
       {/* Flame Container */}
       <div className={`relative ${dimensions.cssW} ${dimensions.cssH} flex items-center justify-center transition-transform duration-200 active:scale-95`}>
-        {/* WebGL Arcane Energy Orb & Procedural Pixel Flame (100% Procedural GPU Shader) */}
+        {/* Living procedural pixel flame (WebGL, animated every frame) */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full pointer-events-none select-none z-10"
