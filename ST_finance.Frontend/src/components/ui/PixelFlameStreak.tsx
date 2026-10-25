@@ -180,155 +180,112 @@ void main() {
   float orb_total_heat = (orb_body + core_heat * 0.68 + (arc1 + arc2 + arc3 + wisps + dot_sparks) * (1.0 - m * 0.85)) * orb_envelope;
 
   // ══════════════════════════════════════════════════
-  // 2. PROCEDURAL 5-TONGUE FLAME (1 Mid, 2 Left, 2 Right - AxUEj.jpg)
+  // 2. PROCEDURAL MULTI-TONGUE FLAME (MATCHING AxUEj.jpg)
   // ══════════════════════════════════════════════════
   float y_base = mix(0.38, 0.06, m);
   float dy = (y - y_base) / 0.88;
 
+  float flow_y = dy * 4.2 - t * 4.8;
   float body_sprout = smoothstep(0.02, 0.70, m);
   float branch_sprout = smoothstep(0.10, 0.88, m);
 
-  // A. Sharp Downward-Pointing Triangular V-Bottom (AxUEj.jpg)
-  float v_slope = 0.50;
-  float v_bottom = v_slope * abs(x);
-  float d_hearth = dy - v_bottom;
-  float in_triangle = step(-0.015, d_hearth);
+  // A. Sharp V-Hearth Bottom (angles up from central point x=0, dy=0)
+  float v_bottom = 0.52 * abs(x);
+  float in_v = step(v_bottom - 0.012, dy);
 
-  // B. Volumetric Liquid Droplet / Teardrop Belly with Fluid Viscosity
-  float dy_liquid = clamp(dy / 0.46, 0.0, 1.0);
-  float droplet_bulge = sin(dy_liquid * 3.14159 * 0.70);
-  float w_tri = dy / v_slope;
-  float w_belly_max = 0.58 * pow(droplet_bulge, 0.68);
-  float liquid_sway = 0.016 * sin(dy * 16.0 - t * 4.0) + 0.010 * cos(x * 12.0 + t * 2.8);
-  float w_liquid_belly = min(w_tri, w_belly_max) + liquid_sway;
-  if (dy > 0.44) {
-    w_liquid_belly = 0.58 * max(0.0, 1.0 - (dy - 0.44) / 0.36);
+  // B. Full Connected Flame Body
+  float dy_mid = dy - 0.30;
+  float w_belly = 0.46 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_mid) / 0.28, 1.8))));
+  if (dy > 0.46) {
+    w_belly = 0.46 * max(0.0, 1.0 - (dy - 0.46) / 0.42);
   }
+  float env_belly = smoothstep(1.0, 0.15, abs(x) / max(0.008, w_belly)) * step(0.0, dy) * step(dy, 0.46) * body_sprout;
 
-  float env_belly = smoothstep(1.0, 0.08, abs(x) / max(0.008, w_liquid_belly)) * step(0.0, dy) * step(dy, 0.46) * body_sprout;
-
-  // 1. CENTER MID TONGUE: Tallest Plume (~0.96)
-  // Classic S-Curvature: bows left in midriff, whips right at pointed tip, snaking with heat waves
-  float tip_C = 0.95 + 0.034 * sin(t * 3.4) + 0.016 * sin(t * 6.5 + 1.0) + 0.05 * u_boost;
+  // C. Distinct Flame Tongues
+  // Center Spire: S-curve sway (leans left at mid, curls right at tip)
+  float tip_C = 0.96 + 0.035 * sin(t * 3.4) + 0.05 * u_boost;
   float p_C = clamp((dy - 0.18) / max(0.01, tip_C - 0.18), 0.0, 1.0);
-  float bend_C = -0.048 + 0.022 * sin(t * 3.8);
-  float lick_C = 0.038 + 0.020 * sin(t * 5.2 + 1.2);
-  float wave_C1 = sin(p_C * 4.6 - t * 4.5);
-  float wave_C2 = sin(p_C * 9.2 - t * 8.2 + 1.5);
-  float amp_C = pow(p_C, 1.2);
-  float sway_C = bend_C * sin(p_C * 3.14159) + lick_C * pow(p_C, 2.2) + amp_C * (0.034 * wave_C1 + 0.018 * wave_C2);
-  float pinch_C = 1.0 + 0.14 * sin(p_C * 6.8 - t * 5.2);
-  float w_C = 0.19 * pow(1.0 - p_C, 0.65) * (0.88 + 0.32 * sin(p_C * 3.14159)) * pinch_C;
+  float sway_C = (-0.032 * sin(p_C * 2.6) + 0.024 * sin(t * 2.8 + p_C * 3.8) + 0.014 * sin(p_C * 6.5 - t * 4.5)) * pow(p_C, 1.1);
+  float w_C = 0.22 * pow(1.0 - p_C, 0.68) * (0.86 + 0.32 * sin(p_C * 3.14159));
   float env_C = smoothstep(1.0, 0.15, abs(x - sway_C) / max(0.006, w_C)) * step(0.16, dy) * step(dy, tip_C) * branch_sprout;
 
-  // 2. INNER LEFT TONGUE: Branches Left (~0.81), Arches Upward & Curves Toward Mid Plume
-  float tip_L1 = 0.81 + 0.028 * sin(t * 3.8 + 1.2) + 0.014 * sin(t * 6.7 + 0.4);
+  // Inner Left Tongue (L1): Flanking center, arched slightly outward
+  float tip_L1 = 0.86 + 0.032 * sin(t * 3.8 + 1.2);
   float p_L1 = clamp((dy - 0.16) / max(0.01, tip_L1 - 0.16), 0.0, 1.0);
-  float bend_L1 = -0.15 - 0.028 * sin(t * 4.2);
-  float lick_L1 = 0.040 + 0.022 * sin(t * 5.6 + 1.5);
-  float wave_L1_1 = sin(p_L1 * 5.0 - t * 4.6 + 0.9);
-  float wave_L1_2 = sin(p_L1 * 9.8 - t * 8.4 + 2.1);
-  float amp_L1 = pow(p_L1, 1.15);
-  float sway_L1 = -0.07 + bend_L1 * sin(p_L1 * 1.5) + lick_L1 * pow(p_L1, 2.2) + amp_L1 * (0.034 * wave_L1_1 + 0.016 * wave_L1_2);
-  float pinch_L1 = 1.0 + 0.14 * sin(p_L1 * 7.2 - t * 5.5 + 1.0);
-  float w_L1 = 0.16 * pow(1.0 - p_L1, 0.65) * (0.86 + 0.28 * sin(p_L1 * 3.14159)) * pinch_L1;
+  float sway_L1 = -0.07 - 0.16 * sin(p_L1 * 1.5) + 0.016 * sin(t * 3.2 + p_L1 * 3.5);
+  float w_L1 = 0.17 * pow(1.0 - p_L1, 0.68) * (0.86 + 0.28 * sin(p_L1 * 3.14159));
   float env_L1 = smoothstep(1.0, 0.15, abs(x - sway_L1) / max(0.006, w_L1)) * step(0.16, dy) * step(dy, tip_L1) * branch_sprout;
 
-  // 3. INNER RIGHT TONGUE: Branches Right (~0.81), Arches Upward & Curves Toward Mid Plume
-  float tip_R1 = 0.81 + 0.028 * sin(t * 3.6 + 2.3) + 0.014 * sin(t * 6.4 + 1.8);
+  // Inner Right Tongue (R1): Flanking center, arched slightly outward
+  float tip_R1 = 0.86 + 0.032 * sin(t * 3.6 + 2.3);
   float p_R1 = clamp((dy - 0.16) / max(0.01, tip_R1 - 0.16), 0.0, 1.0);
-  float bend_R1 = 0.15 + 0.028 * sin(t * 4.0 + 2.0);
-  float lick_R1 = -0.040 - 0.022 * sin(t * 5.4 + 3.0);
-  float wave_R1_1 = sin(p_R1 * 5.2 - t * 4.4 + 2.7);
-  float wave_R1_2 = sin(p_R1 * 9.6 - t * 8.0 + 0.5);
-  float amp_R1 = pow(p_R1, 1.15);
-  float sway_R1 = 0.07 + bend_R1 * sin(p_R1 * 1.5) + lick_R1 * pow(p_R1, 2.2) + amp_R1 * (0.034 * wave_R1_1 + 0.016 * wave_R1_2);
-  float pinch_R1 = 1.0 + 0.14 * sin(p_R1 * 7.4 - t * 5.3 + 2.2);
-  float w_R1 = 0.16 * pow(1.0 - p_R1, 0.65) * (0.86 + 0.28 * sin(p_R1 * 3.14159)) * pinch_R1;
+  float sway_R1 = 0.07 + 0.16 * sin(p_R1 * 1.5) - 0.016 * sin(t * 3.0 + p_R1 * 3.5);
+  float w_R1 = 0.17 * pow(1.0 - p_R1, 0.68) * (0.86 + 0.28 * sin(p_R1 * 3.14159));
   float env_R1 = smoothstep(1.0, 0.15, abs(x - sway_R1) / max(0.006, w_R1)) * step(0.16, dy) * step(dy, tip_R1) * branch_sprout;
 
-  // 4. OUTER LEFT TONGUE: Flaring Outward Crown (~0.60), Licking Upward
-  float tip_L2 = 0.60 + 0.024 * sin(t * 4.2 + 0.8) + 0.012 * sin(t * 7.2 + 1.5);
+  // Outer Left Tongue (L2): Reaches ~0.62
+  float tip_L2 = 0.62 + 0.025 * sin(t * 4.2 + 0.7);
   float p_L2 = clamp((dy - 0.12) / max(0.01, tip_L2 - 0.12), 0.0, 1.0);
-  float bend_L2 = -0.26 - 0.035 * sin(t * 4.5 + 0.8);
-  float lick_L2 = 0.050 + 0.028 * sin(t * 6.0 + 2.2);
-  float wave_L2_1 = sin(p_L2 * 5.6 - t * 5.0 + 1.7);
-  float wave_L2_2 = sin(p_L2 * 10.5 - t * 8.8 + 3.0);
-  float amp_L2 = pow(p_L2, 1.15);
-  float sway_L2 = -0.11 + bend_L2 * sin(p_L2 * 1.4) + lick_L2 * pow(p_L2, 1.9) + amp_L2 * (0.032 * wave_L2_1 + 0.016 * wave_L2_2);
-  float pinch_L2 = 1.0 + 0.14 * sin(p_L2 * 8.0 - t * 5.8 + 0.7);
-  float w_L2 = 0.14 * pow(1.0 - p_L2, 0.62) * (0.85 + 0.25 * sin(p_L2 * 3.14159)) * pinch_L2;
+  float sway_L2 = -0.19 - 0.16 * sin(p_L2 * 1.4);
+  float w_L2 = 0.14 * pow(1.0 - p_L2, 0.65) * (0.85 + 0.25 * sin(p_L2 * 3.14159));
   float env_L2 = smoothstep(1.0, 0.15, abs(x - sway_L2) / max(0.006, w_L2)) * step(0.12, dy) * step(dy, tip_L2) * branch_sprout;
 
-  // 5. OUTER RIGHT TONGUE: Flaring Outward Crown (~0.60), Licking Upward
-  float tip_R2 = 0.60 + 0.024 * sin(t * 4.0 + 2.6) + 0.012 * sin(t * 6.8 + 2.7);
+  // Outer Right Tongue (R2): Reaches ~0.62
+  float tip_R2 = 0.62 + 0.025 * sin(t * 4.0 + 2.1);
   float p_R2 = clamp((dy - 0.12) / max(0.01, tip_R2 - 0.12), 0.0, 1.0);
-  float bend_R2 = 0.26 + 0.035 * sin(t * 4.3 + 2.8);
-  float lick_R2 = -0.050 - 0.028 * sin(t * 5.8 + 0.5);
-  float wave_R2_1 = sin(p_R2 * 5.4 - t * 4.8 + 3.5);
-  float wave_R2_2 = sin(p_R2 * 10.2 - t * 8.5 + 1.2);
-  float amp_R2 = pow(p_R2, 1.15);
-  float sway_R2 = 0.11 + bend_R2 * sin(p_R2 * 1.4) + lick_R2 * pow(p_R2, 1.9) + amp_R2 * (0.032 * wave_R2_1 + 0.016 * wave_R2_2);
-  float pinch_R2 = 1.0 + 0.14 * sin(p_R2 * 7.8 - t * 5.6 + 2.9);
-  float w_R2 = 0.14 * pow(1.0 - p_R2, 0.62) * (0.85 + 0.25 * sin(p_R2 * 3.14159)) * pinch_R2;
+  float sway_R2 = 0.19 + 0.16 * sin(p_R2 * 1.4);
+  float w_R2 = 0.14 * pow(1.0 - p_R2, 0.65) * (0.85 + 0.25 * sin(p_R2 * 3.14159));
   float env_R2 = smoothstep(1.0, 0.15, abs(x - sway_R2) / max(0.006, w_R2)) * step(0.12, dy) * step(dy, tip_R2) * branch_sprout;
 
-  // Combined 5-Tongue Body Mass
-  float body_mass = max(env_belly * 0.96, max(env_C, max(env_L1, max(env_R1, max(env_L2, env_R2)))));
+  // Left & Right Flank Teeth (L3, R3): Reaches ~0.45
+  float tip_L3 = 0.45 + 0.020 * sin(t * 4.6 + 1.8);
+  float p_L3 = clamp((dy - 0.10) / max(0.01, tip_L3 - 0.10), 0.0, 1.0);
+  float sway_L3 = -0.32 - 0.10 * sin(p_L3 * 1.2);
+  float w_L3 = 0.10 * (1.0 - p_L3);
+  float env_L3 = smoothstep(1.0, 0.15, abs(x - sway_L3) / max(0.006, w_L3)) * step(0.10, dy) * step(dy, tip_L3) * branch_sprout;
 
-  // Deep, Clean Clefts Separating the 5 Tongues
-  float x_mid_CL = (sway_C + sway_L1) * 0.5;
-  float cleft_CL = clamp(1.0 - abs(x - x_mid_CL) / 0.036, 0.0, 1.0) * step(0.44, dy) * step(dy, min(tip_C, tip_L1));
+  float tip_R3 = 0.45 + 0.020 * sin(t * 4.4 + 3.1);
+  float p_R3 = clamp((dy - 0.10) / max(0.01, tip_R3 - 0.10), 0.0, 1.0);
+  float sway_R3 = 0.32 + 0.10 * sin(p_R3 * 1.2);
+  float w_R3 = 0.10 * (1.0 - p_R3);
+  float env_R3 = smoothstep(1.0, 0.15, abs(x - sway_R3) / max(0.006, w_R3)) * step(0.10, dy) * step(dy, tip_R3) * branch_sprout;
 
-  float x_mid_CR = (sway_C + sway_R1) * 0.5;
-  float cleft_CR = clamp(1.0 - abs(x - x_mid_CR) / 0.036, 0.0, 1.0) * step(0.44, dy) * step(dy, min(tip_C, tip_R1));
+  // Full connected body mass
+  float body_mass = max(env_belly * 0.96, max(env_C, max(env_L1, max(env_R1, max(env_L2, max(env_R2, max(env_L3, env_R3)))))));
 
-  float x_mid_LL2 = (sway_L1 + sway_L2) * 0.5;
-  float cleft_LL2 = clamp(1.0 - abs(x - x_mid_LL2) / 0.034, 0.0, 1.0) * step(0.32, dy) * step(dy, min(tip_L1, tip_L2));
+  // Clefts: Clean V-incisions between tongues
+  float cleft_CL = clamp(1.0 - abs(x - (sway_C + sway_L1) * 0.5) / 0.028, 0.0, 1.0) * step(0.48, dy) * step(dy, min(tip_C, tip_L1));
+  float cleft_CR = clamp(1.0 - abs(x - (sway_C + sway_R1) * 0.5) / 0.028, 0.0, 1.0) * step(0.48, dy) * step(dy, min(tip_C, tip_R1));
+  float cleft_LL2 = clamp(1.0 - abs(x - (sway_L1 + sway_L2) * 0.5) / 0.024, 0.0, 1.0) * step(0.38, dy) * step(dy, min(tip_L1, tip_L2));
+  float cleft_RR2 = clamp(1.0 - abs(x - (sway_R1 + sway_R2) * 0.5) / 0.024, 0.0, 1.0) * step(0.38, dy) * step(dy, min(tip_R1, tip_R2));
+  float cleft_LL3 = clamp(1.0 - abs(x - (sway_L2 + sway_L3) * 0.5) / 0.022, 0.0, 1.0) * step(0.28, dy) * step(dy, min(tip_L2, tip_L3));
+  float cleft_RR3 = clamp(1.0 - abs(x - (sway_R2 + sway_R3) * 0.5) / 0.022, 0.0, 1.0) * step(0.28, dy) * step(dy, min(tip_R2, tip_R3));
 
-  float x_mid_RR2 = (sway_R1 + sway_R2) * 0.5;
-  float cleft_RR2 = clamp(1.0 - abs(x - x_mid_RR2) / 0.034, 0.0, 1.0) * step(0.32, dy) * step(dy, min(tip_R1, tip_R2));
+  float cleft_max = max(cleft_CL, max(cleft_CR, max(cleft_LL2, max(cleft_RR2, max(cleft_LL3, cleft_RR3)))));
+  float flame_silhouette = clamp(body_mass - 0.55 * branch_sprout * cleft_max, 0.0, 1.0) * in_v;
 
-  float cleft_max = max(max(cleft_CL, cleft_CR), max(cleft_LL2, cleft_RR2));
-  float flame_silhouette = clamp(body_mass - 0.65 * branch_sprout * cleft_max, 0.0, 1.0) * in_triangle;
+  // Core: Soft diamond / V-core centered at dy ~ 0.22
+  float dy_core = dy - 0.22;
+  float core_w = 0.22 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_core) / 0.18, 1.8))));
+  float core_v = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w)) * step(-0.15, dy_core) * step(dy_core, 0.18);
 
-  // D. VOLUMETRIC DEFINITION IN THE BOTTOM
-  // Distinct teardrop/diamond incandescent liquid core centered at dy ~ 0.24 behind Digit 2
-  float dy_core = dy - 0.24;
-  float core_w = 0.18 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_core) / 0.14, 1.8))));
-  float core_v = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w)) * step(-0.11, dy_core) * step(dy_core, 0.14);
+  // Tongue Spines: Luminous channels running up C, L1, R1
+  float spine_C = smoothstep(w_C * 0.40, 0.0, abs(x - sway_C)) * step(0.20, dy) * step(dy, tip_C - 0.08);
+  float spine_L1 = smoothstep(w_L1 * 0.40, 0.0, abs(x - sway_L1)) * step(0.18, dy) * step(dy, tip_L1 - 0.08);
+  float spine_R1 = smoothstep(w_R1 * 0.40, 0.0, abs(x - sway_R1)) * step(0.18, dy) * step(dy, tip_R1 - 0.08);
+  float spines = spine_C * 0.28 + spine_L1 * 0.20 + spine_R1 * 0.20;
 
-  // Liquid Molten Churn in the Bottom Hearth (below digit 2)
-  float molten_fbm = fbm(vec2(x * 12.0, dy * 14.0 - t * 3.8));
-  float bottom_mass = smoothstep(0.0, 0.12, d_hearth) * (1.0 - smoothstep(0.24, 0.44, dy));
-  float liquid_churn = 0.18 * molten_fbm * bottom_mass;
+  float edge_dist = smoothstep(0.04, 0.28, flame_silhouette);
+  float body_heat = 0.32 + 0.46 * edge_dist;
+  float filaments = 0.06 * sin(x * 32.0 + sin(flow_y * 2.0));
 
-  // Dynamic Luminous Spines following the wiggling curves of each tongue
-  float spine_C = smoothstep(w_C * 0.38, 0.0, abs(x - sway_C)) * step(0.18, dy) * step(dy, tip_C - 0.08);
-  float spine_L1 = smoothstep(w_L1 * 0.36, 0.0, abs(x - sway_L1)) * step(0.16, dy) * step(dy, tip_L1 - 0.08);
-  float spine_R1 = smoothstep(w_R1 * 0.36, 0.0, abs(x - sway_R1)) * step(0.16, dy) * step(dy, tip_R1 - 0.08);
-  float spine_L2 = smoothstep(w_L2 * 0.34, 0.0, abs(x - sway_L2)) * step(0.14, dy) * step(dy, tip_L2 - 0.06);
-  float spine_R2 = smoothstep(w_R2 * 0.34, 0.0, abs(x - sway_R2)) * step(0.14, dy) * step(dy, tip_R2 - 0.06);
-  float spines = spine_C * 0.26 + spine_L1 * 0.16 + spine_R1 * 0.16 + spine_L2 * 0.08 + spine_R2 * 0.08;
+  float flame_heat = (body_heat + core_v * 0.65 + spines + filaments) * flame_silhouette;
 
-  // Definition in the Triangular Hearth:
-  // Edge distance inside silhouette creates crisp emerald contour bands
-  float edge_dist = smoothstep(0.03, 0.28, flame_silhouette);
-  // High-definition triangular hearth rim band
-  float hearth_rim = smoothstep(0.005, 0.06, d_hearth) * (1.0 - smoothstep(0.06, 0.18, d_hearth)) * step(0.0, dy) * step(dy, 0.26);
-  float body_heat = 0.36 + 0.42 * edge_dist + 0.18 * hearth_rim;
-
-  float flow_y = dy * 4.2 - t * 4.8;
-  float filaments = 0.05 * sin(x * 32.0 + sin(flow_y * 2.0));
-
-  float flame_heat = (body_heat + core_v * 0.72 + spines + filaments + liquid_churn) * flame_silhouette;
-
-  // Discrete floating pixel sparks
-  vec2 gridPos = floor(uv * pixelGrid);
-  float spark_seed = dot(gridPos, vec2(12.9898, 78.233)) + floor(t * 7.0) * 17.31;
-  float spark_val = fract(sin(spark_seed) * 43758.5453);
-  if (spark_val > 0.968 && dy > 0.50 && dy < 0.98 && abs(x) < 0.42 && flame_silhouette < 0.04) {
-    flame_heat += 0.88;
+  // Floating detached sparks
+  float spark_hash = sin(dot(uv * pixelGrid, vec2(127.1, 311.7)) + t * 4.5) * 43758.5453;
+  float spark_val = fract(spark_hash);
+  if (spark_val > 0.962 && dy > 0.40 && dy < 0.98 && abs(x) < 0.44 && flame_silhouette < 0.06) {
+    flame_heat += 0.85;
   }
 
   // ══════════════════════════════════════════════════
