@@ -182,7 +182,7 @@ void main() {
   // ══════════════════════════════════════════════════
   // 2. PROCEDURAL MULTI-TONGUE FLAME (MATCHING AxUEj.jpg)
   // ══════════════════════════════════════════════════
-  float y_base = mix(0.38, 0.06, m);
+  float y_base = mix(0.38, 0.08, m);
   float dy = (y - y_base) / 0.88;
 
   float flow_y = dy * 4.2 - t * 4.8;
@@ -193,86 +193,86 @@ void main() {
   float v_bottom = 0.52 * abs(x);
   float in_v = step(v_bottom - 0.012, dy);
 
-  // B. Full Connected Flame Body
+  // B. Full Connected Flame Body (tightened belly width to 0.40)
   float dy_mid = dy - 0.30;
-  float w_belly = 0.46 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_mid) / 0.28, 1.8))));
+  float w_belly = 0.40 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_mid) / 0.28, 1.8))));
   if (dy > 0.46) {
-    w_belly = 0.46 * max(0.0, 1.0 - (dy - 0.46) / 0.42);
+    w_belly = 0.40 * max(0.0, 1.0 - (dy - 0.46) / 0.42);
   }
   float env_belly = smoothstep(1.0, 0.15, abs(x) / max(0.008, w_belly)) * step(0.0, dy) * step(dy, 0.46) * body_sprout;
 
   // C. Distinct Flame Tongues
-  // Center Spire: S-curve sway (leans left at mid, curls right at tip)
-  float tip_C = 0.96 + 0.035 * sin(t * 3.4) + 0.05 * u_boost;
+  // Center Spire: tip raised to 1.02, steeper width falloff, reduced lateral sway
+  float tip_C = 1.02 + 0.035 * sin(t * 3.4) + 0.05 * u_boost;
   float p_C = clamp((dy - 0.18) / max(0.01, tip_C - 0.18), 0.0, 1.0);
-  float sway_C = (-0.032 * sin(p_C * 2.6) + 0.024 * sin(t * 2.8 + p_C * 3.8) + 0.014 * sin(p_C * 6.5 - t * 4.5)) * pow(p_C, 1.1);
-  float w_C = 0.22 * pow(1.0 - p_C, 0.68) * (0.86 + 0.32 * sin(p_C * 3.14159));
+  float sway_C = (-0.026 * sin(p_C * 2.6) + 0.020 * sin(t * 2.8 + p_C * 3.8) + 0.010 * sin(p_C * 6.5 - t * 4.5)) * pow(p_C, 1.1);
+  float w_C = 0.22 * pow(1.0 - p_C, 0.82) * (0.86 + 0.32 * sin(p_C * 3.14159));
   float env_C = smoothstep(1.0, 0.15, abs(x - sway_C) / max(0.006, w_C)) * step(0.16, dy) * step(dy, tip_C) * branch_sprout;
 
-  // Inner Left Tongue (L1): Flanking center, arched slightly outward
-  float tip_L1 = 0.86 + 0.032 * sin(t * 3.8 + 1.2);
+  // Inner Left Tongue (L1): Lowered to 0.78, pulled inward (sway base -0.055), thinner (0.145)
+  float tip_L1 = 0.78 + 0.030 * sin(t * 3.8 + 1.2);
   float p_L1 = clamp((dy - 0.16) / max(0.01, tip_L1 - 0.16), 0.0, 1.0);
-  float sway_L1 = -0.07 - 0.16 * sin(p_L1 * 1.5) + 0.016 * sin(t * 3.2 + p_L1 * 3.5);
-  float w_L1 = 0.17 * pow(1.0 - p_L1, 0.68) * (0.86 + 0.28 * sin(p_L1 * 3.14159));
+  float sway_L1 = -0.055 - 0.13 * sin(p_L1 * 1.5) + 0.016 * sin(t * 3.2 + p_L1 * 3.5);
+  float w_L1 = 0.145 * pow(1.0 - p_L1, 0.68) * (0.86 + 0.28 * sin(p_L1 * 3.14159));
   float env_L1 = smoothstep(1.0, 0.15, abs(x - sway_L1) / max(0.006, w_L1)) * step(0.16, dy) * step(dy, tip_L1) * branch_sprout;
 
-  // Inner Right Tongue (R1): Flanking center, arched slightly outward
-  float tip_R1 = 0.86 + 0.032 * sin(t * 3.6 + 2.3);
+  // Inner Right Tongue (R1): Lowered to 0.78, pulled inward (sway base +0.055), thinner (0.145)
+  float tip_R1 = 0.78 + 0.030 * sin(t * 3.6 + 2.3);
   float p_R1 = clamp((dy - 0.16) / max(0.01, tip_R1 - 0.16), 0.0, 1.0);
-  float sway_R1 = 0.07 + 0.16 * sin(p_R1 * 1.5) - 0.016 * sin(t * 3.0 + p_R1 * 3.5);
-  float w_R1 = 0.17 * pow(1.0 - p_R1, 0.68) * (0.86 + 0.28 * sin(p_R1 * 3.14159));
+  float sway_R1 = 0.055 + 0.13 * sin(p_R1 * 1.5) - 0.016 * sin(t * 3.0 + p_R1 * 3.5);
+  float w_R1 = 0.145 * pow(1.0 - p_R1, 0.68) * (0.86 + 0.28 * sin(p_R1 * 3.14159));
   float env_R1 = smoothstep(1.0, 0.15, abs(x - sway_R1) / max(0.006, w_R1)) * step(0.16, dy) * step(dy, tip_R1) * branch_sprout;
 
-  // Outer Left Tongue (L2): Reaches ~0.62
-  float tip_L2 = 0.62 + 0.025 * sin(t * 4.2 + 0.7);
+  // Outer Left Tongue (L2): Lowered to 0.52, pulled inward (-0.155), thinner (0.115)
+  float tip_L2 = 0.52 + 0.022 * sin(t * 4.2 + 0.7);
   float p_L2 = clamp((dy - 0.12) / max(0.01, tip_L2 - 0.12), 0.0, 1.0);
-  float sway_L2 = -0.19 - 0.16 * sin(p_L2 * 1.4);
-  float w_L2 = 0.14 * pow(1.0 - p_L2, 0.65) * (0.85 + 0.25 * sin(p_L2 * 3.14159));
+  float sway_L2 = -0.155 - 0.13 * sin(p_L2 * 1.4);
+  float w_L2 = 0.115 * pow(1.0 - p_L2, 0.65) * (0.85 + 0.25 * sin(p_L2 * 3.14159));
   float env_L2 = smoothstep(1.0, 0.15, abs(x - sway_L2) / max(0.006, w_L2)) * step(0.12, dy) * step(dy, tip_L2) * branch_sprout;
 
-  // Outer Right Tongue (R2): Reaches ~0.62
-  float tip_R2 = 0.62 + 0.025 * sin(t * 4.0 + 2.1);
+  // Outer Right Tongue (R2): Lowered to 0.52, pulled inward (+0.155), thinner (0.115)
+  float tip_R2 = 0.52 + 0.022 * sin(t * 4.0 + 2.1);
   float p_R2 = clamp((dy - 0.12) / max(0.01, tip_R2 - 0.12), 0.0, 1.0);
-  float sway_R2 = 0.19 + 0.16 * sin(p_R2 * 1.4);
-  float w_R2 = 0.14 * pow(1.0 - p_R2, 0.65) * (0.85 + 0.25 * sin(p_R2 * 3.14159));
+  float sway_R2 = 0.155 + 0.13 * sin(p_R2 * 1.4);
+  float w_R2 = 0.115 * pow(1.0 - p_R2, 0.65) * (0.85 + 0.25 * sin(p_R2 * 3.14159));
   float env_R2 = smoothstep(1.0, 0.15, abs(x - sway_R2) / max(0.006, w_R2)) * step(0.12, dy) * step(dy, tip_R2) * branch_sprout;
 
-  // Left & Right Flank Teeth (L3, R3): Reaches ~0.45
-  float tip_L3 = 0.45 + 0.020 * sin(t * 4.6 + 1.8);
+  // Left & Right Flank Teeth (L3, R3): Lowered to 0.38, pulled inward (+-0.24), thinner (0.075)
+  float tip_L3 = 0.38 + 0.018 * sin(t * 4.6 + 1.8);
   float p_L3 = clamp((dy - 0.10) / max(0.01, tip_L3 - 0.10), 0.0, 1.0);
-  float sway_L3 = -0.32 - 0.10 * sin(p_L3 * 1.2);
-  float w_L3 = 0.10 * (1.0 - p_L3);
+  float sway_L3 = -0.24 - 0.08 * sin(p_L3 * 1.2);
+  float w_L3 = 0.075 * (1.0 - p_L3);
   float env_L3 = smoothstep(1.0, 0.15, abs(x - sway_L3) / max(0.006, w_L3)) * step(0.10, dy) * step(dy, tip_L3) * branch_sprout;
 
-  float tip_R3 = 0.45 + 0.020 * sin(t * 4.4 + 3.1);
+  float tip_R3 = 0.38 + 0.018 * sin(t * 4.4 + 3.1);
   float p_R3 = clamp((dy - 0.10) / max(0.01, tip_R3 - 0.10), 0.0, 1.0);
-  float sway_R3 = 0.32 + 0.10 * sin(p_R3 * 1.2);
-  float w_R3 = 0.10 * (1.0 - p_R3);
+  float sway_R3 = 0.24 + 0.08 * sin(p_R3 * 1.2);
+  float w_R3 = 0.075 * (1.0 - p_R3);
   float env_R3 = smoothstep(1.0, 0.15, abs(x - sway_R3) / max(0.006, w_R3)) * step(0.10, dy) * step(dy, tip_R3) * branch_sprout;
 
   // Full connected body mass
   float body_mass = max(env_belly * 0.96, max(env_C, max(env_L1, max(env_R1, max(env_L2, max(env_R2, max(env_L3, env_R3)))))));
 
-  // Clefts: Clean V-incisions between tongues
-  float cleft_CL = clamp(1.0 - abs(x - (sway_C + sway_L1) * 0.5) / 0.028, 0.0, 1.0) * step(0.48, dy) * step(dy, min(tip_C, tip_L1));
-  float cleft_CR = clamp(1.0 - abs(x - (sway_C + sway_R1) * 0.5) / 0.028, 0.0, 1.0) * step(0.48, dy) * step(dy, min(tip_C, tip_R1));
-  float cleft_LL2 = clamp(1.0 - abs(x - (sway_L1 + sway_L2) * 0.5) / 0.024, 0.0, 1.0) * step(0.38, dy) * step(dy, min(tip_L1, tip_L2));
-  float cleft_RR2 = clamp(1.0 - abs(x - (sway_R1 + sway_R2) * 0.5) / 0.024, 0.0, 1.0) * step(0.38, dy) * step(dy, min(tip_R1, tip_R2));
-  float cleft_LL3 = clamp(1.0 - abs(x - (sway_L2 + sway_L3) * 0.5) / 0.022, 0.0, 1.0) * step(0.28, dy) * step(dy, min(tip_L2, tip_L3));
-  float cleft_RR3 = clamp(1.0 - abs(x - (sway_R2 + sway_R3) * 0.5) / 0.022, 0.0, 1.0) * step(0.28, dy) * step(dy, min(tip_R2, tip_R3));
+  // Clefts: Deepened main clefts between center and L1/R1 for clear tongue separation
+  float cleft_CL = clamp(1.0 - abs(x - (sway_C + sway_L1) * 0.5) / 0.030, 0.0, 1.0) * step(0.40, dy) * step(dy, min(tip_C, tip_L1));
+  float cleft_CR = clamp(1.0 - abs(x - (sway_C + sway_R1) * 0.5) / 0.030, 0.0, 1.0) * step(0.40, dy) * step(dy, min(tip_C, tip_R1));
+  float cleft_LL2 = clamp(1.0 - abs(x - (sway_L1 + sway_L2) * 0.5) / 0.024, 0.0, 1.0) * step(0.32, dy) * step(dy, min(tip_L1, tip_L2));
+  float cleft_RR2 = clamp(1.0 - abs(x - (sway_R1 + sway_R2) * 0.5) / 0.024, 0.0, 1.0) * step(0.32, dy) * step(dy, min(tip_R1, tip_R2));
+  float cleft_LL3 = clamp(1.0 - abs(x - (sway_L2 + sway_L3) * 0.5) / 0.020, 0.0, 1.0) * step(0.24, dy) * step(dy, min(tip_L2, tip_L3));
+  float cleft_RR3 = clamp(1.0 - abs(x - (sway_R2 + sway_R3) * 0.5) / 0.020, 0.0, 1.0) * step(0.24, dy) * step(dy, min(tip_R2, tip_R3));
 
   float cleft_max = max(cleft_CL, max(cleft_CR, max(cleft_LL2, max(cleft_RR2, max(cleft_LL3, cleft_RR3)))));
   float flame_silhouette = clamp(body_mass - 0.55 * branch_sprout * cleft_max, 0.0, 1.0) * in_v;
 
-  // Core: Soft diamond / V-core centered at dy ~ 0.22
-  float dy_core = dy - 0.22;
-  float core_w = 0.22 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_core) / 0.18, 1.8))));
-  float core_v = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w)) * step(-0.15, dy_core) * step(dy_core, 0.18);
+  // Core: Soft diamond / V-core centered lower at dy ~ 0.18
+  float dy_core = dy - 0.18;
+  float core_w = 0.18 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_core) / 0.20, 1.8))));
+  float core_v = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w)) * step(-0.16, dy_core) * step(dy_core, 0.20);
 
   // Tongue Spines: Luminous channels running up C, L1, R1
-  float spine_C = smoothstep(w_C * 0.40, 0.0, abs(x - sway_C)) * step(0.20, dy) * step(dy, tip_C - 0.08);
-  float spine_L1 = smoothstep(w_L1 * 0.40, 0.0, abs(x - sway_L1)) * step(0.18, dy) * step(dy, tip_L1 - 0.08);
-  float spine_R1 = smoothstep(w_R1 * 0.40, 0.0, abs(x - sway_R1)) * step(0.18, dy) * step(dy, tip_R1 - 0.08);
+  float spine_C = smoothstep(w_C * 0.40, 0.0, abs(x - sway_C)) * step(0.18, dy) * step(dy, tip_C - 0.08);
+  float spine_L1 = smoothstep(w_L1 * 0.40, 0.0, abs(x - sway_L1)) * step(0.16, dy) * step(dy, tip_L1 - 0.08);
+  float spine_R1 = smoothstep(w_R1 * 0.40, 0.0, abs(x - sway_R1)) * step(0.16, dy) * step(dy, tip_R1 - 0.08);
   float spines = spine_C * 0.28 + spine_L1 * 0.20 + spine_R1 * 0.20;
 
   float edge_dist = smoothstep(0.04, 0.28, flame_silhouette);
