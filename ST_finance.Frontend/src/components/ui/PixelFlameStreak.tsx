@@ -188,17 +188,24 @@ void main() {
   float body_sprout = smoothstep(0.02, 0.70, m);
   float branch_sprout = smoothstep(0.10, 0.88, m);
 
-  // Downward Pointing Chevron V-Hearth Base
-  float v_bottom = 0.48 * abs(x);
-  float in_v = step(v_bottom - 0.015, dy);
+  // A. Sharp Downward-Pointing Triangular V-Bottom (AxUEj.jpg)
+  float v_slope = 0.50;
+  float v_bottom = v_slope * abs(x);
+  float d_hearth = dy - v_bottom;
+  float in_triangle = step(-0.015, d_hearth);
 
-  // Solid Lower Flame Belly around Digit 2
-  float dy_mid = dy - 0.26;
-  float w_belly = 0.50 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_mid) / 0.25, 1.8))));
-  if (dy > 0.42) {
-    w_belly = 0.50 * max(0.0, 1.0 - (dy - 0.42) / 0.36);
+  // B. Volumetric Liquid Droplet / Teardrop Belly with Fluid Viscosity
+  float dy_liquid = clamp(dy / 0.46, 0.0, 1.0);
+  float droplet_bulge = sin(dy_liquid * 3.14159 * 0.70);
+  float w_tri = dy / v_slope;
+  float w_belly_max = 0.58 * pow(droplet_bulge, 0.68);
+  float liquid_sway = 0.016 * sin(dy * 16.0 - t * 4.0) + 0.010 * cos(x * 12.0 + t * 2.8);
+  float w_liquid_belly = min(w_tri, w_belly_max) + liquid_sway;
+  if (dy > 0.44) {
+    w_liquid_belly = 0.58 * max(0.0, 1.0 - (dy - 0.44) / 0.36);
   }
-  float env_belly = smoothstep(1.0, 0.15, abs(x) / max(0.008, w_belly)) * step(0.0, dy) * step(dy, 0.44) * body_sprout;
+
+  float env_belly = smoothstep(1.0, 0.08, abs(x) / max(0.008, w_liquid_belly)) * step(0.0, dy) * step(dy, 0.46) * body_sprout;
 
   // 1. CENTER MID TONGUE: Tallest Plume (~0.96)
   // Classic S-Curvature: bows left in midriff, whips right at pointed tip, snaking with heat waves
@@ -267,7 +274,7 @@ void main() {
   float env_R2 = smoothstep(1.0, 0.15, abs(x - sway_R2) / max(0.006, w_R2)) * step(0.12, dy) * step(dy, tip_R2) * branch_sprout;
 
   // Combined 5-Tongue Body Mass
-  float body_mass = max(env_belly * 0.95, max(env_C, max(env_L1, max(env_R1, max(env_L2, env_R2)))));
+  float body_mass = max(env_belly * 0.96, max(env_C, max(env_L1, max(env_R1, max(env_L2, env_R2)))));
 
   // Deep, Clean Clefts Separating the 5 Tongues
   float x_mid_CL = (sway_C + sway_L1) * 0.5;
@@ -283,12 +290,18 @@ void main() {
   float cleft_RR2 = clamp(1.0 - abs(x - x_mid_RR2) / 0.034, 0.0, 1.0) * step(0.32, dy) * step(dy, min(tip_R1, tip_R2));
 
   float cleft_max = max(max(cleft_CL, cleft_CR), max(cleft_LL2, cleft_RR2));
-  float flame_silhouette = clamp(body_mass - 0.65 * branch_sprout * cleft_max, 0.0, 1.0) * in_v;
+  float flame_silhouette = clamp(body_mass - 0.65 * branch_sprout * cleft_max, 0.0, 1.0) * in_triangle;
 
-  // Compact, Bright Diamond/V Core centered at dy ~ 0.22 behind Digit 2
-  float dy_core = dy - 0.22;
-  float core_w = 0.17 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_core) / 0.15, 1.8))));
-  float core_v = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w)) * step(-0.13, dy_core) * step(dy_core, 0.15);
+  // D. VOLUMETRIC DEFINITION IN THE BOTTOM
+  // Distinct teardrop/diamond incandescent liquid core centered at dy ~ 0.24 behind Digit 2
+  float dy_core = dy - 0.24;
+  float core_w = 0.18 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_core) / 0.14, 1.8))));
+  float core_v = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w)) * step(-0.11, dy_core) * step(dy_core, 0.14);
+
+  // Liquid Molten Churn in the Bottom Hearth (below digit 2)
+  float molten_fbm = fbm(vec2(x * 12.0, dy * 14.0 - t * 3.8));
+  float bottom_mass = smoothstep(0.0, 0.12, d_hearth) * (1.0 - smoothstep(0.24, 0.44, dy));
+  float liquid_churn = 0.18 * molten_fbm * bottom_mass;
 
   // Dynamic Luminous Spines following the wiggling curves of each tongue
   float spine_C = smoothstep(w_C * 0.38, 0.0, abs(x - sway_C)) * step(0.18, dy) * step(dy, tip_C - 0.08);
@@ -298,12 +311,17 @@ void main() {
   float spine_R2 = smoothstep(w_R2 * 0.34, 0.0, abs(x - sway_R2)) * step(0.14, dy) * step(dy, tip_R2 - 0.06);
   float spines = spine_C * 0.26 + spine_L1 * 0.16 + spine_R1 * 0.16 + spine_L2 * 0.08 + spine_R2 * 0.08;
 
-  float edge_dist = smoothstep(0.04, 0.28, flame_silhouette);
-  float body_heat = 0.32 + 0.44 * edge_dist;
+  // Definition in the Triangular Hearth:
+  // Edge distance inside silhouette creates crisp emerald contour bands
+  float edge_dist = smoothstep(0.03, 0.28, flame_silhouette);
+  // High-definition triangular hearth rim band
+  float hearth_rim = smoothstep(0.005, 0.06, d_hearth) * (1.0 - smoothstep(0.06, 0.18, d_hearth)) * step(0.0, dy) * step(dy, 0.26);
+  float body_heat = 0.36 + 0.42 * edge_dist + 0.18 * hearth_rim;
+
   float flow_y = dy * 4.2 - t * 4.8;
   float filaments = 0.05 * sin(x * 32.0 + sin(flow_y * 2.0));
 
-  float flame_heat = (body_heat + core_v * 0.68 + spines + filaments) * flame_silhouette;
+  float flame_heat = (body_heat + core_v * 0.72 + spines + filaments + liquid_churn) * flame_silhouette;
 
   // Discrete floating pixel sparks
   vec2 gridPos = floor(uv * pixelGrid);
