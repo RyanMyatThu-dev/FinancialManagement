@@ -358,7 +358,7 @@ namespace ST_finance.Domain.Features.Dashboard
                 _ => "th"
             };
         }
-         private static TimeZoneInfo ResolveTimeZone(string? timeZoneId)
+        private static TimeZoneInfo ResolveTimeZone(string? timeZoneId)
         {
             if (!string.IsNullOrWhiteSpace(timeZoneId))
             {

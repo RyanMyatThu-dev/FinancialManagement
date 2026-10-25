@@ -9,8 +9,8 @@ namespace ST_finance.Domain.Features.Notifications;
 
 public class FunNotificationEvalutor : IFunNotificationEvaluator
 {
-    private static readonly int[] MilestoneDays = [3, 7, 14, 30, 50, 100, 365];
-    private static readonly TimeOnly FixedEveningTime = new(20, 0); // 8:00 PM local time
+    private static readonly int[] _milestoneDays = [3, 7, 14, 30, 50, 100, 365];
+    private static readonly TimeOnly _fixedEveningTime = new(20, 0); // 8:00 PM local time
 
     private readonly AppDbContext _context;
     private readonly ILogger<FunNotificationEvalutor>? _logger;
@@ -48,7 +48,7 @@ public class FunNotificationEvalutor : IFunNotificationEvaluator
             // Calculate fixed evening reminder time in local timezone and convert to UTC
             var scheduledForUtc = CalculateEveningScheduledUtc(
                 todayLocal,
-                FixedEveningTime,
+                _fixedEveningTime,
                 timeZone,
                 preference.QuietHoursStart,
                 preference.QuietHoursEnd);
@@ -59,8 +59,8 @@ public class FunNotificationEvalutor : IFunNotificationEvaluator
             string actionUrl = "/transactions";
 
             // Case 1: Streak Saver - Active streak at risk of breaking tonight
-            if (profile.CurrentStreak >= 1 
-                && profile.LastLoggedDate != todayLocal 
+            if (profile.CurrentStreak >= 1
+                && profile.LastLoggedDate != todayLocal
                 && profile.LastLoggedDate == todayLocal.AddDays(-1))
             {
                 dedupeKey = $"fun:streak-saver:{preference.UserId}:{todayLocal:dd-MM-yyyy}";
@@ -70,7 +70,7 @@ public class FunNotificationEvalutor : IFunNotificationEvaluator
                     : $"You're on a {profile.CurrentStreak}-day streak! Take 10 seconds to log today's expenses before midnight.";
             }
             // Case 2: Streak Milestone - Just reached a major milestone today
-            else if (profile.LastLoggedDate == todayLocal && MilestoneDays.Contains(profile.CurrentStreak))
+            else if (profile.LastLoggedDate == todayLocal && _milestoneDays.Contains(profile.CurrentStreak))
             {
                 dedupeKey = $"fun:streak-milestone:{preference.UserId}:{profile.CurrentStreak}:{todayLocal:dd-MM-yyyy}";
                 title = $"Incredible! {profile.CurrentStreak}-Day Streak 🏆";

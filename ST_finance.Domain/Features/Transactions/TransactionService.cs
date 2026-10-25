@@ -834,7 +834,7 @@ namespace ST_finance.Domain.Features.Transactions
                 existingLog.ActualSpent = actualSpent;
             }
         }
-         private async Task UpdateUserStreakAsync(Guid userId)
+        private async Task UpdateUserStreakAsync(Guid userId)
         {
             var profile = await _context.TblUserProfiles
                 .FirstOrDefaultAsync(p => p.UserId == userId);

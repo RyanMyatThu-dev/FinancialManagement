@@ -17,6 +17,6 @@ public class NotificationSchedulingJob : INotificationSchedulingJob
     {
         await _dailyReminderNotificationEvaluator.EvaluateAsync();
         await _funNotificationEvaluator.EvaluateAsync();
-        
+
     }
 }
