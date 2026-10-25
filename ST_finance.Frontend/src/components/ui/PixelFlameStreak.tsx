@@ -213,11 +213,11 @@ void main() {
   float branch_sprout = smoothstep(0.10, 0.88, m);
 
   // ── Organic living-flame warp: upward-flowing fbm + sine sway ──
-  // This is what makes the tongues continuously writhe instead of sliding.
+  // Zero-mean symmetric warp keeps the center flame tip precisely centered
   float flow = fbm(vec2(x * 6.0, dy * 3.0 - t * 2.6));
   float flow2 = noise(vec2(x * 14.0 + 40.0, dy * 7.0 - t * 4.2));
   float sway = 0.028 * sin(t * 1.9 + dy * 3.0) + 0.018 * sin(t * 3.3 + dy * 5.2);
-  float xw = x - sway * dy - (flow - 0.5) * 0.10 * dy - (flow2 - 0.5) * 0.05 * dy;
+  float xw = x - sway * dy - flow * 0.10 * dy - flow2 * 0.05 * dy;
 
   // ── A. Sharp V-hearth bottom ──
   float v_bottom = 0.55 * abs(x);
@@ -233,7 +233,8 @@ void main() {
                   * step(0.0, dy) * step(dy, 0.46) * body_sprout;
 
   // ── C. Seven distinct tongues (matching reference silhouette) ──
-  vec4 C  = tongue(0.95, 0.030, 3.4, 0.0,  0.0,   -0.026, 2.6, 0.210, 0.85, 0.18, dy, xw, t, boost);
+  // Center Spire (C): swayA set to 0.0 so the tip stands straight and balanced in the exact center
+  vec4 C  = tongue(0.95, 0.030, 3.4, 0.0,  0.0,    0.0,   0.0, 0.210, 0.85, 0.18, dy, xw, t, boost);
   vec4 L1 = tongue(0.70, 0.030, 3.8, 1.2, -0.07,  -0.13,  1.5, 0.145, 0.80, 0.16, dy, xw, t, boost);
   vec4 R1 = tongue(0.70, 0.030, 3.6, 2.3,  0.07,   0.13,  1.5, 0.145, 0.80, 0.16, dy, xw, t, boost);
   vec4 L2 = tongue(0.47, 0.020, 4.2, 0.7, -0.135, -0.13,  1.4, 0.110, 0.75, 0.12, dy, xw, t, boost);
