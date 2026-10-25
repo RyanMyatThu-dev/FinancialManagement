@@ -86,8 +86,8 @@ float ridgeFbm(vec2 p) {
 }
 
 void main() {
-  // Quantize coordinates to discrete pixel art grid (~60x72 cells for chunky retro pixels)
-  vec2 pixelGrid = vec2(60.0, 72.0);
+  // Quantize coordinates to discrete pixel art grid (~42x60 for sharp retro pixel steps)
+  vec2 pixelGrid = vec2(42.0, 60.0);
   vec2 uv = (floor(v_uv * pixelGrid) + 0.5) / pixelGrid;
 
   // Aspect ratio correction: width / height
@@ -111,21 +111,17 @@ void main() {
   float m = 0.5 - 0.5 * cos(t_erupt * 3.14159265);
 
   // ══════════════════════════════════════════════════
-  // 1. SPHERICAL ARCANE ENERGY ORB (Ignition & Charge)
+  // 1. SPHERICAL ARCANE ENERGY ORB (Ignition & Charge - UNTOUCHED)
   // ══════════════════════════════════════════════════
-  // Isotropic circular coordinates centered at (x = 0, y = 0.40)
-  // Exactly 1:1 on screen without vertical elongation
   vec2 p_orb = vec2((uv.x - 0.5) * aspect, uv.y - 0.40);
   float r_orb = length(p_orb);
   float ang_orb = atan(p_orb.y, p_orb.x);
 
-  // Compact spherical orb gathering energy, slight compression pulse during charge
   float R_base = 0.138;
   float growth = mix(0.42, 1.0, smoothstep(0.0, 0.55, t_windup));
   float compression = 1.0 - 0.09 * sin(t_charge * 3.14159265);
   float R_curr = R_base * growth * compression;
 
-  // 3D Spherical Volume Normal & Surface Turbulence
   float r_norm = r_orb / max(0.001, R_curr);
   float z_sph = sqrt(max(0.0, 1.0 - min(1.0, r_norm * r_norm)));
 
@@ -134,21 +130,18 @@ void main() {
                  + 0.06 * fbm(vec2(p_orb.x * 24.0, p_orb.y * 24.0 - t * 4.0));
   float orb_edge = smoothstep(1.10 + orb_turb, 0.80 + orb_turb, r_norm);
 
-  // Luminous Concentrated Mint Core
   float core_pulse = 0.07 * sin(t * (7.0 + 13.0 * t_charge));
   float core_r = (0.50 - 0.16 * t_charge) + core_pulse;
   float core_base = smoothstep(core_r, 0.0, r_norm);
-  // Controlled pre-eruption flash - strictly confined to the orb core mask!
   float flash = smoothstep(0.85, 0.98, t_charge) * (1.0 - t_erupt) * 0.45;
   float core_heat = core_base + flash * smoothstep(core_r * 1.35, 0.0, r_norm);
 
-  // Rotating Irregular Arcane Arcs wrapping in 3D perspective
   float arc_rot = t * (4.2 + 5.5 * t_charge);
 
   // Arc 1 (Tilted +32 degrees)
   mat2 rot1 = mat2(0.848, -0.530, 0.530, 0.848);
   vec2 p_arc1 = rot1 * p_orb;
-  p_arc1.y *= 1.85; // Perspective foreshortening
+  p_arc1.y *= 1.85;
   float d_arc1 = abs(length(p_arc1) - R_curr * 1.26);
   float arc1_env = smoothstep(0.016, 0.0, d_arc1);
   float ang1 = atan(p_arc1.y, p_arc1.x);
@@ -173,136 +166,133 @@ void main() {
   float arc3_mask = smoothstep(0.30, 0.80, sin(ang3 * 3.0 - arc_rot * 1.4));
   float arc3 = arc3_env * arc3_mask * 0.55;
 
-  // Curved Swirling Energy Wisps (drawn inward before release)
   float wisp_inward = 14.0 * t_charge;
   float wisp1 = sin(ang_orb * 3.0 + r_orb * 32.0 - t * 7.5 - wisp_inward);
   float wisp2 = cos(ang_orb * 4.0 - r_orb * 24.0 + t * 9.5);
   float wisp_zone = smoothstep(R_curr * 1.70, R_curr * 0.85, r_orb) * smoothstep(R_curr * 0.35, R_curr * 0.75, r_orb);
   float wisps = max(0.0, wisp1 * 0.5 + wisp2 * 0.5) * wisp_zone * 0.48;
 
-  // Orbiting Procedural Arcane Sparks
   float dot_sparks = step(0.93, sin(ang_orb * 6.0 - arc_rot * 2.0) * sin(r_orb * 42.0 + t * 6.0))
                    * smoothstep(R_curr * 1.45, R_curr * 0.65, r_orb) * 0.45;
 
-  // Composite Arcane Energy Orb Heat with strict spatial boundary
   float orb_envelope = smoothstep(R_curr * 1.82, R_curr * 1.55, r_orb);
   float orb_body = orb_edge * (0.42 + 0.36 * z_sph + 0.16 * orb_turb);
   float orb_total_heat = (orb_body + core_heat * 0.68 + (arc1 + arc2 + arc3 + wisps + dot_sparks) * (1.0 - m * 0.85)) * orb_envelope;
 
   // ══════════════════════════════════════════════════
-  // 2. CLASSIC 3-TONGUE RETRO PIXEL FLAME SILHOUETTE
+  // 2. PROCEDURAL MULTI-TONGUE FLAME (MATCHING AxUEj.jpg)
   // ══════════════════════════════════════════════════
-  // Vertical position: settle base smoothly from y = 0.36 to 0.16 during eruption
-  float y_base = mix(0.36, 0.16, m);
-  float dy = (y - y_base) / 0.74; // normalized flame height [0, 1]
+  float y_base = mix(0.38, 0.06, m);
+  float dy = (y - y_base) / 0.88;
 
-  // Convective upward flow coordinates (differential speeds for living fire dynamics)
-  float flow_y = dy * 3.8 - t * 4.6;
-
-  // Sprouting progression during eruption
+  float flow_y = dy * 4.2 - t * 4.8;
   float body_sprout = smoothstep(0.02, 0.70, m);
-  float branch_sprout = smoothstep(0.12, 0.88, m);
+  float branch_sprout = smoothstep(0.10, 0.88, m);
 
-  // A. Hearth Base & Lower Belly: Flaring wide at the base (strictly ~1.4x taller than wide)
-  float dy_base = dy - 0.24;
-  float lower_flare = sqrt(max(0.0, 1.0 - pow(clamp((0.24 - dy) / 0.22, 0.0, 1.0), 2.0)));
-  float upper_taper = pow(max(0.0, 1.0 - clamp(dy_base / 0.26, 0.0, 1.0)), 0.72);
-  float base_profile = dy <= 0.24 ? lower_flare : upper_taper;
+  // A. Sharp V-Hearth Bottom (angles up from central point x=0, dy=0)
+  float v_bottom = 0.52 * abs(x);
+  float in_v = step(v_bottom - 0.012, dy);
 
-  // Half-width ~0.42 at widest point, guaranteeing classic 1.4:1 vertical proportions
-  float base_w = (0.42 + 0.015 * sin(t * 2.8 + dy * 4.5)) * base_profile;
+  // B. Full Connected Flame Body
+  float dy_mid = dy - 0.30;
+  float w_belly = 0.46 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_mid) / 0.28, 1.8))));
+  if (dy > 0.46) {
+    w_belly = 0.46 * max(0.0, 1.0 - (dy - 0.46) / 0.42);
+  }
+  float env_belly = smoothstep(1.0, 0.15, abs(x) / max(0.008, w_belly)) * step(0.0, dy) * step(dy, 0.46) * body_sprout;
 
-  float env_belly = smoothstep(1.0, 0.15, abs(x) / max(0.01, base_w))
-                  * smoothstep(-0.02, 0.06, dy)
-                  * smoothstep(0.54, 0.38, dy)
-                  * body_sprout;
-
-  // B. Three Distinct Upward Tongues / Peaks:
-  // 1. Center Tongue: Tallest vertical plume with pointed tip at top
-  float tip_C = 0.94 + 0.035 * sin(t * 3.4);
+  // C. Distinct Flame Tongues
+  // Center Spire: S-curve sway (leans left at mid, curls right at tip)
+  float tip_C = 0.96 + 0.035 * sin(t * 3.4) + 0.05 * u_boost;
   float p_C = clamp((dy - 0.18) / max(0.01, tip_C - 0.18), 0.0, 1.0);
-  float sway_C = (0.024 * sin(t * 2.6 + p_C * 3.2) + 0.014 * sin(p_C * 4.8 - t * 3.8)) * pow(p_C, 1.15);
-  float w_C = 0.20 * pow(1.0 - p_C, 0.80) * (0.86 + 0.28 * sin(p_C * 3.14159));
-  float env_C = smoothstep(1.0, 0.16, abs(x - sway_C) / max(0.006, w_C)) * step(0.16, dy) * step(dy, tip_C) * branch_sprout;
+  float sway_C = (-0.032 * sin(p_C * 2.6) + 0.024 * sin(t * 2.8 + p_C * 3.8) + 0.014 * sin(p_C * 6.5 - t * 4.5)) * pow(p_C, 1.1);
+  float w_C = 0.22 * pow(1.0 - p_C, 0.68) * (0.86 + 0.32 * sin(p_C * 3.14159));
+  float env_C = smoothstep(1.0, 0.15, abs(x - sway_C) / max(0.006, w_C)) * step(0.16, dy) * step(dy, tip_C) * branch_sprout;
 
-  // 2. Left Tongue: Distinct upward peak, slightly shorter than center
-  float tip_L = (0.78 + 0.032 * sin(t * 3.8 + 1.2)) * branch_sprout;
-  float p_L = clamp((dy - 0.20) / max(0.01, tip_L - 0.20), 0.0, 1.0);
-  float x_L = -0.08 - (0.17 + 0.020 * sin(t * 2.5 + 0.8)) * sin(p_L * 2.1) + 0.015 * sin(flow_y * 1.8) * p_L;
-  float w_L = 0.165 * pow(1.0 - p_L, 0.75) * (0.85 + 0.30 * sin(p_L * 3.14159));
-  float env_L = smoothstep(1.0, 0.16, abs(x - x_L) / max(0.006, w_L)) * step(0.18, dy) * step(dy, tip_L) * branch_sprout;
+  // Inner Left Tongue (L1): Flanking center, arched slightly outward
+  float tip_L1 = 0.86 + 0.032 * sin(t * 3.8 + 1.2);
+  float p_L1 = clamp((dy - 0.16) / max(0.01, tip_L1 - 0.16), 0.0, 1.0);
+  float sway_L1 = -0.07 - 0.16 * sin(p_L1 * 1.5) + 0.016 * sin(t * 3.2 + p_L1 * 3.5);
+  float w_L1 = 0.17 * pow(1.0 - p_L1, 0.68) * (0.86 + 0.28 * sin(p_L1 * 3.14159));
+  float env_L1 = smoothstep(1.0, 0.15, abs(x - sway_L1) / max(0.006, w_L1)) * step(0.16, dy) * step(dy, tip_L1) * branch_sprout;
 
-  // 3. Right Tongue: Distinct upward peak, slightly shorter than center
-  float tip_R = (0.80 + 0.032 * sin(t * 3.6 + 2.4)) * branch_sprout;
-  float p_R = clamp((dy - 0.20) / max(0.01, tip_R - 0.20), 0.0, 1.0);
-  float x_R = 0.08 + (0.17 + 0.020 * sin(t * 2.3 + 1.9)) * sin(p_R * 2.1) - 0.015 * sin(flow_y * 1.8) * p_R;
-  float w_R = 0.165 * pow(1.0 - p_R, 0.75) * (0.85 + 0.30 * sin(p_R * 3.14159));
-  float env_R = smoothstep(1.0, 0.16, abs(x - x_R) / max(0.006, w_R)) * step(0.18, dy) * step(dy, tip_R) * branch_sprout;
+  // Inner Right Tongue (R1): Flanking center, arched slightly outward
+  float tip_R1 = 0.86 + 0.032 * sin(t * 3.6 + 2.3);
+  float p_R1 = clamp((dy - 0.16) / max(0.01, tip_R1 - 0.16), 0.0, 1.0);
+  float sway_R1 = 0.07 + 0.16 * sin(p_R1 * 1.5) - 0.016 * sin(t * 3.0 + p_R1 * 3.5);
+  float w_R1 = 0.17 * pow(1.0 - p_R1, 0.68) * (0.86 + 0.28 * sin(p_R1 * 3.14159));
+  float env_R1 = smoothstep(1.0, 0.15, abs(x - sway_R1) / max(0.006, w_R1)) * step(0.16, dy) * step(dy, tip_R1) * branch_sprout;
 
-  // Deep clefts separating the 3 tongues
-  float cleft_LC = clamp(1.0 - abs(x - mix(x_L, sway_C, 0.50)) / 0.055, 0.0, 1.0)
-                 * smoothstep(0.42, 0.60, dy) * step(dy, min(tip_L, tip_C));
-  float cleft_RC = clamp(1.0 - abs(x - mix(x_R, sway_C, 0.50)) / 0.055, 0.0, 1.0)
-                 * smoothstep(0.42, 0.60, dy) * step(dy, min(tip_R, tip_C));
+  // Outer Left Tongue (L2): Reaches ~0.62
+  float tip_L2 = 0.62 + 0.025 * sin(t * 4.2 + 0.7);
+  float p_L2 = clamp((dy - 0.12) / max(0.01, tip_L2 - 0.12), 0.0, 1.0);
+  float sway_L2 = -0.19 - 0.16 * sin(p_L2 * 1.4);
+  float w_L2 = 0.14 * pow(1.0 - p_L2, 0.65) * (0.85 + 0.25 * sin(p_L2 * 3.14159));
+  float env_L2 = smoothstep(1.0, 0.15, abs(x - sway_L2) / max(0.006, w_L2)) * step(0.12, dy) * step(dy, tip_L2) * branch_sprout;
 
-  float composite_tongues = max(env_belly, max(env_C, max(env_L, env_R)));
-  float carved_silhouette = clamp(composite_tongues - 0.55 * branch_sprout * max(cleft_LC, cleft_RC), 0.0, 1.0);
+  // Outer Right Tongue (R2): Reaches ~0.62
+  float tip_R2 = 0.62 + 0.025 * sin(t * 4.0 + 2.1);
+  float p_R2 = clamp((dy - 0.12) / max(0.01, tip_R2 - 0.12), 0.0, 1.0);
+  float sway_R2 = 0.19 + 0.16 * sin(p_R2 * 1.4);
+  float w_R2 = 0.14 * pow(1.0 - p_R2, 0.65) * (0.85 + 0.25 * sin(p_R2 * 3.14159));
+  float env_R2 = smoothstep(1.0, 0.15, abs(x - sway_R2) / max(0.006, w_R2)) * step(0.12, dy) * step(dy, tip_R2) * branch_sprout;
 
-  // Micro-notches for authentic retro pixel stepping at fire edges
-  float micro_notches = 0.09 * fbm(vec2(x * 9.5 + 0.14 * sin(flow_y * 1.5), flow_y * 1.8));
-  float flame_silhouette = clamp(carved_silhouette + micro_notches * step(0.08, carved_silhouette), 0.0, 1.0);
+  // Left & Right Flank Teeth (L3, R3): Reaches ~0.45
+  float tip_L3 = 0.45 + 0.020 * sin(t * 4.6 + 1.8);
+  float p_L3 = clamp((dy - 0.10) / max(0.01, tip_L3 - 0.10), 0.0, 1.0);
+  float sway_L3 = -0.32 - 0.10 * sin(p_L3 * 1.2);
+  float w_L3 = 0.10 * (1.0 - p_L3);
+  float env_L3 = smoothstep(1.0, 0.15, abs(x - sway_L3) / max(0.006, w_L3)) * step(0.10, dy) * step(dy, tip_L3) * branch_sprout;
+
+  float tip_R3 = 0.45 + 0.020 * sin(t * 4.4 + 3.1);
+  float p_R3 = clamp((dy - 0.10) / max(0.01, tip_R3 - 0.10), 0.0, 1.0);
+  float sway_R3 = 0.32 + 0.10 * sin(p_R3 * 1.2);
+  float w_R3 = 0.10 * (1.0 - p_R3);
+  float env_R3 = smoothstep(1.0, 0.15, abs(x - sway_R3) / max(0.006, w_R3)) * step(0.10, dy) * step(dy, tip_R3) * branch_sprout;
+
+  // Full connected body mass
+  float body_mass = max(env_belly * 0.96, max(env_C, max(env_L1, max(env_R1, max(env_L2, max(env_R2, max(env_L3, env_R3)))))));
+
+  // Clefts: Clean V-incisions between tongues
+  float cleft_CL = clamp(1.0 - abs(x - (sway_C + sway_L1) * 0.5) / 0.028, 0.0, 1.0) * step(0.48, dy) * step(dy, min(tip_C, tip_L1));
+  float cleft_CR = clamp(1.0 - abs(x - (sway_C + sway_R1) * 0.5) / 0.028, 0.0, 1.0) * step(0.48, dy) * step(dy, min(tip_C, tip_R1));
+  float cleft_LL2 = clamp(1.0 - abs(x - (sway_L1 + sway_L2) * 0.5) / 0.024, 0.0, 1.0) * step(0.38, dy) * step(dy, min(tip_L1, tip_L2));
+  float cleft_RR2 = clamp(1.0 - abs(x - (sway_R1 + sway_R2) * 0.5) / 0.024, 0.0, 1.0) * step(0.38, dy) * step(dy, min(tip_R1, tip_R2));
+  float cleft_LL3 = clamp(1.0 - abs(x - (sway_L2 + sway_L3) * 0.5) / 0.022, 0.0, 1.0) * step(0.28, dy) * step(dy, min(tip_L2, tip_L3));
+  float cleft_RR3 = clamp(1.0 - abs(x - (sway_R2 + sway_R3) * 0.5) / 0.022, 0.0, 1.0) * step(0.28, dy) * step(dy, min(tip_R2, tip_R3));
+
+  float cleft_max = max(cleft_CL, max(cleft_CR, max(cleft_LL2, max(cleft_RR2, max(cleft_LL3, cleft_RR3)))));
+  float flame_silhouette = clamp(body_mass - 0.55 * branch_sprout * cleft_max, 0.0, 1.0) * in_v;
+
+  // Core: Soft diamond / V-core centered at dy ~ 0.22
+  float dy_core = dy - 0.22;
+  float core_w = 0.22 * sqrt(max(0.0, 1.0 - min(1.0, pow(abs(dy_core) / 0.18, 1.8))));
+  float core_v = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w)) * step(-0.15, dy_core) * step(dy_core, 0.18);
+
+  // Tongue Spines: Luminous channels running up C, L1, R1
+  float spine_C = smoothstep(w_C * 0.40, 0.0, abs(x - sway_C)) * step(0.20, dy) * step(dy, tip_C - 0.08);
+  float spine_L1 = smoothstep(w_L1 * 0.40, 0.0, abs(x - sway_L1)) * step(0.18, dy) * step(dy, tip_L1 - 0.08);
+  float spine_R1 = smoothstep(w_R1 * 0.40, 0.0, abs(x - sway_R1)) * step(0.18, dy) * step(dy, tip_R1 - 0.08);
+  float spines = spine_C * 0.28 + spine_L1 * 0.20 + spine_R1 * 0.20;
+
+  float edge_dist = smoothstep(0.04, 0.28, flame_silhouette);
+  float body_heat = 0.32 + 0.46 * edge_dist;
+  float filaments = 0.06 * sin(x * 32.0 + sin(flow_y * 2.0));
+
+  float flame_heat = (body_heat + core_v * 0.65 + spines + filaments) * flame_silhouette;
+
+  // Floating detached sparks
+  float spark_hash = sin(dot(uv * pixelGrid, vec2(127.1, 311.7)) + t * 4.5) * 43758.5453;
+  float spark_val = fract(spark_hash);
+  if (spark_val > 0.962 && dy > 0.40 && dy < 0.98 && abs(x) < 0.44 && flame_silhouette < 0.06) {
+    flame_heat += 0.85;
+  }
 
   // ══════════════════════════════════════════════════
-  // 3. LAYERED INTERNAL TEXTURE & HIGHLIGHT CORE
-  // ══════════════════════════════════════════════════
-  // Base body heat: edge falls off into pine/forest emerald, bulk of body is vivid emerald
-  float edge_dist = smoothstep(0.04, 0.36, carved_silhouette);
-  float body_heat = 0.18 + 0.38 * edge_dist;
-
-  // Convective swirling flame filaments
-  vec2 flow_uv = vec2(x * 6.0 + 0.16 * sin(flow_y * 1.4), flow_y * 1.5);
-  float vert_filaments = 0.12 * ridgeFbm(flow_uv);
-  float vert_streaks = 0.08 * fbm(flow_uv * 1.30 + vec2(1.9, -1.0));
-
-  // Tongue spine highlights along the 3 tongues
-  float spine_C = smoothstep(w_C * 0.50, 0.0, abs(x - sway_C)) * smoothstep(0.24, 0.40, dy) * smoothstep(tip_C, tip_C - 0.12, dy);
-  float spine_L = smoothstep(w_L * 0.48, 0.0, abs(x - x_L)) * smoothstep(0.26, 0.42, dy) * smoothstep(tip_L, tip_L - 0.12, dy);
-  float spine_R = smoothstep(w_R * 0.48, 0.0, abs(x - x_R)) * smoothstep(0.26, 0.42, dy) * smoothstep(tip_R, tip_R - 0.12, dy);
-  float tongue_spines = (spine_C * 0.20 + spine_L * 0.14 + spine_R * 0.14);
-
-  // Bright white diamond/oval-shaped highlight in center that forms a soft "V" or teardrop of light
-  // Centered around streak digit at dy ~ 0.28
-  float dy_core = dy - 0.28;
-  float lower_core = sqrt(max(0.0, 1.0 - pow(clamp(-dy_core / 0.16, 0.0, 1.0), 2.0)));
-  float upper_core = pow(max(0.0, 1.0 - clamp(dy_core / 0.24, 0.0, 1.0)), 1.15);
-  float core_profile = dy_core <= 0.0 ? lower_core : upper_core;
-  float core_w = 0.19 * core_profile;
-  float core_teardrop = smoothstep(1.0, 0.15, abs(x) / max(0.005, core_w)) * step(-0.16, dy_core) * step(dy_core, 0.24);
-
-  // Upward soft V-highlight branching gently toward the center/side clefts
-  float soft_v = smoothstep(0.0, 0.20, dy_core) * smoothstep(0.04, 0.14, abs(x)) * smoothstep(0.26, 0.08, dy_core) * 0.45;
-  float core_light = max(core_teardrop, soft_v);
-
-  float core_flow = dy * 4.6 - t * 6.8;
-  float core_streaks = 0.12 * fbm(vec2(x * 14.0 + 0.10 * sin(core_flow * 1.4), core_flow * 1.3));
-  float flame_core_intensity = core_light * (0.85 + core_streaks);
-
-  float inner_heat = tongue_spines + flame_core_intensity * 0.72;
-
-  float flame_heat = (body_heat + vert_filaments + vert_streaks + inner_heat) * flame_silhouette;
-  flame_heat *= step(0.04, flame_silhouette);
-
-  // Small 1-pixel sparks floating above the tips
-  float spark_grid = fbm(vec2(x * 24.0, flow_y * 3.8));
-  float sparks = step(0.72, spark_grid) * step(0.68, dy) * step(dy, 0.98) * clamp(1.0 - abs(x) / 0.36, 0.0, 1.0) * 0.30;
-  flame_heat += sparks;
-
-  // ══════════════════════════════════════════════════
-  // 4. CONTINUOUS SPHERICAL ERUPTION MORPHING
+  // 3. CONTINUOUS SPHERICAL ERUPTION MORPHING
   // ══════════════════════════════════════════════════
   float total_heat = mix(orb_total_heat, flame_heat, m);
 
-  // Dynamic tearing wisps during eruption burst (widened to match new body envelope)
   float erupt_burst = sin(m * 3.14159265);
   if (erupt_burst > 0.01 && y > 0.38 && y < 0.85) {
     float flame_env_x = smoothstep(0.32 * (1.0 - (y - 0.38) * 1.2), 0.0, abs(x));
@@ -310,11 +300,9 @@ void main() {
     total_heat += tear_wisps * smoothstep(0.38, 0.55, y);
   }
 
-  // Master spatial boundary: STRICTLY guarantee 0 alpha & 0 color outside active flame/orb geometry
   float active_envelope = max(orb_envelope * (1.0 - m * 0.9), flame_silhouette);
   total_heat *= smoothstep(0.01, 0.06, active_envelope);
 
-  // Strict transparent background cutoff: pixels outside flame/orb MUST be zero RGB and zero alpha
   if (total_heat < 0.10) {
     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
     return;
@@ -323,23 +311,23 @@ void main() {
   total_heat *= (1.0 + 0.22 * u_boost);
 
   // ══════════════════════════════════════════════════
-  // 5. PURE NEON GREEN & WHITE CORE PIXEL PALETTE
+  // 4. PURE NEON GREEN & WHITE CORE PIXEL PALETTE (AxUEj.jpg)
   // ══════════════════════════════════════════════════
   vec4 color = vec4(0.0);
 
-  if (total_heat >= 0.10 && total_heat < 0.22) {
-    color = vec4(0.01, 0.10, 0.05, 0.88); // Deep pine border contour
-  } else if (total_heat >= 0.22 && total_heat < 0.38) {
-    color = vec4(0.02, 0.28, 0.14, 0.94); // Dark forest emerald
-  } else if (total_heat >= 0.38 && total_heat < 0.54) {
+  if (total_heat >= 0.10 && total_heat < 0.26) {
+    color = vec4(0.01, 0.11, 0.06, 0.92); // Deep pine border contour
+  } else if (total_heat >= 0.26 && total_heat < 0.44) {
+    color = vec4(0.02, 0.27, 0.14, 0.96); // Dark forest emerald
+  } else if (total_heat >= 0.44 && total_heat < 0.62) {
     color = vec4(0.00, 0.68, 0.34, 1.0);  // Deep neon green
-  } else if (total_heat >= 0.54 && total_heat < 0.72) {
+  } else if (total_heat >= 0.62 && total_heat < 0.78) {
     color = vec4(0.00, 1.00, 0.50, 1.0);  // Signature Neon Green (#00FF7F)
-  } else if (total_heat >= 0.72 && total_heat < 0.86) {
-    color = vec4(0.00, 1.00, 0.53, 1.0);  // Signature Neon Mint (#00FF88)
-  } else if (total_heat >= 0.86 && total_heat < 0.95) {
-    color = vec4(0.65, 1.00, 0.84, 1.0);  // High-contrast Cyber Mint highlight
-  } else if (total_heat >= 0.95) {
+  } else if (total_heat >= 0.78 && total_heat < 0.88) {
+    color = vec4(0.00, 1.00, 0.56, 1.0);  // Signature Neon Mint (#00FF88)
+  } else if (total_heat >= 0.88 && total_heat < 0.96) {
+    color = vec4(0.66, 1.00, 0.86, 1.0);  // High-contrast Cyber Mint highlight
+  } else if (total_heat >= 0.96) {
     color = vec4(1.00, 1.00, 1.00, 1.0);  // Bright Incandescent White Core
   }
 
@@ -453,14 +441,11 @@ export function PixelFlameStreak({
   manualTime,
 }: PixelFlameStreakProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const flameCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const particleCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const streakNumRef = useRef<HTMLDivElement | null>(null);
   const [isStoked, setIsStoked] = useState(false);
   const stokeRef = useRef<number>(0);
   const eruptBurstFiredRef = useRef<boolean>(false);
-
-  const isStreak2 = streak === 2;
 
   const dimensions = {
     sm: { cssW: "w-20", cssH: "h-28", numSize: "text-lg", auraW: "w-24", auraH: "h-28" },
@@ -477,9 +462,8 @@ export function PixelFlameStreak({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const fCanvas = flameCanvasRef.current;
     const pCanvas = particleCanvasRef.current;
-    if (!canvas || !fCanvas || !pCanvas) return;
+    if (!canvas || !pCanvas) return;
 
     let gl: WebGLRenderingContext | null = null;
     let program: WebGLProgram | null = null;
@@ -496,7 +480,6 @@ export function PixelFlameStreak({
       gl = null;
     }
 
-    const fCtx = fCanvas.getContext("2d");
     const pCtx = pCanvas.getContext("2d");
 
     const rect = canvas.getBoundingClientRect();
@@ -508,35 +491,8 @@ export function PixelFlameStreak({
 
     canvas.width = W;
     canvas.height = H;
-    fCanvas.width = W;
-    fCanvas.height = H;
     pCanvas.width = W;
     pCanvas.height = H;
-
-    // Load living flame sprite (badge sprite for streak 2, blank sprite for other numbers)
-    const flameImg = new Image();
-    flameImg.src = isStreak2
-      ? "/flame-stages/flame_badge_sprite.png"
-      : "/flame-stages/flame_blank_sprite.png";
-
-    // Aspect ratio fit calculations (sprite is 600x854, aspect ~0.7025)
-    const targetAspect = 600 / 854;
-    const containerAspect = W / H;
-    let drawW = W;
-    let drawH = H;
-    let drawX = 0;
-    let drawY = 0;
-
-    if (containerAspect > targetAspect) {
-      drawW = Math.round(H * targetAspect);
-      drawX = Math.round((W - drawW) / 2);
-    } else {
-      drawH = Math.round(W / targetAspect);
-      drawY = Math.round((H - drawH) / 2);
-    }
-
-    // Digit center position inside the teardrop white core (measured at 72.38% from sprite top)
-    const digitTopPercent = ((drawY + drawH * 0.7238) / H) * 100;
 
     let uResolutionLoc: WebGLUniformLocation | null = null;
     let uTimeLoc: WebGLUniformLocation | null = null;
@@ -632,8 +588,8 @@ export function PixelFlameStreak({
         vy = Math.sin(angle) * speed * dpr;
       } else {
         // Phase 5: Living flame steady rising embers
-        originX = W * 0.5 + (Math.random() - 0.5) * (drawW * 0.65);
-        originY = drawY + drawH * (0.60 - Math.random() * 0.50);
+        originX = W * 0.5 + (Math.random() - 0.5) * 44 * dpr;
+        originY = H * (0.65 - Math.random() * 0.45);
         const angle = -Math.PI * 0.5 + (Math.random() - 0.5) * 0.85;
         const speed = 0.6 + Math.random() * 1.2;
         vx = Math.cos(angle) * speed * dpr;
@@ -678,64 +634,31 @@ export function PixelFlameStreak({
       const elapsedSec = manualTime !== undefined ? manualTime : (now - startTime) * 0.001;
       const effectiveTime = prefersReducedMotion ? elapsedSec * 0.4 : elapsedSec;
 
-      // Update layers across animation phases
-      if (flameCanvasRef.current && canvasRef.current) {
-        if (effectiveTime < 1.00) {
-          // Arcane energy orb (0.0s - 1.0s): Orb canvas fully active, flame canvas hidden
-          canvasRef.current.style.opacity = "1";
-          flameCanvasRef.current.style.opacity = "0";
-
-          if (streakNumRef.current) {
-            streakNumRef.current.style.top = "60%";
-            if (effectiveTime < 0.25) {
-              const fadeIn = Math.min(1.0, effectiveTime / 0.25);
-              streakNumRef.current.style.opacity = fadeIn.toString();
-              streakNumRef.current.style.transform = "translate(-50%, -50%) scale(0.92)";
-            } else if (effectiveTime < 0.60) {
-              streakNumRef.current.style.opacity = "1";
-              streakNumRef.current.style.transform = "translate(-50%, -50%) scale(0.95)";
-            } else {
-              const chargeNorm = (effectiveTime - 0.60) / 0.40;
-              const pulse = 0.95 + 0.05 * Math.sin(chargeNorm * Math.PI * 4);
-              streakNumRef.current.style.opacity = "1";
-              streakNumRef.current.style.transform = `translate(-50%, -50%) scale(${pulse})`;
-            }
-          }
+      // Update streak number position and animation
+      if (streakNumRef.current) {
+        streakNumRef.current.style.top = "60%";
+        if (effectiveTime < 0.25) {
+          const fadeIn = Math.min(1.0, effectiveTime / 0.25);
+          streakNumRef.current.style.opacity = fadeIn.toString();
+          streakNumRef.current.style.transform = "translate(-50%, -50%) scale(0.92)";
+        } else if (effectiveTime < 0.60) {
+          streakNumRef.current.style.opacity = "1";
+          streakNumRef.current.style.transform = "translate(-50%, -50%) scale(0.95)";
+        } else if (effectiveTime < 1.00) {
+          const chargeNorm = (effectiveTime - 0.60) / 0.40;
+          const pulse = 0.95 + 0.05 * Math.sin(chargeNorm * Math.PI * 4);
+          streakNumRef.current.style.opacity = "1";
+          streakNumRef.current.style.transform = `translate(-50%, -50%) scale(${pulse})`;
         } else if (effectiveTime < 1.50) {
-          // Eruption phase (1.0s - 1.5s): Smooth crossfade & scale up
           const eruptNorm = (effectiveTime - 1.00) / 0.50;
-          canvasRef.current.style.opacity = (1.0 - eruptNorm * 0.95).toString();
-          flameCanvasRef.current.style.opacity = eruptNorm.toString();
-          const scaleVal = 0.88 + 0.12 * eruptNorm;
-          flameCanvasRef.current.style.transform = `scale(${scaleVal})`;
-
-          if (streakNumRef.current) {
-            if (isStreak2) {
-              streakNumRef.current.style.opacity = (1.0 - eruptNorm).toString();
-            } else {
-              streakNumRef.current.style.top = `${digitTopPercent.toFixed(1)}%`;
-              streakNumRef.current.style.opacity = "1";
-              streakNumRef.current.style.transform = `translate(-50%, -50%) scale(${scaleVal})`;
-            }
-          }
+          const scaleVal = 0.95 + 0.08 * eruptNorm;
+          streakNumRef.current.style.opacity = "1";
+          streakNumRef.current.style.transform = `translate(-50%, -50%) scale(${scaleVal})`;
         } else {
-          // Living flame phase (> 1.5s): Actively moving flame
-          canvasRef.current.style.opacity = "0";
-          flameCanvasRef.current.style.opacity = "1";
-
           const stokeScale = stokeRef.current > 0.01 ? 1.05 : 1.0;
-          const flicker = (1.0 + 0.008 * Math.sin(effectiveTime * 6.5)) * stokeScale;
-          flameCanvasRef.current.style.transform = `scale(${flicker})`;
-
-          if (streakNumRef.current) {
-            if (isStreak2) {
-              streakNumRef.current.style.opacity = "0";
-            } else {
-              streakNumRef.current.style.top = `${digitTopPercent.toFixed(1)}%`;
-              streakNumRef.current.style.opacity = "1";
-              streakNumRef.current.style.transform = `translate(-50%, -50%) scale(${flicker})`;
-            }
-          }
+          const flicker = (1.0 + 0.010 * Math.sin(effectiveTime * 7.0)) * stokeScale;
+          streakNumRef.current.style.opacity = "1";
+          streakNumRef.current.style.transform = `translate(-50%, -50%) scale(${flicker})`;
         }
       }
 
@@ -759,7 +682,7 @@ export function PixelFlameStreak({
         stokeRef.current = 0.0;
       }
 
-      // ── 1. RENDER WEBGL ARCANE ORB BODY (UNTOUCHED ORB PHASE) ──
+      // ── 1. RENDER WEBGL ARCANE ORB & PROCEDURAL MULTI-TONGUE FLAME ──
       if (gl && program) {
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -774,71 +697,10 @@ export function PixelFlameStreak({
         pCtx.clearRect(0, 0, W, H);
       }
 
-      // ── 2. RENDER LIVING MOVING PIXEL FLAME (CANVAS 2D) ──
-      if (fCtx && (flameImg.complete || flameImg.naturalWidth > 0)) {
-        fCtx.imageSmoothingEnabled = false;
-        fCtx.clearRect(0, 0, W, H);
-
-        if (effectiveTime >= 0.95) {
-          const imgW = flameImg.naturalWidth || 600;
-          const imgH = flameImg.naturalHeight || 854;
-
-          // Slicing: discrete chunky pixel strips
-          const stripH = Math.max(2, Math.round(drawH / 44));
-          const numStrips = Math.ceil(drawH / stripH);
-          const stokeVal = stokeRef.current;
-
-          for (let i = 0; i < numStrips; i++) {
-            const dstStripY = drawY + i * stripH;
-            const normY = 1.0 - (i * stripH + stripH * 0.5) / drawH;
-
-            let shiftX = 0;
-            let shiftY = 0;
-
-            // Lower 48% is egg teardrop base, white core, and digit (ANCHORED & SOLID)
-            if (normY > 0.46) {
-              const tonguePower = Math.min(1.0, (normY - 0.46) / 0.46);
-              const stokeMul = 1.0 + stokeVal * 0.9;
-
-              // Convective sway
-              const wave1 = Math.sin(effectiveTime * 3.8 + normY * 7.5) * 2.8;
-              const wave2 = Math.sin(effectiveTime * 7.2 - normY * 11.0) * 1.3;
-              const sway = (wave1 + wave2) * Math.pow(tonguePower, 1.3) * stokeMul * dpr;
-
-              // Vertical lick & bob
-              const lick1 = Math.sin(effectiveTime * 6.0 - normY * 8.5) * 1.8;
-              const lick2 = Math.cos(effectiveTime * 3.4) * 0.7;
-              const lick = (lick1 + lick2) * Math.pow(tonguePower, 1.5) * stokeMul * dpr;
-
-              // Quantize to integer device pixels for chunky retro pixel stepping
-              const pxStep = Math.max(1, Math.round(dpr));
-              shiftX = Math.round(sway / pxStep) * pxStep;
-              shiftY = Math.round(lick / pxStep) * pxStep;
-            }
-
-            const srcY = Math.round((i * stripH / drawH) * imgH);
-            const srcStripH = Math.round(((stripH + 1) / drawH) * imgH);
-
-            fCtx.drawImage(
-              flameImg,
-              0,
-              Math.max(0, Math.min(imgH - 1, srcY)),
-              imgW,
-              Math.min(imgH - srcY, srcStripH),
-              drawX + shiftX,
-              dstStripY + shiftY,
-              drawW,
-              stripH + 1
-            );
-          }
-        }
-      }
-
-      // ── 3. RENDER PIXEL EMBERS ON CANVAS 2D ──
+      // ── 2. RENDER PIXEL EMBERS ON CANVAS 2D ──
       if (pCtx) {
         pCtx.clearRect(0, 0, W, H);
 
-        // Spawn steady ambient embers
         if (particles.length < MAX_PARTICLES && Math.random() < 0.50) {
           particles.push(spawnEmber(effectiveTime, false));
         }
@@ -855,7 +717,6 @@ export function PixelFlameStreak({
           const lifeNorm = p.life / p.maxLife;
           const fade = Math.sin(lifeNorm * Math.PI);
 
-          // Upward convection drift with turbulent sway
           p.vy -= (effectiveTime < 1.0 ? 0.01 : 0.035) * dpr;
           const drift = Math.sin(effectiveTime * 4.5 + p.driftSeed) * 0.35 * dpr;
           p.x += p.vx + drift;
@@ -881,7 +742,7 @@ export function PixelFlameStreak({
         if (positionBuffer) gl.deleteBuffer(positionBuffer);
       }
     };
-  }, [dimensions, size, manualTime, isStreak2]);
+  }, [dimensions, size, manualTime]);
 
   return (
     <div
@@ -898,21 +759,10 @@ export function PixelFlameStreak({
 
       {/* Flame Container */}
       <div className={`relative ${dimensions.cssW} ${dimensions.cssH} flex items-center justify-center transition-transform duration-200 active:scale-95`}>
-        {/* WebGL Arcane Energy Orb Canvas (Ignition & Charge) */}
+        {/* WebGL Arcane Energy Orb & Procedural Pixel Flame (100% Procedural GPU Shader) */}
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-150 z-10"
-        />
-
-        {/* Living Moving Pixel Flame Canvas - Identical to pixel_flame_badge_2.jpg */}
-        <canvas
-          ref={flameCanvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none select-none z-15"
-          style={{
-            imageRendering: "pixelated",
-            opacity: manualTime !== undefined ? (manualTime >= 1.0 ? 1 : 0) : 0,
-            transform: "scale(1.0)",
-          }}
+          className="absolute inset-0 w-full h-full pointer-events-none select-none z-10"
         />
 
         {/* Dynamic Embers Overlay Canvas */}
@@ -926,7 +776,7 @@ export function PixelFlameStreak({
           ref={streakNumRef}
           className="absolute top-[60%] left-1/2 pointer-events-none select-none flex flex-col items-center justify-center transition-transform duration-75 z-30"
           style={{
-            opacity: manualTime !== undefined ? (isStreak2 && manualTime >= 1.0 ? 0 : 1) : 0,
+            opacity: manualTime !== undefined ? 1 : 0,
             transform: "translate(-50%, -50%) scale(0.95)",
           }}
         >
